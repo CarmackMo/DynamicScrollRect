@@ -631,7 +631,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
         if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && firstItemIdx < layoutConstrainCount)
             return false;
-        if (availableItems <= 0)
+        if (availableSubItems <= 0)
             return false;
 
         for (int i = 0; i < layoutConstrainCount; i++)
@@ -642,10 +642,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
             /* Update the information for the items that are currently displaying */
             size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            availableItems--;
+            availableSubItems--;
             lastItemIdx--;
 
-            if (lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
+            if (lastItemIdx % layoutConstrainCount == 0 || availableSubItems == 0)
                 break;
         }
 
