@@ -1759,6 +1759,7 @@ MonoBehaviour:
   item: {fileID: 297131030}
   itemGroupList:
   - subContentIdx: 3
+    subItemCount: 30
     itemList:
     - {fileID: 297131030}
     - {fileID: 1817159088}
