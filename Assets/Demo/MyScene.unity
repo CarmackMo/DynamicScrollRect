@@ -1758,8 +1758,8 @@ MonoBehaviour:
   scrollContent: {fileID: 1209627759}
   item: {fileID: 297131030}
   itemGroupList:
-  - subContentIdx: 3
-    subItemCount: 30
+  - nestedItemIdx: 3
+    subItemCount: 50
     itemList:
     - {fileID: 297131030}
     - {fileID: 1817159088}
@@ -1767,6 +1767,7 @@ MonoBehaviour:
     - {fileID: 867609428}
     subItemList:
     - {fileID: 297131030}
+    subItem: {fileID: 867609428}
   horizontalScrollbar: {fileID: 339932216}
   verticalScrollbar: {fileID: 1198309498}
   horizontalScrollbarVisibility: 1
