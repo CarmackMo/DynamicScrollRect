@@ -1767,7 +1767,7 @@ MonoBehaviour:
     - {fileID: 867609428}
     subItemList:
     - {fileID: 297131030}
-    subItem: {fileID: 867609428}
+    subItem: {fileID: 297131030}
   horizontalScrollbar: {fileID: 339932216}
   verticalScrollbar: {fileID: 1198309498}
   horizontalScrollbarVisibility: 1
