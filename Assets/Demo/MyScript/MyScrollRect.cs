@@ -586,6 +586,40 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         return true;
     }
 
+
+    public bool AddItemGroupAtEnd(out float size, bool considerSpacing, GameObject parent)
+    {
+        size = 0;
+        if (lastItemGroupIdx >= itemGroupList.Count )
+            return false;
+
+        var newItemGroup = itemGroupList[lastItemGroupIdx];
+        if (displayItemGroupList.Contains(newItemGroup))
+            return false;
+
+        if (AddItemAtEnd(out size, true, newItemGroup.itemList[newItemGroup.lastItemIdx], parent, newItemGroup))
+        {
+            if (newItemGroup.lastItemIdx - 1 == newItemGroup.nestedItemIdx && newItemGroup.subItemCount >= 0 && newItemGroup.lastSubItemIdx < newItemGroup.subItemCount)
+                AddSubItemAtEnd(out size, true, newItemGroup.subItem, newItemGroup.displayItemList[newItemGroup.displayItemList.Count - 1], newItemGroup);
+
+            displayItemGroupList.Add(newItemGroup);
+            lastItemGroupIdx++;
+
+            if (reverseDirection)
+            {
+                Vector2 offset = GetVector2(size);
+                scrollContentRect.anchoredPosition -= offset;
+                prevPos -= offset;
+                contentStartPos -= offset;
+            }
+
+            return true;
+        }
+        else
+            return false;
+
+    }
+
     #endregion
 
     #endregion
@@ -818,7 +852,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         if (!reverseDirection)
         {
             Vector2 offset = GetVector2(size);
-            parent.GetComponent<RectTransform>().anchoredPosition -= offset;
+            //parent.GetComponent<RectTransform>().anchoredPosition -= offset;
             scrollContentRect.anchoredPosition -= offset;
             prevPos -= offset;
             contentStartPos -= offset;
@@ -865,6 +899,24 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             prevPos += offset;
             contentStartPos += offset;
         }
+
+        return true;
+    }
+
+
+    public bool RemoveItemGroupAtStart(out float size)
+    {
+        size = 0;
+        if (firstItemGroupIdx >= itemGroupList.Count - 1)
+            return false;
+
+        var currentItemGroup = displayItemGroupList[0];
+
+        if (currentItemGroup.firstItemIdx < currentItemGroup.itemCount)
+            return false;
+
+        displayItemGroupList.RemoveAt(0);
+        firstItemGroupIdx++;
 
         return true;
     }
@@ -2297,14 +2349,14 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                  currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
                  currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
             {
-                // TO DO: create a new item group
+                AddItemGroupAtEnd(out size, true, scrollContent);
+                deltaSize += size;
             }
             else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
             {
                 AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemList.Count - 1], currItemGroup);
                 deltaSize = size;
             }
-            //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
             else
             {
                 AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
@@ -2321,14 +2373,14 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                      currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
                      currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
                 {
-                    // TO DO: create a new item group
+                    addSuccess = AddItemGroupAtEnd(out size, true, scrollContent);
+                    deltaSize += size;
                 }
                 else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
                 {
                     addSuccess = AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemList.Count - 1], currItemGroup);
                     deltaSize += size;
                 }
-                //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
                 else
                 {
                     addSuccess = AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
@@ -2403,17 +2455,19 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 /* need to consider downward item spacing for each item */
                 RemoveItemAtStart(out size, true, currItemGroup);
                 deltaSize += size;
-                // TO DO: remove the whole item group
+                RemoveItemGroupAtStart(out size);
+                deltaSize += size;
             }
             else if (currItemGroup.firstItemIdx == currItemGroup.itemCount - 1 &&               /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
                      currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                     currItemGroup.firstSubItemIdx == currItemGroup.subItemCount - 1)
+                     currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)
             {
                 RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[currItemGroup.firstItemIdx], currItemGroup);
                 deltaSize += size;
                 RemoveItemAtStart(out size, true, currItemGroup);
                 deltaSize += size;
-                // TO DO: remove the whole item group
+                RemoveItemGroupAtStart(out size);
+                deltaSize += size;
             }
             else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                 /* Case 3: the first item is not the last item and is not a nested item */
             {
@@ -2422,7 +2476,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             }
             else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
             {
-                if (currItemGroup.firstSubItemIdx == currItemGroup.subItemCount - 1)            /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+                if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)            /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
                 {
                     RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
                     deltaSize += size;
@@ -2436,7 +2490,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 }
             }
 
-            while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - threshold - contentTopPadding - deltaSize)
+            while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize)
             {
                 bool removeSuccess = false;
 
@@ -2446,17 +2500,19 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     /* need to consider downward item spacing for each item */
                     removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
-                    // TO DO: remove the whole item group
+                    removeSuccess = RemoveItemGroupAtStart(out size);
+                    deltaSize += size;
                 }
                 else if (currItemGroup.firstItemIdx == currItemGroup.itemCount - 1 &&
                          currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                         currItemGroup.firstSubItemIdx == currItemGroup.subItemCount - 1)
+                         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)
                 {
                     removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[currItemGroup.firstItemIdx], currItemGroup);
                     deltaSize += size;
                     removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
-                    // TO DO: remove the whole item group
+                    removeSuccess = RemoveItemGroupAtStart(out size);
+                    deltaSize += size;
                 }
                 else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
                 {
@@ -2465,7 +2521,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 }
                 else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
                 {
-                    if (currItemGroup.firstSubItemIdx == currItemGroup.subItemCount - 1)
+                    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)
                     {
                         removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[currItemGroup.firstItemIdx], currItemGroup);
                         deltaSize += size;
@@ -2519,6 +2575,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             //UpdateScrollItems();
             UpdateScrollItemGroups();
             Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
             CalculateContentBounds();
 
             //Debug.LogFormat("On update bounds, new scrollContent bounds center: {0}, bounds size: {1}, bound max: {2}", scrollContentBounds.center, scrollContentBounds.size, scrollContentBounds.max);

@@ -1015,7 +1015,7 @@ MonoBehaviour:
     m_Right: 0
     m_Top: 0
     m_Bottom: 0
-  m_ChildAlignment: 1
+  m_ChildAlignment: 0
   m_StartCorner: 0
   m_StartAxis: 0
   m_CellSize: {x: 50, y: 50}
@@ -1760,6 +1760,16 @@ MonoBehaviour:
   itemGroupList:
   - nestedItemIdx: 2
     subItemCount: 50
+    itemList:
+    - {fileID: 297131030}
+    - {fileID: 1817159088}
+    - {fileID: 867609428}
+    - {fileID: 1865640846}
+    subItemList:
+    - {fileID: 297131030}
+    subItem: {fileID: 297131030}
+  - nestedItemIdx: 2
+    subItemCount: 70
     itemList:
     - {fileID: 297131030}
     - {fileID: 1817159088}
