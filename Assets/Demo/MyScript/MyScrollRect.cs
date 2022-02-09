@@ -785,8 +785,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         int availableItems = itemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
 
         /* special case: when moving or dragging, we cannot simply delete start when we've reached the end */
-        if ((isDragging || velocity != Vector2.zero) && itemGroup.itemCount >= 0 && itemGroup.firstItemIdx  >= itemGroup.itemCount)
         //if ((isDragging || velocity != Vector2.zero) && itemGroup.itemCount >= 0 && itemGroup.lastItemIdx + layoutConstrainCount >= itemGroup.itemCount)
+        //    return false;
+        if ((isDragging || velocity != Vector2.zero) && itemGroup.itemCount >= 0 && itemGroup.firstItemIdx  >= itemGroup.itemCount)
             return false;
         if (availableItems <= 0)
             return false;
@@ -825,7 +826,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         int availableItems = itemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
 
         /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
-        if ((isDragging || velocity != Vector2.zero) && itemGroup.itemCount >= 0 && itemGroup.firstItemIdx < layoutConstrainCount)
+        //if ((isDragging || velocity != Vector2.zero) && itemGroup.itemCount >= 0 && itemGroup.firstItemIdx < layoutConstrainCount)
+        //    return false;
+        if ((isDragging || velocity != Vector2.zero) && itemGroup.itemCount >= 0 && itemGroup.lastItemIdx <= 0)
             return false;
         if (availableItems <= 0)
             return false;
@@ -907,7 +910,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             constrainCount = layout.constraintCount;
 
         /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
-        if ((isDragging || velocity != Vector2.zero) && itemGroup.subItemCount >= 0 && itemGroup.firstSubItemIdx < constrainCount)
+        //if ((isDragging || velocity != Vector2.zero) && itemGroup.subItemCount >= 0 && itemGroup.firstSubItemIdx < constrainCount)
+        //    return false;
+        if ((isDragging || velocity != Vector2.zero) && itemGroup.subItemCount >= 0 && itemGroup.lastSubItemIdx <= 0)
             return false;
         if (availableSubItems <= 0)
             return false;
@@ -940,7 +945,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         return true;
     }
 
-
     public bool RemoveItemGroupAtStart(out float size)
     {
         size = 0;
@@ -948,12 +952,27 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             return false;
 
         var currentItemGroup = displayItemGroupList[0];
-
         if (currentItemGroup.firstItemIdx < currentItemGroup.itemCount)
             return false;
 
         displayItemGroupList.RemoveAt(0);
         firstItemGroupIdx++;
+
+        return true;
+    }
+
+    public bool RemoveItemGroupAtEnd(out float size)
+    {
+        size = 0;
+        if (lastItemGroupIdx <= 0)
+            return false;
+
+        var currentItemGroup = displayItemGroupList[displayItemGroupCount - 1];
+        if (currentItemGroup.lastItemIdx > 0)
+            return false;
+
+        displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
+        lastItemGroupIdx--;
 
         return true;
     }
@@ -2500,31 +2519,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
 
 
-
-        /* Case 3: the top of the last item is much lower than the bottom of the viewPort */
-        /* Need to remove old items at the bottom of the scrollContent */
-        if (scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding)
-        {
-            RemoveItemAtEnd(out float size, true);
-            float deltaSize = size;
-
-            /* equals to (the bottom of scrollContent) + (last item height + upward spacing) + (second last item height + upward spacing) + offset */
-            while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding + deltaSize)
-            {
-                if (RemoveItemAtEnd(out size, true))
-                    deltaSize += size;
-                else
-                    break;
-            }
-
-            if (deltaSize > 0)
-                isChanged = true;
-        }
-
-
-
-
-
         /* Case 3: the top of the last item is much lower than the bottom of the viewPort */
         /* Need to remove old items at the bottom of the scrollContent */
         currItemGroup = displayItemGroupList[displayItemGroupCount - 1];
@@ -2541,11 +2535,98 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             if (currItemGroup.lastItemIdx - 1 <= 0 && 
                 currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
             {
+                RemoveItemAtEnd(out size, true, currItemGroup);
+                deltaSize += size;
+                RemoveItemGroupAtEnd(out size);
+                deltaSize += size;
+            }
+            else if(currItemGroup.lastItemIdx - 1 <= 0 &&
+                    currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx &&
+                    currItemGroup.lastSubItemIdx - 1 <= 0)
+            {
+                RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                deltaSize += size;
+                RemoveItemAtEnd(out size, true, currItemGroup);
+                deltaSize += size;
+                RemoveItemGroupAtEnd(out size);
+                deltaSize += size;
+            }
+            else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
+            {
+                RemoveItemAtEnd(out size, true, currItemGroup);
+                deltaSize += size;
+            }
+            else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
+            {
+                if (currItemGroup.lastSubItemIdx - 1 <= 0)
+                {
+                    RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                    deltaSize += size;
+                    RemoveItemAtEnd(out size, true, currItemGroup);
+                    deltaSize += size;
+                }
+                else
+                {
+                    RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                    deltaSize += size;
+                }
+            }
 
+            while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize)
+            {
+                bool removeSuccess = false;
+
+                if (currItemGroup.lastItemIdx - 1 <= 0 &&
+                    currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
+                {
+                    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                    deltaSize += size;
+                    removeSuccess = RemoveItemGroupAtEnd(out size);
+                    deltaSize += size;
+                }
+                else if (currItemGroup.lastItemIdx - 1 <= 0 &&
+                        currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx &&
+                        currItemGroup.lastSubItemIdx - 1 <= 0)
+                {
+                    removeSuccess = RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                    deltaSize += size;
+                    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                    deltaSize += size;
+                    removeSuccess = RemoveItemGroupAtEnd(out size);
+                    deltaSize += size;
+                }
+                else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
+                {
+                    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                    deltaSize += size;
+                }
+                else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
+                {
+                    if (currItemGroup.lastSubItemIdx - 1 <= 0)
+                    {
+                        removeSuccess = RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                        deltaSize += size;
+                        removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                        deltaSize += size;
+                    }
+                    else
+                    {
+                        removeSuccess = RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                        deltaSize += size;
+                    }
+                }
+
+                if (!removeSuccess)
+                    break;
+            }
+
+            if (deltaSize > 0)
+            {
+                isChanged = true;
+                ClearItemDespawnList(currItemGroup);
+                ClearSubItemDespawnList(currItemGroup);
             }
         }
-
-
 
 
         /* Case 4: the bottom of the first item is much higher than the top of the viewPort */
