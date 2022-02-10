@@ -592,7 +592,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         if (AddItemAtStart(out size, true, newItemGroup.itemList[newItemGroup.firstItemIdx - 1], parent, newItemGroup))
         {
-            if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx)
+            if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount >= 0)
                 AddSubItemAtStart(out size, false, newItemGroup.subItem, newItemGroup.displayItemList[0], newItemGroup);
 
             displayItemGroupList.Reverse();
@@ -619,7 +619,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         if (AddItemAtEnd(out size, false, newItemGroup.itemList[newItemGroup.lastItemIdx], parent, newItemGroup))
         {
-            if (newItemGroup.lastItemIdx - 1 == newItemGroup.nestedItemIdx)
+            if (newItemGroup.lastItemIdx - 1 == newItemGroup.nestedItemIdx && newItemGroup.subItemCount >= 0)
                 AddSubItemAtEnd(out size, false, newItemGroup.subItem, newItemGroup.displayItemList[newItemGroup.displayItemCount - 1], newItemGroup);
 
             displayItemGroupList.Add(newItemGroup);
@@ -2471,9 +2471,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         {
             float size = 0f;
             float deltaSize = 0f;
-            int laygoutConstrainCount = 1;
-            if (currItemGroup.displayItemList[0].transform.TryGetComponent<GridLayoutGroup>(out var layout) && layout.constraint != GridLayoutGroup.Constraint.Flexible)
-                laygoutConstrainCount = layout.constraintCount;
+
 
             if ((currItemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
                  currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
@@ -2484,7 +2482,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 AddItemGroupAtStart(out size, ScrollContent);
                 deltaSize += size;
             }
-            else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx >= laygoutConstrainCount)
+            else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
             {
                 AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
                 deltaSize += size;
@@ -2508,7 +2506,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     addSuccess = AddItemGroupAtStart(out size, ScrollContent);
                     deltaSize += size;
                 }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx >= laygoutConstrainCount)
+                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
                 {
                     addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
                     deltaSize += size;
