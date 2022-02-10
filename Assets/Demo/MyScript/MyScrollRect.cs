@@ -247,7 +247,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
 
         //RefillItems();
-
     }
 
     protected virtual void LateUpdate()
