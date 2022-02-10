@@ -590,10 +590,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         if (AddItemAtStart(out size, true, newItemGroup.itemList[newItemGroup.firstItemIdx - 1], parent, newItemGroup))
         {
-            //Canvas.ForceUpdateCanvases();
-            //LayoutRebuilder.ForceRebuildLayoutImmediate(parent.GetComponent<RectTransform>());
-            //LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
-
             if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx)
                 AddSubItemAtStart(out size, false, newItemGroup.subItem, newItemGroup.displayItemList[0], newItemGroup);
 
@@ -895,6 +891,13 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             contentStartPos -= offset;
         }
 
+        if (size != 0)
+        {
+            ClearSubItemDespawnList(itemGroup);
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+        }
+
         return true;
     }
 
@@ -946,9 +949,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         return true;
     }
 
-    public bool RemoveItemGroupAtStart(out float size)
+    public bool RemoveItemGroupAtStart()
     {
-        size = 0;
         if (firstItemGroupIdx >= itemGroupCount - 1)
             return false;
 
@@ -962,9 +964,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         return true;
     }
 
-    public bool RemoveItemGroupAtEnd(out float size)
+    public bool RemoveItemGroupAtEnd()
     {
-        size = 0;
         if (lastItemGroupIdx <= 0)
             return false;
 
@@ -2535,8 +2536,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             {
                 RemoveItemAtEnd(out size, true, currItemGroup);
                 deltaSize += size;
-                RemoveItemGroupAtEnd(out size);
-                deltaSize += size;
+                RemoveItemGroupAtEnd();
             }
             else if(currItemGroup.lastItemIdx - 1 <= 0 &&
                     currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx &&
@@ -2546,8 +2546,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 deltaSize += size;
                 RemoveItemAtEnd(out size, true, currItemGroup);
                 deltaSize += size;
-                RemoveItemGroupAtEnd(out size);
-                deltaSize += size;
+                RemoveItemGroupAtEnd();
             }
             else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
             {
@@ -2579,8 +2578,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 {
                     removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
                     deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtEnd(out size);
-                    deltaSize += size;
+                    removeSuccess = RemoveItemGroupAtEnd();
                 }
                 else if (currItemGroup.lastItemIdx - 1 <= 0 &&
                         currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx &&
@@ -2590,8 +2588,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     deltaSize += size;
                     removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
                     deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtEnd(out size);
-                    deltaSize += size;
+                    removeSuccess = RemoveItemGroupAtEnd();
                 }
                 else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)
                 {
@@ -2630,7 +2627,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         /* Case 4: the bottom of the first item is much higher than the top of the viewPort */
         /* Need to remove old items at the top of the scrollContent */
         currItemGroup = displayItemGroupList[0];
-        if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
+        if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx || 
+            (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.firstSubItemIdx + currItemGroup.nestedConstrainCount >= currItemGroup.subItemCount))            // special case: the first item is a nested item and it only have the last row of subitem, we consider it as a non-nested item
             itemSize = GetItemSize(currItemGroup.displayItemList[0].GetComponent<RectTransform>(), true);
         else
             itemSize = GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
@@ -2640,41 +2638,39 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             float size = 0f;
             float deltaSize = 0f;
 
-            if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - 1 &&                    /* Case 1: the first item is the last item and is not a nested item */
+            if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
                 currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
             {
                 /* need to consider downward item spacing for each item */
                 RemoveItemAtStart(out size, true, currItemGroup);
                 deltaSize += size;
-                RemoveItemGroupAtStart(out size);
-                deltaSize += size;
+                RemoveItemGroupAtStart();
             }
-            else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - 1 &&               /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
+            else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
                      currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                     currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)
+                     currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
             {
-                RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
+                RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
                 deltaSize += size;
                 RemoveItemAtStart(out size, true, currItemGroup);
                 deltaSize += size;
-                RemoveItemGroupAtStart(out size);
-                deltaSize += size;
+                RemoveItemGroupAtStart();
             }
-            else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                 /* Case 3: the first item is not the last item and is not a nested item */
+            else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
             {
                 RemoveItemAtStart(out size, true, currItemGroup);
                 deltaSize += size;
             }
             else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
             {
-                if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)            /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+                if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
                 {
-                    RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
+                    RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
                     deltaSize += size;
                     RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
                 }
-                else                                                                            /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
+                else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
                 {
                     RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
                     deltaSize += size;
@@ -2685,41 +2681,39 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             {
                 bool removeSuccess = false;
 
-                if (currItemGroup.firstItemIdx == currItemGroup.itemCount - 1 &&
+                if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
                     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
                 {
                     /* need to consider downward item spacing for each item */
                     removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtStart(out size);
-                    deltaSize += size;
+                    removeSuccess = RemoveItemGroupAtStart();
                 }
-                else if (currItemGroup.firstItemIdx == currItemGroup.itemCount - 1 &&
+                else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
                          currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)
+                         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
                 {
-                    removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
+                    removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
                     deltaSize += size;
                     removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtStart(out size);
-                    deltaSize += size;
+                    removeSuccess = RemoveItemGroupAtStart();
                 }
-                else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
+                else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
                 {
                     removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
                 }
                 else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
                 {
-                    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - 1)
+                    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
                     {
-                        removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
+                        removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
                         deltaSize += size;
                         removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                         deltaSize += size;
                     }
-                    else
+                    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
                     {
                         removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
                         deltaSize += size;
