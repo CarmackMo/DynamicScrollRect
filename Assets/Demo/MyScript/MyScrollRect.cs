@@ -424,24 +424,60 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         for (int i = 0; i < layoutConstrainCount; i++)
         {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.SetAsFirstSibling();
+            /* Special case: we will not spawn the nested item if there is not subItem insde, but we will record the data of the nested item still */
+            if (itemGroup.firstItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
+            {
+                displayItemList.Reverse();
+                displayItemList.Add(prefab);
+                displayItemList.Reverse();
+                firstItemIdx--;
+                itemGroup.displayItemList.Reverse();
+                itemGroup.displayItemList.Add(prefab);
+                itemGroup.displayItemList.Reverse();
+                itemGroup.firstItemIdx--;
+            }
+            else
+            {
+                /* Add the gameObject of the item to the scrollContent */
+                GameObject newItem = SpawnItem(prefab);
+                newItem.transform.parent = parent.transform;
+                newItem.transform.SetAsFirstSibling();
 
-            /* Update the information for the items that are currently displaying */
-            displayItemList.Reverse();
-            displayItemList.Add(newItem);
-            displayItemList.Reverse();
-            firstItemIdx--;
-            itemGroup.displayItemList.Reverse();
-            itemGroup.displayItemList.Add(newItem);
-            itemGroup.displayItemList.Reverse();
-            itemGroup.firstItemIdx--;
+                /* Update the information for the items that are currently displaying */
+                displayItemList.Reverse();
+                displayItemList.Add(newItem);
+                displayItemList.Reverse();
+                firstItemIdx--;
+                itemGroup.displayItemList.Reverse();
+                itemGroup.displayItemList.Add(newItem);
+                itemGroup.displayItemList.Reverse();
+                itemGroup.firstItemIdx--;
 
-            size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-            newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
-            newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
+                size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+                newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
+                newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
+            }
+
+
+            ///* Add the gameObject of the item to the scrollContent */
+            //GameObject newItem = SpawnItem(prefab);
+            //newItem.transform.parent = parent.transform;
+            //newItem.transform.SetAsFirstSibling();
+
+            ///* Update the information for the items that are currently displaying */
+            //displayItemList.Reverse();
+            //displayItemList.Add(newItem);
+            //displayItemList.Reverse();
+            //firstItemIdx--;
+            //itemGroup.displayItemList.Reverse();
+            //itemGroup.displayItemList.Add(newItem);
+            //itemGroup.displayItemList.Reverse();
+            //itemGroup.firstItemIdx--;
+
+            //size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+            //newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
+            //newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
+
         }
 
         /* Update the parameter of the scrollContent UI */
@@ -468,7 +504,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
         for (int i = 0; i < count; i++)
         {
-            /* Special case: we will not spawn the nested item if subItem number smaller than 1, but we will record the data of the nested item still */
+            /* Special case: we will not spawn the nested item if there is no subItem inside, but we will record the data of the nested item still */
             if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
             {
                 displayItemList.Add(prefab);
@@ -800,15 +836,38 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         for (int i = 0; i < layoutConstrainCount; i++)
         {
-            /* Add the item to the waiting list of despawn */
-            GameObject oldItem = itemGroup.displayItemList[despawnItemCountStart];
-            AddToItemDespawnList(true);
+            /* Special case: only need to delete the data of the nested item if the subItem number of it is smaller than 0 (no subItem in this nested item) */
+            if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
+            {
+                availableItems--;
+                itemGroup.displayItemList.RemoveAt(0);
+                itemGroup.firstItemIdx++;
+                displayItemList.RemoveAt(0);
+                firstItemIdx++;
+            }
+            else
+            {
+                /* Add the item to the waiting list of despawn */
+                GameObject oldItem = itemGroup.displayItemList[despawnItemCountStart];
+                AddToItemDespawnList(true);
 
-            /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            availableItems--;
-            itemGroup.firstItemIdx++;
-            firstItemIdx++;
+                /* Update the information for the items that are currently displaying */
+                size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
+                availableItems--;
+                itemGroup.firstItemIdx++;
+                firstItemIdx++;
+            }
+
+
+            ///* Add the item to the waiting list of despawn */
+            //GameObject oldItem = itemGroup.displayItemList[despawnItemCountStart];
+            //AddToItemDespawnList(true);
+
+            ///* Update the information for the items that are currently displaying */
+            //size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
+            //availableItems--;
+            //itemGroup.firstItemIdx++;
+            //firstItemIdx++;
 
             if (availableItems == 0)
                 break;
@@ -2529,7 +2588,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 AddItemGroupAtStart(out size, ScrollContent);
                 deltaSize += size;
             }
-            else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
+            else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
             {
                 AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
                 deltaSize += size;
@@ -2553,7 +2612,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     addSuccess = AddItemGroupAtStart(out size, ScrollContent);
                     deltaSize += size;
                 }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
+                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
                 {
                     addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
                     deltaSize += size;
