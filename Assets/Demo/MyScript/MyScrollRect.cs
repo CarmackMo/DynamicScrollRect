@@ -457,27 +457,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
             }
-
-
-            ///* Add the gameObject of the item to the scrollContent */
-            //GameObject newItem = SpawnItem(prefab);
-            //newItem.transform.parent = parent.transform;
-            //newItem.transform.SetAsFirstSibling();
-
-            ///* Update the information for the items that are currently displaying */
-            //displayItemList.Reverse();
-            //displayItemList.Add(newItem);
-            //displayItemList.Reverse();
-            //firstItemIdx--;
-            //itemGroup.displayItemList.Reverse();
-            //itemGroup.displayItemList.Add(newItem);
-            //itemGroup.displayItemList.Reverse();
-            //itemGroup.firstItemIdx--;
-
-            //size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-            //newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
-            //newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
-
         }
 
         /* Update the parameter of the scrollContent UI */
@@ -529,24 +508,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
             }
 
-
-
-            ///* Add the gameObject of the item to the scrollContent */
-            //GameObject newItem = SpawnItem(prefab);
-            //newItem.transform.parent = parent.transform;
-            //newItem.transform.SetAsLastSibling();
-
-            ///* Update the information for the items that are currently displaying */
-            //newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
-            //newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
-            //displayItemList.Add(newItem);
-            //lastItemIdx++;
-            //itemGroup.displayItemList.Add(newItem);
-            //itemGroup.lastItemIdx++;
-            //size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-
-            //if (itemGroup.itemCount >= 0 && itemGroup.lastItemIdx >= itemGroup.itemCount)
-            //    break;
+            if (itemGroup.itemCount >= 0 && itemGroup.lastItemIdx >= itemGroup.itemCount)
+                break;
         }
 
         if (reverseDirection)
@@ -858,17 +821,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 firstItemIdx++;
             }
 
-
-            ///* Add the item to the waiting list of despawn */
-            //GameObject oldItem = itemGroup.displayItemList[despawnItemCountStart];
-            //AddToItemDespawnList(true);
-
-            ///* Update the information for the items that are currently displaying */
-            //size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            //availableItems--;
-            //itemGroup.firstItemIdx++;
-            //firstItemIdx++;
-
             if (availableItems == 0)
                 break;
         }
@@ -927,16 +879,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 itemGroup.lastItemIdx--;
                 lastItemIdx--;
             }
-
-            ///* Remove the gameObject of the item from the scrollContent */
-            //GameObject oldItem = itemGroup.displayItemList[itemGroup.displayItemCount - 1 - despawnItemCountEnd];
-            //AddToItemDespawnList(false);
-
-            ///* Update the information for the items that are currently displaying */
-            //size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            //availableItems--;
-            //itemGroup.lastItemIdx--;
-            //lastItemIdx--;
 
             if (itemGroup.lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
                 break;
