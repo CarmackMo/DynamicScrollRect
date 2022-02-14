@@ -1374,7 +1374,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 size += subItemRect.rect.width;
         }
 
-        size *= GetAbsDimension(subContentRect.localScale);     // TO DO
+        size *= GetAbsDimension(subContentRect.localScale);     // TO DO    // DO WHAT ??
 
         if (vertical && !horizontal)
             size *= subContentRect.localScale.y;
@@ -1383,6 +1383,42 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         return size;
     }
+
+
+    protected virtual float GetItemGroupSize(ItemGroupConfig itemGroup)
+    {
+        float totalItemSize = 0f;
+        float totalSubItemSize = 0f;
+
+        foreach (GameObject item in itemGroup.itemList)
+        {
+            if (itemGroup.itemList.FindIndex(i => i == item) == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
+                continue;
+
+            totalItemSize += GetItemSize(item.GetComponent<RectTransform>(), false);
+        }
+
+
+        /* Need to condiser downward spacing between each item group except the last item group */
+        if (itemGroup != itemGroupList[ItemGroupList.Count - 1])
+            totalItemSize += itemSpacing * (itemCount - (itemGroup.subItemCount <= 0 ? 1 : 0));
+        else
+            totalItemSize += itemSpacing * (itemCount - (itemGroup.subItemCount <= 0 ? 2 : 1));
+
+
+        //if (itemGroup.subItemCount <= 0)
+        //    totalItemSize += itemSpacing * (itemCount - 2);
+        //else
+        //    totalItemSize += itemSpacing * (itemCount - 1);
+
+
+        int totalSubItemLines = Mathf.CeilToInt((float)itemGroup.subItemCount / (float)itemGroup.nestedConstrainCount);
+        totalSubItemSize += totalSubItemLines * GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), itemGroup.itemList[itemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
+        totalSubItemSize += (totalSubItemLines - 1) * GetSubItemSpacing(itemGroup.itemList[itemGroup.nestedItemIdx].GetComponent<RectTransform>());
+
+        return totalItemSize + totalSubItemSize;
+    }
+
 
     protected virtual Vector2 GetVector2(float value)
     {
@@ -1742,14 +1778,29 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         offset = scrollContentBounds.min.x - (elementSize + itemSpacing) * startLine;
     }
 
+    //private void GetVerticalOffsetAndSize(out float totalSize, out float offset)
+    //{
+    //    //if (sizeHelper != null)
+    //    //{
+    //    //    totalSize = sizeHelper.GetItemsSize(TotalLines).y;
+    //    //    offset = m_ContentBounds.max.y + sizeHelper.GetItemsSize(StartLine).y + contentSpacing * StartLine;
+    //    //}
+    //    //else
+    //    float elementSize = (scrollContentBounds.size.y - itemSpacing * (currentLines - 1)) / currentLines;
+    //    totalSize = elementSize * totalLines + itemSpacing * (totalLines - 1);
+    //    offset = scrollContentBounds.max.y + (elementSize + itemSpacing) * startLine;
+    //}
+
     private void GetVerticalOffsetAndSize(out float totalSize, out float offset)
     {
-        //if (sizeHelper != null)
-        //{
-        //    totalSize = sizeHelper.GetItemsSize(TotalLines).y;
-        //    offset = m_ContentBounds.max.y + sizeHelper.GetItemsSize(StartLine).y + contentSpacing * StartLine;
-        //}
-        //else
+        totalSize = 0;
+
+        foreach(ItemGroupConfig itemGroup in itemGroupList)
+        {
+            totalSize += GetItemGroupSize(itemGroup);
+        }
+
+
         float elementSize = (scrollContentBounds.size.y - itemSpacing * (currentLines - 1)) / currentLines;
         totalSize = elementSize * totalLines + itemSpacing * (totalLines - 1);
         offset = scrollContentBounds.max.y + (elementSize + itemSpacing) * startLine;

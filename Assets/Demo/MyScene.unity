@@ -1981,7 +1981,7 @@ MonoBehaviour:
     - {fileID: 297131030}
     subItem: {fileID: 297131030}
   - nestedItemIdx: 0
-    subItemCount: -1
+    subItemCount: 10
     itemList:
     - {fileID: 968809842}
     - {fileID: 297131030}
