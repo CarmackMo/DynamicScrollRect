@@ -454,7 +454,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 itemGroup.firstItemIdx--;
 
                 size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-                newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
+                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + firstItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
             }
         }
@@ -499,7 +499,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 newItem.transform.SetAsLastSibling();
 
                 /* Update the information for the items that are currently displaying */
-                newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
+                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + lastItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
                 displayItemList.Add(newItem);
                 lastItemIdx++;
@@ -547,7 +547,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             itemGroup.displaySubItemList.Reverse();
             itemGroup.firstSubItemIdx--;
             size = Mathf.Max(GetSubItemSize(newItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing), size);
-            newItem.GetComponent<MyItem>().SetText(itemGroup.firstSubItemIdx.ToString());
+
+            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstSubItemIdx.ToString());
             newItem.gameObject.name = itemGroup.firstSubItemIdx.ToString();
         }
 
@@ -582,7 +583,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             newItem.transform.SetAsLastSibling();
 
             /* Update the information for the items that are currently displaying */
-            newItem.GetComponent<MyItem>().SetText(itemGroup.lastSubItemIdx.ToString());
+            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastSubItemIdx.ToString());
             newItem.gameObject.name = itemGroup.lastSubItemIdx.ToString();
             itemGroup.displaySubItemList.Add(newItem);
             itemGroup.lastSubItemIdx++;
@@ -1392,27 +1393,20 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         foreach (GameObject item in itemGroup.itemList)
         {
-            if (itemGroup.itemList.FindIndex(i => i == item) == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
+            if (itemGroup.itemList.IndexOf(item) == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
                 continue;
 
             totalItemSize += GetItemSize(item.GetComponent<RectTransform>(), false);
         }
 
-
         /* Need to condiser downward spacing between each item group except the last item group */
         if (itemGroup != itemGroupList[ItemGroupList.Count - 1])
-            totalItemSize += itemSpacing * (itemCount - (itemGroup.subItemCount <= 0 ? 1 : 0));
+            totalItemSize += itemSpacing * (itemGroup.itemCount - (itemGroup.subItemCount <= 0 ? 1 : 0));
         else
-            totalItemSize += itemSpacing * (itemCount - (itemGroup.subItemCount <= 0 ? 2 : 1));
-
-
-        //if (itemGroup.subItemCount <= 0)
-        //    totalItemSize += itemSpacing * (itemCount - 2);
-        //else
-        //    totalItemSize += itemSpacing * (itemCount - 1);
-
+            totalItemSize += itemSpacing * (itemGroup.itemCount - (itemGroup.subItemCount <= 0 ? 2 : 1));
 
         int totalSubItemLines = Mathf.CeilToInt((float)itemGroup.subItemCount / (float)itemGroup.nestedConstrainCount);
+        totalSubItemLines = totalSubItemLines > 0 ? totalSubItemLines : 0;
         totalSubItemSize += totalSubItemLines * GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), itemGroup.itemList[itemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
         totalSubItemSize += (totalSubItemLines - 1) * GetSubItemSpacing(itemGroup.itemList[itemGroup.nestedItemIdx].GetComponent<RectTransform>());
 
@@ -1767,43 +1761,80 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     private void GetHorizonalOffsetAndSize(out float totalSize, out float offset)
     {
-        //if (sizeHelper != null)
-        //{
-        //    totalSize = sizeHelper.GetItemsSize(TotalLines).x;
-        //    offset = m_ContentBounds.min.x - sizeHelper.GetItemsSize(StartLine).x - contentSpacing * StartLine;
-        //}
-        //else
-        float elementSize = (scrollContentBounds.size.x - itemSpacing * (currentLines - 1)) / currentLines;
-        totalSize = elementSize * totalLines + itemSpacing * (totalLines - 1);
-        offset = scrollContentBounds.min.x - (elementSize + itemSpacing) * startLine;
-    }
-
-    //private void GetVerticalOffsetAndSize(out float totalSize, out float offset)
-    //{
-    //    //if (sizeHelper != null)
-    //    //{
-    //    //    totalSize = sizeHelper.GetItemsSize(TotalLines).y;
-    //    //    offset = m_ContentBounds.max.y + sizeHelper.GetItemsSize(StartLine).y + contentSpacing * StartLine;
-    //    //}
-    //    //else
-    //    float elementSize = (scrollContentBounds.size.y - itemSpacing * (currentLines - 1)) / currentLines;
-    //    totalSize = elementSize * totalLines + itemSpacing * (totalLines - 1);
-    //    offset = scrollContentBounds.max.y + (elementSize + itemSpacing) * startLine;
-    //}
-
-    private void GetVerticalOffsetAndSize(out float totalSize, out float offset)
-    {
         totalSize = 0;
+        offset = scrollContentBounds.min.x;
 
-        foreach(ItemGroupConfig itemGroup in itemGroupList)
+        foreach (ItemGroupConfig itemGroup in itemGroupList)
         {
             totalSize += GetItemGroupSize(itemGroup);
         }
 
+        ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
+        for (int i = 0; i < firstItemGroupIdx; i++)
+        {
+            offset += GetItemGroupSize(itemGroupList[i]);
+        }
 
-        float elementSize = (scrollContentBounds.size.y - itemSpacing * (currentLines - 1)) / currentLines;
-        totalSize = elementSize * totalLines + itemSpacing * (totalLines - 1);
-        offset = scrollContentBounds.max.y + (elementSize + itemSpacing) * startLine;
+        /* Notice that head item group might not fully dispaly its items */
+        for (int j = 0; j < headItemGroup.firstItemIdx; j++)
+        {
+            if (j != headItemGroup.nestedItemIdx)
+                offset += GetItemSize(headItemGroup.itemList[j].GetComponent<RectTransform>(), true);
+            else
+            {
+                int hiddenSubItemLines = Mathf.CeilToInt((float)headItemGroup.subItemCount / (float)headItemGroup.nestedConstrainCount);
+                hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
+                offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
+                offset += (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>());
+            }
+        }
+
+        /* Special case: the head item in the head item group is a nested item, and it might not fully display its subItems */
+        if (headItemGroup.firstItemIdx == headItemGroup.nestedItemIdx)
+        {
+            int hiddenSubItemLines = Mathf.CeilToInt((float)(headItemGroup.firstSubItemIdx) / (float)headItemGroup.nestedConstrainCount);
+            hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
+            offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+        }
+    }
+
+    private void GetVerticalOffsetAndSize(out float totalSize, out float offset)
+    {
+        totalSize = 0;
+        offset = scrollContentBounds.max.y;
+
+        foreach (ItemGroupConfig itemGroup in itemGroupList)
+        {
+            totalSize += GetItemGroupSize(itemGroup);
+        }
+
+        ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
+        for (int i = 0; i < firstItemGroupIdx; i++)
+        {
+            offset += GetItemGroupSize(itemGroupList[i]);
+        }
+
+        /* Notice that head item group might not fully dispaly its items */
+        for (int j = 0; j < headItemGroup.firstItemIdx; j++)
+        {
+            if (j != headItemGroup.nestedItemIdx)
+                offset += GetItemSize(headItemGroup.itemList[j].GetComponent<RectTransform>(), true);
+            else
+            {
+                int hiddenSubItemLines = Mathf.CeilToInt((float)headItemGroup.subItemCount / (float)headItemGroup.nestedConstrainCount);
+                hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
+                offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
+                offset += (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>());
+            }
+        }
+
+        /* Special case: the head item in the head item group is a nested item, and it might not fully display its subItems */
+        if (headItemGroup.firstItemIdx == headItemGroup.nestedItemIdx)
+        {
+            int hiddenSubItemLines = Mathf.CeilToInt((float)(headItemGroup.firstSubItemIdx) / (float)headItemGroup.nestedConstrainCount);
+            hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
+            offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+        }
     }
 
     private void UpdateScrollbars(Vector2 offset)
@@ -1822,9 +1853,23 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             horizontalScrollbar.value = horizontalNormalizedPosition;
         }
 
+        //if (verticalScrollbar)
+        //{
+        //    if (scrollContentBounds.size.y > 0 && itemCount > 0)
+        //    {
+        //        float totalSize, _;
+        //        GetVerticalOffsetAndSize(out totalSize, out _);
+        //        verticalScrollbar.size = Mathf.Clamp01((scrollViewBounds.size.y - Mathf.Abs(offset.y)) / totalSize);
+        //    }
+        //    else
+        //        verticalScrollbar.size = 1;
+
+        //    verticalScrollbar.value = verticalNormalizedPosition;
+        //}
+
         if (verticalScrollbar)
         {
-            if (scrollContentBounds.size.y > 0 && itemCount > 0)
+            if (scrollContentBounds.size.y > 0 && itemGroupCount > 0)
             {
                 float totalSize, _;
                 GetVerticalOffsetAndSize(out totalSize, out _);
@@ -2504,7 +2549,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
         /* Need to add new items at the bottom of the scrollContent */
-        currItemGroup = displayItemGroupList[displayItemGroupCount - 1];
+        currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
         
         if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
         {
