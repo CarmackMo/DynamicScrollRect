@@ -1686,7 +1686,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     private float GetHorizontalNormalizedPosition()
     {
         UpdateBounds();
-        if (itemCount > 0 && lastItemIdx > firstItemIdx)
+        //if (itemCount > 0 && lastItemIdx > firstItemIdx)
+        if (itemGroupCount > 0 && lastItemGroupIdx > firstItemGroupIdx)
         {
             float totalSize, offset;
             GetHorizonalOffsetAndSize(out totalSize, out offset);
@@ -1702,7 +1703,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     private float GetVerticalNormalizedPosition()
     {
         UpdateBounds();
-        if (itemCount > 0 && lastItemIdx > firstItemIdx)
+        //if (itemCount > 0 && lastItemIdx > firstItemIdx)
+        if (itemGroupCount > 0 && lastItemGroupIdx > firstItemGroupIdx)
         {
             float totalSize, offset;
             GetVerticalOffsetAndSize(out totalSize, out offset);
@@ -1727,7 +1729,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     private void SetNormalizedPosition(float value, int axis)
     {
-        if (itemCount <= 0 || lastItemIdx <= firstItemIdx)
+        if (itemGroupCount <= 0 || lastItemGroupIdx <= firstItemGroupIdx)
+        //if (itemCount <= 0 || lastItemIdx <= firstItemIdx)
             return;
 
         EnsureLayoutHasRebuilt();
@@ -1841,7 +1844,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     {
         if (horizontalScrollbar)
         {
-            if (scrollContentBounds.size.x > 0 && itemCount > 0)
+            if (scrollContentBounds.size.x > 0 && itemGroupCount > 0)
             {
                 float totalSize, _;
                 GetHorizonalOffsetAndSize(out totalSize, out _);
@@ -1852,20 +1855,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
             horizontalScrollbar.value = horizontalNormalizedPosition;
         }
-
-        //if (verticalScrollbar)
-        //{
-        //    if (scrollContentBounds.size.y > 0 && itemCount > 0)
-        //    {
-        //        float totalSize, _;
-        //        GetVerticalOffsetAndSize(out totalSize, out _);
-        //        verticalScrollbar.size = Mathf.Clamp01((scrollViewBounds.size.y - Mathf.Abs(offset.y)) / totalSize);
-        //    }
-        //    else
-        //        verticalScrollbar.size = 1;
-
-        //    verticalScrollbar.value = verticalNormalizedPosition;
-        //}
 
         if (verticalScrollbar)
         {
