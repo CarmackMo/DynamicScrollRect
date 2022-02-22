@@ -845,6 +845,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 break;
         }
 
+        if (size != 0)
+            ClearItemDespawnList(itemGroup);
+
         /* Update the parameter of the scrollContent UI */
         if (!reverseDirection)
         {
@@ -907,6 +910,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             if (itemGroup.lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
                 break;
         }
+
+        if (size != 0)
+            ClearItemDespawnList(itemGroup);
 
         /* Update the parameter of the scrollContent UI */
         if (reverseDirection)
@@ -2660,7 +2666,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
         /* Need to add new items at the bottom of the scrollContent */
         currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-        
+
         if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
         {
             float size = 0f;
@@ -2671,9 +2677,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                  currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
                  currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
             {
-                //Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+                Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
                 AddItemGroupAtEnd(out size, scrollContent);
                 deltaSize += size;
+                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
             }
             else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)      /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
             {
@@ -2686,8 +2693,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 deltaSize = size;
             }
 
-            currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-
             while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
             {
                 bool addSuccess = false;
@@ -2698,9 +2703,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                      currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
                      currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
                 {
-                    //Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+                    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
                     addSuccess = AddItemGroupAtEnd(out size, scrollContent);
                     deltaSize += size;
+                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
                 }
                 else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
                 {
@@ -2730,7 +2736,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             float size = 0f;
             float deltaSize = 0f;
 
-
             if ((currItemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
                  currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
                 (currItemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
@@ -2740,6 +2745,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
                 AddItemGroupAtStart(out size, ScrollContent);
                 deltaSize += size;
+                currItemGroup = displayItemGroupList[0];
             }
             else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
             {
@@ -2751,8 +2757,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
                 deltaSize += size;
             }
-
-            currItemGroup = displayItemGroupList[0];
 
             while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
             {
@@ -2767,6 +2771,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
                     addSuccess = AddItemGroupAtStart(out size, ScrollContent);
                     deltaSize += size;
+                    currItemGroup = displayItemGroupList[0];
                 }
                 else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
                 {
