@@ -2794,7 +2794,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         /* Case 3: the top of the last item is much lower than the bottom of the viewPort */
         /* Need to remove old items at the bottom of the scrollContent */
-        currItemGroup = displayItemGroupList[displayItemGroupCount - 1];
+        currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
         if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx || 
             (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount))       /* special case: the last item is a nested item and it only have the first row of subitem, we consider it as a non-nested item */
             itemSize = GetItemSize(currItemGroup.displayItemList[currItemGroup.displayItemCount - 1].GetComponent<RectTransform>(), true);
@@ -2813,6 +2813,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 RemoveItemAtEnd(out size, true, currItemGroup);
                 deltaSize += size;
                 RemoveItemGroupAtEnd();
+                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
             }
             else if(currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
                     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
@@ -2823,6 +2824,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 RemoveItemAtEnd(out size, true, currItemGroup);
                 deltaSize += size;
                 RemoveItemGroupAtEnd();
+                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
             }
             else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
             {
@@ -2845,14 +2847,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 }
             }
 
-            //if (deltaSize > 0)
-            //{
-            //    isChanged = true;
-            //    ClearItemDespawnList(currItemGroup);
-            //    ClearSubItemDespawnList(currItemGroup);
-            //}
-            //currItemGroup = displayItemGroupList[displayItemGroupCount - 1];
-
             while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize)
             {
                 bool removeSuccess = false;
@@ -2864,6 +2858,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
                     deltaSize += size;
                     removeSuccess = RemoveItemGroupAtEnd();
+                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
                 }
                 else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
                         currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
@@ -2874,6 +2869,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
                     deltaSize += size;
                     removeSuccess = RemoveItemGroupAtEnd();
+                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
                 }
                 else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
                 {
@@ -2900,12 +2896,12 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     break;
             }
 
-            if (deltaSize > 0)
-            {
-                isChanged = true;
-                ClearItemDespawnList(currItemGroup);
-                ClearSubItemDespawnList(currItemGroup);
-            }
+            //if (deltaSize > 0)
+            //{
+            //    isChanged = true;
+            //    ClearItemDespawnList(currItemGroup);
+            //    ClearSubItemDespawnList(currItemGroup);
+            //}
         }
 
 
@@ -2930,6 +2926,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 RemoveItemAtStart(out size, true, currItemGroup);
                 deltaSize += size;
                 RemoveItemGroupAtStart();
+                currItemGroup = displayItemGroupList[0];
             }
             else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
                      currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
@@ -2940,6 +2937,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 RemoveItemAtStart(out size, true, currItemGroup);
                 deltaSize += size;
                 RemoveItemGroupAtStart();
+                currItemGroup = displayItemGroupList[0];
             }
             else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
             {
@@ -2962,14 +2960,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 }
             }
 
-            //if (deltaSize > 0)
-            //{
-            //    isChanged = true;
-            //    ClearItemDespawnList(currItemGroup);
-            //    ClearSubItemDespawnList(currItemGroup);
-            //}
-            //currItemGroup = displayItemGroupList[0];
-
             while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize)
             {
                 bool removeSuccess = false;
@@ -2981,6 +2971,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
                     removeSuccess = RemoveItemGroupAtStart();
+                    currItemGroup = displayItemGroupList[0];
                 }
                 else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
                          currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
@@ -2991,6 +2982,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
                     deltaSize += size;
                     removeSuccess = RemoveItemGroupAtStart();
+                    currItemGroup = displayItemGroupList[0];
                 }
                 else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
                 {
@@ -3017,12 +3009,12 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     break;
             }
 
-            if (deltaSize > 0)
-            {
-                isChanged = true;
-                ClearItemDespawnList(currItemGroup);
-                ClearSubItemDespawnList(currItemGroup);
-            }
+            //if (deltaSize > 0)
+            //{
+            //    isChanged = true;
+            //    ClearItemDespawnList(currItemGroup);
+            //    ClearSubItemDespawnList(currItemGroup);
+            //}
         }
 
         if (isChanged)
