@@ -43,7 +43,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         [NonSerialized] public int lastSubItemIdx = 0;
 
         public List<GameObject> itemList = new List<GameObject>();
-        //public List<GameObject> subItemList = new List<GameObject>();
         public GameObject subItem = null;
 
         [NonSerialized] public List<GameObject> displayItemList = new List<GameObject>();
@@ -2628,10 +2627,72 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemGroupIdx > firstItemGroupIdx)
         {
+            float currContentSize = scrollContentBounds.size.y;
+
+            ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
+            ItemGroupConfig tailItemGroup = itemGroupList[lastItemGroupIdx - 1];
+            while (true)
+            {
+                if (lastItemGroupIdx == firstItemGroupIdx)
+                    break;
+
+                if (lastItemGroupIdx == firstItemGroupIdx + 1 &&
+                    headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&
+                    headItemGroup.lastItemIdx == headItemGroup.firstItemIdx)
+                    break;
+
+                if (lastItemGroupIdx == firstItemGroupIdx + 1 &&
+                    headItemGroup.lastItemIdx == headItemGroup.nestedItemIdx + 1 &&
+                    headItemGroup.lastSubItemIdx == headItemGroup.firstSubItemIdx)
+                    break;
+
+
+                if (tailItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
+                    tailItemGroup.lastItemIdx != tailItemGroup.nestedItemIdx + 1)
+                {
+                    RemoveItemAtEnd(out _, true, tailItemGroup);
+                    RemoveItemGroupAtEnd();
+                    tailItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                }
+                else if (tailItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+                         tailItemGroup.lastItemIdx == tailItemGroup.nestedItemIdx + 1 &&
+                         tailItemGroup.lastSubItemIdx <= tailItemGroup.nestedConstrainCount)
+                {
+                    RemoveSubItemAtEnd(out _, false, tailItemGroup.displayItemList[tailItemGroup.displayItemCount - 1], tailItemGroup);
+                    RemoveItemAtEnd(out _, true, tailItemGroup);
+                    RemoveItemGroupAtEnd();
+                    tailItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                }
+                else if (tailItemGroup.lastItemIdx - 1 != tailItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
+                {
+                    RemoveItemAtEnd(out _, true, tailItemGroup);
+                }
+                else if (tailItemGroup.lastItemIdx - 1 == tailItemGroup.nestedItemIdx)
+                {
+                    if (tailItemGroup.lastSubItemIdx <= tailItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+                    {
+                        RemoveSubItemAtEnd(out _, false, tailItemGroup.displayItemList[tailItemGroup.displayItemCount - 1], tailItemGroup);
+                        RemoveItemAtEnd(out _, true, tailItemGroup);
+                    }
+                    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
+                    {
+                        RemoveSubItemAtEnd(out _, true, tailItemGroup.displayItemList[tailItemGroup.displayItemCount - 1], tailItemGroup);
+                    }
+                }
+            }
+
+            float offsetSize = scrollViewBounds.min.y - scrollContentBounds.max.y;
+
+            while (offsetSize > 0)
+            {
+                break;
+            }
+
+            /////////// TO DO: verify the above logic is correct or not, then move forward to the next logic
+
+
+
             float currentSize = scrollContentBounds.size.y;
-
-
-
             float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
             AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
             //ReturnToTempPool(false, itemTypeEnd - itemTypeStart);
