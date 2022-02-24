@@ -2632,7 +2632,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         // TO DO
         /* special case 2: handling move several page downward in one frame */
-        currItemGroup = displayItemGroupList[0];
+        currItemGroup = itemGroupList[firstItemGroupIdx];
 
         if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemGroupIdx > firstItemGroupIdx)
         {
@@ -2654,7 +2654,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     Debug.LogFormat("Before Add Item Group, head Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
                     addSuccess = AddItemGroupAtStart(out size, ScrollContent);
                     deltaSize += size;
-                    currItemGroup = displayItemGroupList[0];
+                    currItemGroup = itemGroupList[firstItemGroupIdx];
                 }
                 else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
                 {
@@ -2671,11 +2671,13 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     break;
             }
 
-            ItemGroupConfig headItemGroup = displayItemGroupList[0];
-            currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+            ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
+            currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
 
             while (true)
             {
+                bool removeSuccess = false;
+
                 if ((headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
                      headItemGroup.lastItemIdx == headItemGroup.firstItemIdx) ||
                     (headItemGroup.lastItemIdx == headItemGroup.nestedItemIdx + 1 &&            /* Case 2: if the head item in head item group is a nested item, and the head subItem is in the mid of the item, */
@@ -2685,73 +2687,45 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
                     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
                 {
-                    RemoveItemAtEnd(out _, true, currItemGroup);
-                    RemoveItemGroupAtEnd();
-                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                    removeSuccess = RemoveItemGroupAtEnd();
+                    currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
                 }
                 else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
                          currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
                          currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
                 {
-                    RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                    RemoveItemAtEnd(out _, true, currItemGroup);
-                    RemoveItemGroupAtEnd();
-                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                    removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                    removeSuccess = RemoveItemGroupAtEnd();
+                    currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
                 }
                 else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
                 {
-                    RemoveItemAtEnd(out _, true, currItemGroup);
+                    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
                 }
                 else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
                 {
                     if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
                     {
-                        RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                        RemoveItemAtEnd(out _, true, currItemGroup);
+                        removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                        removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
                     }
                     else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
                     {
-                        RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                        removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
                     }
                 }
+
+                if (!removeSuccess)
+                    break;
             }
 
             scrollContentRect.anchoredPosition += GetVector2(offsetSize + (reverseDirection ? contentSize : 0));
             scrollContentBounds.center += GetVector3(offsetSize + contentSize / 2);
             scrollContentBounds.size = Vector3.zero;
             isChanged = true;
-
-
-            /////////// TO DO: 
-
-
-            //float currentSize = scrollContentBounds.size.y;
-            //float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
-            //AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
-            ////ReturnToTempPool(false, itemTypeEnd - itemTypeStart);
-
-            //lastItemIdx = firstItemIdx;
-
-            //int offsetCount = Mathf.FloorToInt((scrollViewBounds.min.y - scrollContentBounds.max.y) / (elementSize + itemSpacing));         /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
-            //if (itemCount >= 0 && firstItemIdx - offsetCount * layoutConstrainCount < 0)
-            //{
-            //    offsetCount = Mathf.FloorToInt((float)(firstItemIdx) / layoutConstrainCount);                                               /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
-            //}
-            //firstItemIdx -= offsetCount * layoutConstrainCount;
-            //if (itemCount >= 0)
-            //{
-            //    firstItemIdx = Mathf.Max(firstItemIdx, 0);
-            //}
-            //lastItemIdx = firstItemIdx;
-
-            //float offset = offsetCount * (elementSize + itemSpacing);
-            //scrollContentRect.anchoredPosition += new Vector2(0, offset + (reverseDirection ? currentSize : 0));
-            //scrollContentBounds.center += new Vector3(0, offset + currentSize / 2, 0);
-            //scrollContentBounds.size = Vector3.zero;
-            //isChanged = true;
         }
-
-
 
 
         float itemSize = 0f;
