@@ -423,7 +423,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         for (int i = 0; i < layoutConstrainCount; i++)
         {
-            /* Special case: we will not spawn the nested item if there is not subItem insde, but we will record the data of the nested item still */
+            /* Special case: we will not spawn the nested item if there is not subItem inside, but we will record the data of the nested item still */
             if (itemGroup.firstItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
             {
                 displayItemList.Reverse();
@@ -2595,7 +2595,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
 
 
-
+        //// TO DO: original version
         ///* special case 2: handling move several page downward in one frame */
         //if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemIdx > firstItemIdx)
         //{
@@ -2626,11 +2626,106 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         //}
 
 
+        //// TO DO: Stable version, require optimize
+        ///* special case 2: handling move several page downward in one frame */
+        //currItemGroup = itemGroupList[firstItemGroupIdx];
+
+        //if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemGroupIdx > firstItemGroupIdx)
+        //{
+        //    float contentSize = GetAbsDimension(scrollContentBounds.size);
+        //    float offsetSize = GetAbsDimension(scrollViewBounds.min) - GetAbsDimension(scrollContentBounds.max);
+        //    float deltaSize = 0f;
+        //    float size = 0f;
+
+        //    while (deltaSize < offsetSize)
+        //    {
+        //        bool addSuccess = false;
+
+        //        if ((currItemGroup.firstItemIdx <= 0 &&
+        //             currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+        //            (currItemGroup.firstItemIdx <= 0 &&
+        //             currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+        //             currItemGroup.firstSubItemIdx <= 0))
+        //        {
+        //            Debug.LogFormat("Before Add Item Group, head Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+        //            addSuccess = AddItemGroupAtStart(out size, ScrollContent);
+        //            deltaSize += size;
+        //            currItemGroup = itemGroupList[firstItemGroupIdx];
+        //        }
+        //        else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
+        //        {
+        //            addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
+        //            deltaSize += size;
+        //        }
+        //        else
+        //        {
+        //            addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
+        //            deltaSize += size;
+        //        }
+
+        //        if (!addSuccess)
+        //            break;
+        //    }
+
+        //    ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
+        //    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
+
+        //    while (true)
+        //    {
+        //        bool removeSuccess = false;
+
+        //        if ((headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
+        //             headItemGroup.lastItemIdx == headItemGroup.firstItemIdx) ||
+        //            (headItemGroup.lastItemIdx == headItemGroup.nestedItemIdx + 1 &&            /* Case 2: if the head item in head item group is a nested item, and the head subItem is in the mid of the item, */
+        //             headItemGroup.lastSubItemIdx == headItemGroup.firstSubItemIdx))            /*         the item itself will recorded as displaying as the item is actually not fully removed (contains undisplay subItems) */
+        //            break;
+
+        //        if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
+        //            currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
+        //        {
+        //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+        //            removeSuccess = RemoveItemGroupAtEnd();
+        //            currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
+        //        }
+        //        else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+        //                 currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+        //                 currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
+        //        {
+        //            removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+        //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+        //            removeSuccess = RemoveItemGroupAtEnd();
+        //            currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
+        //        }
+        //        else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
+        //        {
+        //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+        //        }
+        //        else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
+        //        {
+        //            if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+        //            {
+        //                removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+        //                removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+        //            }
+        //            else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
+        //            {
+        //                removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+        //            }
+        //        }
+
+        //        if (!removeSuccess)
+        //            break;
+        //    }
+
+        //    scrollContentRect.anchoredPosition += GetVector2(offsetSize + (reverseDirection ? contentSize : 0));
+        //    scrollContentBounds.center += GetVector3(offsetSize + contentSize / 2);
+        //    scrollContentBounds.size = Vector3.zero;
+        //    isChanged = true;
+        //}
 
 
 
-
-        // TO DO
+        // TO DO: optimized version, unstable 
         /* special case 2: handling move several page downward in one frame */
         currItemGroup = itemGroupList[firstItemGroupIdx];
 
@@ -2641,48 +2736,52 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             float deltaSize = 0f;
             float size = 0f;
 
-            while (deltaSize < offsetSize)
-            {
-                bool addSuccess = false;
+            //while (deltaSize < offsetSize)
+            //{
+            //    bool addSuccess = false;
 
-                if ((currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-                    (currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                     currItemGroup.firstSubItemIdx <= 0))
-                {
-                    Debug.LogFormat("Before Add Item Group, head Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-                    addSuccess = AddItemGroupAtStart(out size, ScrollContent);
-                    deltaSize += size;
-                    currItemGroup = itemGroupList[firstItemGroupIdx];
-                }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
-                {
-                    addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-                    deltaSize += size;
-                }
-                else
-                {
-                    addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-                    deltaSize += size;
-                }
+            //    if ((currItemGroup.firstItemIdx <= 0 &&
+            //         currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+            //        (currItemGroup.firstItemIdx <= 0 &&
+            //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+            //         currItemGroup.firstSubItemIdx <= 0))
+            //    {
+            //        Debug.LogFormat("Before Add Item Group, head Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+            //        addSuccess = AddItemGroupAtStart(out size, ScrollContent);
+            //        deltaSize += size;
+            //        currItemGroup = itemGroupList[firstItemGroupIdx];
+            //    }
+            //    else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
+            //    {
+            //        addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
+            //        deltaSize += size;
+            //    }
+            //    else
+            //    {
+            //        addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
+            //        deltaSize += size;
+            //    }
 
-                if (!addSuccess)
-                    break;
-            }
+            //    if (!addSuccess)
+            //        break;
+            //}
 
             ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
-            currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
+            currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
 
             while (true)
             {
                 bool removeSuccess = false;
 
-                if ((headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
-                     headItemGroup.lastItemIdx == headItemGroup.firstItemIdx) ||
-                    (headItemGroup.lastItemIdx == headItemGroup.nestedItemIdx + 1 &&            /* Case 2: if the head item in head item group is a nested item, and the head subItem is in the mid of the item, */
-                     headItemGroup.lastSubItemIdx == headItemGroup.firstSubItemIdx))            /*         the item itself will recorded as displaying as the item is actually not fully removed (contains undisplay subItems) */
+                if (headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
+                     headItemGroup.lastItemIdx == headItemGroup.firstItemIdx)
                     break;
+
+                //if ((headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
+                //     headItemGroup.lastItemIdx == headItemGroup.firstItemIdx) ||
+                //    (headItemGroup.lastItemIdx == headItemGroup.nestedItemIdx + 1 &&            /* Case 2: if the head item in head item group is a nested item, and the head subItem is in the mid of the item, */
+                //     headItemGroup.lastSubItemIdx == headItemGroup.firstSubItemIdx))            /*         the item itself will recorded as displaying as the item is actually not fully removed (contains undisplay subItems) */
+                //    break;
 
                 if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
                     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
@@ -2714,6 +2813,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
                     {
                         removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+
+                        if (currItemGroup.displaySubItemCount == 0)
+                            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
                     }
                 }
 
@@ -2721,11 +2823,134 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     break;
             }
 
+            if (lastItemGroupIdx > 0)
+            {
+                displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
+                lastItemGroupIdx--;
+            }
+
+
+            currItemGroup = itemGroupList[firstItemGroupIdx];
+
+            while (deltaSize < offsetSize)
+            {
+                /* Virtually add item group at start */
+                if ((currItemGroup.firstItemIdx <= 0 &&
+                     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+                    (currItemGroup.firstItemIdx <= 0 &&
+                     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+                     currItemGroup.firstSubItemIdx <= 0))
+                {
+                    size = 0;
+                    if (firstItemGroupIdx <= 0)
+                        break;
+
+                    var newItemGroup = itemGroupList[firstItemGroupIdx - 1];
+                    if (displayItemGroupList.Contains(newItemGroup) ||
+                        (newItemGroup.itemCount >= 0 && newItemGroup.firstItemIdx < layoutConstrainCount))
+                        break;
+
+                    /* Virtually add items to the new item group at start */
+                    for (int i = 0; i < layoutConstrainCount; i++)
+                    {
+                        firstItemIdx--;
+                        newItemGroup.firstItemIdx--;
+                        size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
+                    }
+                    deltaSize += size;
+
+                    /* Virtually add subItem to the new item group at start */
+                    if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount >= 0)
+                    {
+                        size = 0;
+                        if (newItemGroup.subItemCount >= 0 && newItemGroup.firstSubItemIdx < newItemGroup.nestedConstrainCount)
+                            break;
+
+                        int count = newItemGroup.nestedConstrainCount;
+                        if (newItemGroup.displaySubItemCount == 0 && newItemGroup.subItemCount % newItemGroup.nestedConstrainCount != 0)
+                            count = newItemGroup.subItemCount % newItemGroup.nestedConstrainCount;
+
+                        for (int i = 0; i < count; i++)
+                        {
+                            newItemGroup.firstSubItemIdx--;
+                            size = Mathf.Max(GetSubItemSize(newItemGroup.subItem.GetComponent<RectTransform>(), newItemGroup.itemList[newItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false), size);
+                        }
+                        deltaSize += size;
+                    }
+
+                    firstItemGroupIdx--;
+                    currItemGroup = itemGroupList[firstItemGroupIdx];
+                }
+                /* Virtually add subItem at start */
+                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
+                {
+                    size = 0;
+                    if (currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx < currItemGroup.nestedConstrainCount)
+                        break;
+
+                    int count = currItemGroup.nestedConstrainCount;
+                    if (currItemGroup.displaySubItemCount == 0 && currItemGroup.subItemCount % currItemGroup.nestedConstrainCount != 0)
+                        count = currItemGroup.subItemCount % currItemGroup.nestedConstrainCount;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        currItemGroup.firstSubItemIdx--;
+                        size = Mathf.Max(GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true), size);
+                    }
+                    deltaSize += size;
+                }
+                /* Virtually add item at start */
+                else
+                {
+                    size = 0;
+                    if (currItemGroup.itemCount >= 0 && currItemGroup.firstItemIdx < layoutConstrainCount)
+                        break;
+
+                    for (int i = 0; i < layoutConstrainCount; i++)
+                    {
+                        firstItemIdx--;
+                        currItemGroup.firstItemIdx--;
+
+                        size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
+                    }
+                    deltaSize += size;
+                }
+            }
+
+            lastItemGroupIdx = firstItemGroupIdx + 1;
+            displayItemGroupList.Add(currItemGroup);
+            currItemGroup.lastItemIdx = currItemGroup.firstItemIdx;
+            currItemGroup.lastSubItemIdx = currItemGroup.firstSubItemIdx;
+
+            if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+                currItemGroup.firstSubItemIdx != 0)
+            {
+                AddItemAtEnd(out _, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
+            }
+
+
+            var temp = 1;
+
             scrollContentRect.anchoredPosition += GetVector2(offsetSize + (reverseDirection ? contentSize : 0));
             scrollContentBounds.center += GetVector3(offsetSize + contentSize / 2);
             scrollContentBounds.size = Vector3.zero;
             isChanged = true;
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         float itemSize = 0f;
