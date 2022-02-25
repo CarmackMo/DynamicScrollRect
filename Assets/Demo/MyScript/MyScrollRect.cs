@@ -536,7 +536,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         /* For the case when subitems cannot fully fill the last row */
         int count = itemGroup.nestedConstrainCount;
-        if (itemGroup.displaySubItemCount == 0 && itemGroup.subItemCount % itemGroup.nestedConstrainCount != 0)
+        //if (itemGroup.displaySubItemCount == 0 && itemGroup.subItemCount % itemGroup.nestedConstrainCount != 0)
+        if (itemGroup.firstSubItemIdx > itemGroup.subItemCount - (itemGroup.subItemCount % itemGroup.nestedConstrainCount))
             count = itemGroup.subItemCount % itemGroup.nestedConstrainCount;
 
         for (int i = 0; i < count; i++)
@@ -2823,6 +2824,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     break;
             }
 
+            var temp1 = itemGroupList;
+            var temp2 = displayItemGroupList;
+
             if (lastItemGroupIdx > 0)
             {
                 displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
@@ -2846,15 +2850,16 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                         break;
 
                     var newItemGroup = itemGroupList[firstItemGroupIdx - 1];
-                    if (displayItemGroupList.Contains(newItemGroup) ||
-                        (newItemGroup.itemCount >= 0 && newItemGroup.firstItemIdx < layoutConstrainCount))
+                    if (newItemGroup.itemCount >= 0 && newItemGroup.firstItemIdx < layoutConstrainCount)
                         break;
 
                     /* Virtually add items to the new item group at start */
                     for (int i = 0; i < layoutConstrainCount; i++)
                     {
                         firstItemIdx--;
+                        lastItemIdx--;
                         newItemGroup.firstItemIdx--;
+                        newItemGroup.lastItemIdx--;
                         size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
                     }
                     deltaSize += size;
@@ -2867,18 +2872,20 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                             break;
 
                         int count = newItemGroup.nestedConstrainCount;
-                        if (newItemGroup.displaySubItemCount == 0 && newItemGroup.subItemCount % newItemGroup.nestedConstrainCount != 0)
+                        if (newItemGroup.firstSubItemIdx > newItemGroup.subItemCount - (newItemGroup.subItemCount % newItemGroup.nestedConstrainCount))
                             count = newItemGroup.subItemCount % newItemGroup.nestedConstrainCount;
 
                         for (int i = 0; i < count; i++)
                         {
                             newItemGroup.firstSubItemIdx--;
+                            newItemGroup.lastSubItemIdx--;
                             size = Mathf.Max(GetSubItemSize(newItemGroup.subItem.GetComponent<RectTransform>(), newItemGroup.itemList[newItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false), size);
                         }
                         deltaSize += size;
                     }
 
                     firstItemGroupIdx--;
+                    lastItemGroupIdx--;
                     currItemGroup = itemGroupList[firstItemGroupIdx];
                 }
                 /* Virtually add subItem at start */
@@ -2889,12 +2896,13 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                         break;
 
                     int count = currItemGroup.nestedConstrainCount;
-                    if (currItemGroup.displaySubItemCount == 0 && currItemGroup.subItemCount % currItemGroup.nestedConstrainCount != 0)
+                    if (currItemGroup.firstSubItemIdx > currItemGroup.subItemCount - (currItemGroup.subItemCount % currItemGroup.nestedConstrainCount))
                         count = currItemGroup.subItemCount % currItemGroup.nestedConstrainCount;
 
                     for (int i = 0; i < count; i++)
                     {
                         currItemGroup.firstSubItemIdx--;
+                        currItemGroup.lastSubItemIdx--;
                         size = Mathf.Max(GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true), size);
                     }
                     deltaSize += size;
@@ -2909,8 +2917,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     for (int i = 0; i < layoutConstrainCount; i++)
                     {
                         firstItemIdx--;
+                        lastItemIdx--;
                         currItemGroup.firstItemIdx--;
-
+                        currItemGroup.lastItemIdx--;
                         size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
                     }
                     deltaSize += size;
@@ -2922,14 +2931,13 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             currItemGroup.lastItemIdx = currItemGroup.firstItemIdx;
             currItemGroup.lastSubItemIdx = currItemGroup.firstSubItemIdx;
 
-            if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                currItemGroup.firstSubItemIdx != 0)
+            if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.firstSubItemIdx != 0)
             {
                 AddItemAtEnd(out _, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
             }
 
 
-            var temp = 1;
+            var temp3 = itemGroupList;
 
             scrollContentRect.anchoredPosition += GetVector2(offsetSize + (reverseDirection ? contentSize : 0));
             scrollContentBounds.center += GetVector3(offsetSize + contentSize / 2);
