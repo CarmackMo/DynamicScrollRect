@@ -468,7 +468,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddItemAtStart", itemGroup);
+        //PrintAllIGInformation("AddItemAtStart", itemGroup);
 
         return true;
     }
@@ -523,7 +523,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddItemAtEnd", itemGroup);
+        //PrintAllIGInformation("AddItemAtEnd", itemGroup);
 
         return true;
     }
@@ -572,7 +572,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddSubItemAtStart", itemGroup);
+        //PrintAllIGInformation("AddSubItemAtStart", itemGroup);
 
         return true;
     }
@@ -613,7 +613,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddSubItemAtEnd", itemGroup);
+        //PrintAllIGInformation("AddSubItemAtEnd", itemGroup);
 
         return true;
     }
@@ -639,7 +639,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             firstItemGroupIdx--;
 
             /* Used for testing, can be deleted */
-            PrintAllIGInformation("AddItemGroupAtStart", newItemGroup);
+            //PrintAllIGInformation("AddItemGroupAtStart", newItemGroup);
 
             return true;
         }
@@ -667,7 +667,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             lastItemGroupIdx++;
 
             /* Used for testing, can be deleted */
-            PrintAllIGInformation("AddItemGroupAtEnd", newItemGroup);
+            //PrintAllIGInformation("AddItemGroupAtEnd", newItemGroup);
 
             return true;
         }
@@ -859,7 +859,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveItemAtStart", itemGroup);
+        //PrintAllIGInformation("RemoveItemAtStart", itemGroup);
 
         return true;
     }
@@ -982,7 +982,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveSubItemAtStart", itemGroup);
+        //PrintAllIGInformation("RemoveSubItemAtStart", itemGroup);
 
         return true;
     }
@@ -1059,7 +1059,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         firstItemGroupIdx++;
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveItemGroupAtStart", currentItemGroup);
+        //PrintAllIGInformation("RemoveItemGroupAtStart", currentItemGroup);
 
         return true;
     }
@@ -1077,7 +1077,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         lastItemGroupIdx--;
 
         /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveItemGroupAtEnd",currentItemGroup);
+        PrintAllIGInformation("RemoveItemGroupAtEnd", currentItemGroup);
 
         return true;
     }
@@ -2767,6 +2767,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             //        break;
             //}
 
+            print("////////////////////////////");
+            PrintAllIGInformation("Before the whole process");
+
             ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
             currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
 
@@ -2787,36 +2790,50 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
                     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
                 {
+                    PrintAllIGInformation("Before case 1", currItemGroup);
+
                     removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
                     removeSuccess = RemoveItemGroupAtEnd();
-                    currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
+                    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
                 }
                 else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
                          currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
                          currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
                 {
+                    PrintAllIGInformation("Before case 2", currItemGroup);
+
                     removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
                     removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
                     removeSuccess = RemoveItemGroupAtEnd();
-                    currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
+                    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
                 }
                 else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
                 {
+                    PrintAllIGInformation("Before case 3", currItemGroup);
+
                     removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
                 }
                 else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
                 {
                     if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
                     {
+                        PrintAllIGInformation("Before case 4", currItemGroup);
+
                         removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
                         removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
                     }
                     else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
                     {
+                        PrintAllIGInformation("Before case 5", currItemGroup);
+
                         removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
 
                         if (currItemGroup.displaySubItemCount == 0)
+                        {
+                            PrintAllIGInformation("Before case 6", currItemGroup);
+
                             removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                        }
                     }
                 }
 
@@ -2824,10 +2841,12 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     break;
             }
 
-            var temp1 = itemGroupList;
-            var temp2 = displayItemGroupList;
 
-            if (lastItemGroupIdx > 0)
+            /* Used for testing, can be deleted */
+            PrintAllIGInformation("After clearing old elements");
+
+
+            if (displayItemGroupCount > 0 && lastItemGroupIdx > 0)
             {
                 displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
                 lastItemGroupIdx--;
@@ -2836,7 +2855,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
             currItemGroup = itemGroupList[firstItemGroupIdx];
 
-            while (deltaSize < offsetSize)
+            while (deltaSize < offsetSize + GetAbsDimension(scrollViewBounds.size))
             {
                 /* Virtually add item group at start */
                 if ((currItemGroup.firstItemIdx <= 0 &&
@@ -2926,34 +2945,34 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 }
             }
 
+            deltaSize = 0f;
+
+            /* Used for testing, can be deleted */
+            PrintAllIGInformation("After reseting pointer to head");
+
             lastItemGroupIdx = firstItemGroupIdx + 1;
             displayItemGroupList.Add(currItemGroup);
-            currItemGroup.lastItemIdx = currItemGroup.firstItemIdx;
-            currItemGroup.lastSubItemIdx = currItemGroup.firstSubItemIdx;
 
-            if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.firstSubItemIdx != 0)
+            AddItemAtEnd(out size, false, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
+            deltaSize += size;
+
+            if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
             {
-                AddItemAtEnd(out _, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
+                AddSubItemAtEnd(out size, false, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                deltaSize += size;
             }
 
 
             var temp3 = itemGroupList;
+            scrollContentRect.anchoredPosition += GetVector2(offsetSize + GetAbsDimension(scrollViewBounds.size) + (reverseDirection ? contentSize : 0));
+            scrollContentBounds.center += GetVector3(offsetSize + GetAbsDimension(scrollViewBounds.size) + (contentSize - deltaSize) / 2);
+            scrollContentBounds.size = GetVector3(deltaSize);
 
-            scrollContentRect.anchoredPosition += GetVector2(offsetSize + (reverseDirection ? contentSize : 0));
-            scrollContentBounds.center += GetVector3(offsetSize + contentSize / 2);
-            scrollContentBounds.size = Vector3.zero;
             isChanged = true;
+
+            /* Used for testing, can be deleted */
+            PrintAllIGInformation("After the whole process finish");
         }
-
-
-
-
-
-
-
-
-
-
 
 
 
