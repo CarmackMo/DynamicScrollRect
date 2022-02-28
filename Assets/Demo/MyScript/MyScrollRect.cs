@@ -2865,15 +2865,16 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     deltaSize += size;
 
                     /* If the new item we just add is a nested item, we need to virtually add subItem at start as well */
-                    if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount > 0)
+                    if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount > 0 && newItemGroup.firstSubItemIdx > 0)
                     {
                         size = 0;
-                        if (newItemGroup.firstSubItemIdx < newItemGroup.nestedConstrainCount)       /******** TO DO: fatal error here *******/
-                            break;
 
                         int count = newItemGroup.nestedConstrainCount;
                         if (newItemGroup.firstSubItemIdx > newItemGroup.subItemCount - (newItemGroup.subItemCount % newItemGroup.nestedConstrainCount))
                             count = newItemGroup.subItemCount % newItemGroup.nestedConstrainCount;
+
+                        if ((newItemGroup.firstSubItemIdx - count) % newItemGroup.nestedConstrainCount != 0)
+                            break;
 
                         for (int i = 0; i < count; i++)
                         {
@@ -2889,15 +2890,16 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     currItemGroup = itemGroupList[firstItemGroupIdx];
                 }
                 /* Virtually add subItem at start */
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
+                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
                 {
                     size = 0;
-                    if (currItemGroup.firstSubItemIdx < currItemGroup.nestedConstrainCount)     /******** TO DO: fatal error here *******/
-                        break;
 
                     int count = currItemGroup.nestedConstrainCount;
                     if (currItemGroup.firstSubItemIdx > currItemGroup.subItemCount - (currItemGroup.subItemCount % currItemGroup.nestedConstrainCount))
                         count = currItemGroup.subItemCount % currItemGroup.nestedConstrainCount;
+
+                    if ((currItemGroup.firstSubItemIdx - count) % currItemGroup.nestedConstrainCount != 0)
+                        break;
 
                     for (int i = 0; i < count; i++)
                     {
@@ -2911,7 +2913,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 else
                 {
                     size = 0;
-                    if (currItemGroup.itemCount >= 0 && currItemGroup.firstItemIdx < layoutConstrainCount)
+                    if (currItemGroup.firstItemIdx < layoutConstrainCount)
                         break;
 
                     for (int i = 0; i < layoutConstrainCount; i++)
@@ -2944,7 +2946,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             }
 
 
-            var temp3 = itemGroupList;
             scrollContentRect.anchoredPosition += GetVector2(offsetSize + GetAbsDimension(scrollViewBounds.size) + (reverseDirection ? contentSize : 0));
             scrollContentBounds.center += GetVector3(offsetSize + GetAbsDimension(scrollViewBounds.size) + (contentSize - deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
