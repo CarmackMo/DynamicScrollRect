@@ -1060,12 +1060,14 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     public bool RemoveItemGroupAtStart()
     {
-        if (firstItemGroupIdx >= itemGroupCount - 1)
+        if (displayItemGroupCount <= 0 || firstItemGroupIdx >= itemGroupCount - 1)
             return false;
 
         var currentItemGroup = displayItemGroupList[0];
-        if (currentItemGroup.firstItemIdx < currentItemGroup.itemCount)
+        if (currentItemGroup.displayItemCount > 0 || currentItemGroup.displaySubItemCount > 0)
             return false;
+        //if (currentItemGroup.firstItemIdx < currentItemGroup.itemCount)
+        //    return false;
 
         displayItemGroupList.RemoveAt(0);
         firstItemGroupIdx++;
@@ -1078,18 +1080,23 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     public bool RemoveItemGroupAtEnd()
     {
-        if (lastItemGroupIdx <= 0)
+        if (displayItemGroupCount <= 0 || lastItemGroupIdx <= 0)
         {
-            Debug.LogFormat("RemoveItemGroupAtEnd fail, lastItemGroupIdx: {0}", lastItemGroupIdx);
+            Debug.LogFormat("RemoveItemGroupAtEnd fail, displayItemGroupCount: {0}, lastItemGroupIdx: {1}£¬ ", displayItemGroupCount, lastItemGroupIdx);
             return false;
         }
 
         var currentItemGroup = displayItemGroupList[displayItemGroupCount - 1];
-        if (currentItemGroup.lastItemIdx > 0)
+        if (currentItemGroup.displayItemCount > 0 || currentItemGroup.displaySubItemCount > 0)
         {
-            Debug.LogFormat("RemoveItemGroupAtEnd fail, lastItemIdx: {0}", currentItemGroup.lastItemIdx);
+            Debug.LogErrorFormat("RemoveItemGroupAtEnd fail, displayItemCount: {0}, displaySubItemCount: {1}", currentItemGroup.displayItemCount, currentItemGroup.displaySubItemCount);
             return false;
         }
+        //if (currentItemGroup.lastItemIdx > 0)
+        //{
+        //    Debug.LogFormat("RemoveItemGroupAtEnd fail, lastItemIdx: {0}", currentItemGroup.lastItemIdx);
+        //    return false;
+        //}
 
         displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
         lastItemGroupIdx--;
@@ -2746,7 +2753,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         // TO DO: optimized version, unstable 
         /* special case 2: handling move several page downward in one frame */
-        currItemGroup = itemGroupList[firstItemGroupIdx];
 
         if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemGroupIdx > firstItemGroupIdx)
         {
@@ -2755,54 +2761,21 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             float deltaSize = 0f;
             float size = 0f;
 
-            //while (deltaSize < offsetSize)
-            //{
-            //    bool addSuccess = false;
+            ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
+            currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
 
-            //    if ((currItemGroup.firstItemIdx <= 0 &&
-            //         currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-            //        (currItemGroup.firstItemIdx <= 0 &&
-            //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-            //         currItemGroup.firstSubItemIdx <= 0))
-            //    {
-            //        Debug.LogFormat("Before Add Item Group, head Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-            //        addSuccess = AddItemGroupAtStart(out size, ScrollContent);
-            //        deltaSize += size;
-            //        currItemGroup = itemGroupList[firstItemGroupIdx];
-            //    }
-            //    else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
-            //    {
-            //        addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-            //        deltaSize += size;
-            //    }
-            //    else
-            //    {
-            //        addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-            //        deltaSize += size;
-            //    }
-
-            //    if (!addSuccess)
-            //        break;
-            //}
 
             print("////////////////////////////");
             PrintAllIGInformation("Before the whole process");
 
-            ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
-            currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-
+            /* Remove all existing on-display element of the scroll, from tail to head. */
+            /* After remove, the head pointer and tail pointer of item groups, items, and subItems should equal to each other respectively */
             while (true)
             {
                 bool removeSuccess = false;
 
-                if (headItemGroup.displayItemCount == 0 && headItemGroup.displaySubItemCount == 0)/* Case 1: remove all displaying items and subitems from tail to head */
+                if (headItemGroup.displayItemCount == 0 && headItemGroup.displaySubItemCount == 0)      /* Remove all displaying items and subitems from tail to head */
                     break;
-
-                //if ((headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
-                //     headItemGroup.lastItemIdx == headItemGroup.firstItemIdx) ||
-                //    (headItemGroup.lastItemIdx == headItemGroup.nestedItemIdx + 1 &&            /* Case 2: if the head item in head item group is a nested item, and the head subItem is in the mid of the item, */
-                //     headItemGroup.lastSubItemIdx == headItemGroup.firstSubItemIdx))            /*         the item itself will recorded as displaying as the item is actually not fully removed (contains undisplay subItems) */
-                //    break;
 
                 if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
                     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
@@ -2858,28 +2831,19 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     break;
             }
 
-
             /* Used for testing, can be deleted */
             PrintAllIGInformation("After clearing old elements");
 
+            RemoveItemGroupAtEnd();                                         /* */
 
-            if (displayItemGroupCount > 0 && lastItemGroupIdx > 0)
-            {
-                displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
-                lastItemGroupIdx--;
-            }
-
-
+            /* Set the head pointer and tail pointer of item groups, items, and subItems to the element which located in the head of the scroll view */
+            /* We do this by virtually adding element to the scroll view (not create element object, only alter element data) */
             currItemGroup = itemGroupList[firstItemGroupIdx];
-
             while (deltaSize < offsetSize + GetAbsDimension(scrollViewBounds.size))
             {
                 /* Virtually add item group at start */
-                if ((currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-                    (currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                     currItemGroup.firstSubItemIdx <= 0))
+                if ((currItemGroup.firstItemIdx <= 0 && currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+                    (currItemGroup.firstItemIdx <= 0 && currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.firstSubItemIdx <= 0))
                 {
                     size = 0;
                     if (firstItemGroupIdx <= 0)
@@ -2900,11 +2864,11 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     }
                     deltaSize += size;
 
-                    /* Virtually add subItem to the new item group at start */
-                    if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount >= 0)
+                    /* If the new item we just add is a nested item, we need to virtually add subItem at start as well */
+                    if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount > 0)
                     {
                         size = 0;
-                        if (newItemGroup.subItemCount >= 0 && newItemGroup.firstSubItemIdx < newItemGroup.nestedConstrainCount)
+                        if (newItemGroup.firstSubItemIdx < newItemGroup.nestedConstrainCount)
                             break;
 
                         int count = newItemGroup.nestedConstrainCount;
@@ -2928,7 +2892,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
                 {
                     size = 0;
-                    if (currItemGroup.subItemCount >= 0 && currItemGroup.firstSubItemIdx < currItemGroup.nestedConstrainCount)
+                    if (currItemGroup.firstSubItemIdx < currItemGroup.nestedConstrainCount)
                         break;
 
                     int count = currItemGroup.nestedConstrainCount;
