@@ -870,7 +870,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         int availableItems = itemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
 
         if (availableItems <= 0)
+        {
+            Debug.LogFormat("RemoveItemAtEnd fail, displayItemCount: {0}, despawnItemCountStart: {1}, despawnItemCountEnd: {2}", itemGroup.displayItemCount, despawnItemCountStart, despawnItemCountEnd);
             return false;
+        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at end when we've reached the start of the whole scroll content */
         /* we reach the start of the whole scroll content when: the item group at start is the first item group AND the item at first inside the item group is
@@ -880,8 +883,11 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             firstItemGroupIdx <= 0 &&
             firstItemGroup.firstItemIdx <= 0 &&
             (firstItemGroup.firstItemIdx != firstItemGroup.nestedItemIdx ||
-             firstItemGroup.firstItemIdx == firstItemGroup.nestedItemIdx && firstItemGroup.firstItemIdx < firstItemGroup.nestedConstrainCount))
+             firstItemGroup.firstItemIdx == firstItemGroup.nestedItemIdx && firstItemGroup.firstSubItemIdx < firstItemGroup.nestedConstrainCount))
+        {
+            Debug.LogFormat("RemoveItemAtEnd fail, firstItemIdx: {0}, nestedItemIdx: {1}", firstItemGroup.firstItemIdx, firstItemGroup.nestedItemIdx);
             return false;
+        }
 
         for (int i = 0; i < layoutConstrainCount; i++)
         {
@@ -993,7 +999,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         int availableSubItems = itemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
 
         if (availableSubItems <= 0)
+        {
+            Debug.LogFormat("RemoveSubItemAtEnd fail, displaySubItemCount: {0}, despawnItemCountStart: {1}, despawnItemCountEnd: {2}", itemGroup.displaySubItemCount, despawnSubItemCountStart, despawnSubItemCountEnd);
             return false;
+        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at end when we've reached the start of the whole scroll content */
         /* we reach the start of the whole scroll content when: the item group at start is the first item group AND the item at first inside the item group is
@@ -1003,8 +1012,11 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             firstItemGroupIdx <= 0 &&
             firstItemGroup.firstItemIdx <= 0 &&
             (firstItemGroup.firstItemIdx != firstItemGroup.nestedItemIdx ||
-             firstItemGroup.firstItemIdx == firstItemGroup.nestedItemIdx && firstItemGroup.firstItemIdx < firstItemGroup.nestedConstrainCount))
+             firstItemGroup.firstItemIdx == firstItemGroup.nestedItemIdx && firstItemGroup.firstSubItemIdx < firstItemGroup.nestedConstrainCount))
+        {
+            Debug.LogFormat("RemoveSubItemAtEnd fail, firstItemIdx: {0}, nestedItemIdx: {1}", firstItemGroup.firstItemIdx, firstItemGroup.nestedItemIdx);
             return false;
+        }
 
         // TO DO: the logic here is not safety, if subitems cannot fully fill the nested item
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
@@ -1014,7 +1026,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             AddToSubItemDespawnList(false);
 
             /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
+            size = Mathf.Max(GetSubItemSize(oldItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing), size);
             availableSubItems--;
             itemGroup.lastSubItemIdx--;
 
@@ -1067,11 +1079,17 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     public bool RemoveItemGroupAtEnd()
     {
         if (lastItemGroupIdx <= 0)
+        {
+            Debug.LogFormat("RemoveItemGroupAtEnd fail, lastItemGroupIdx: {0}", lastItemGroupIdx);
             return false;
+        }
 
         var currentItemGroup = displayItemGroupList[displayItemGroupCount - 1];
         if (currentItemGroup.lastItemIdx > 0)
+        {
+            Debug.LogFormat("RemoveItemGroupAtEnd fail, lastItemIdx: {0}", currentItemGroup.lastItemIdx);
             return false;
+        }
 
         displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
         lastItemGroupIdx--;
@@ -2777,8 +2795,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             {
                 bool removeSuccess = false;
 
-                if (headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
-                     headItemGroup.lastItemIdx == headItemGroup.firstItemIdx)
+                if (headItemGroup.displayItemCount == 0 && headItemGroup.displaySubItemCount == 0)/* Case 1: remove all displaying items and subitems from tail to head */
                     break;
 
                 //if ((headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
