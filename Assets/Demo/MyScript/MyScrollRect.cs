@@ -660,7 +660,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         if (AddItemAtEnd(out size, false, newItemGroup.itemList[newItemGroup.lastItemIdx], parent, newItemGroup))
         {
-            if (newItemGroup.lastItemIdx - 1 == newItemGroup.nestedItemIdx && newItemGroup.subItemCount >= 0)
+            if (newItemGroup.lastItemIdx - 1 == newItemGroup.nestedItemIdx && newItemGroup.subItemCount > 0)
                 AddSubItemAtEnd(out size, false, newItemGroup.subItem, newItemGroup.displayItemList[newItemGroup.displayItemCount - 1], newItemGroup);
 
             displayItemGroupList.Add(newItemGroup);
@@ -3008,7 +3008,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     deltaSize += size;
                     currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
                 }
-                else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount >= 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
+                else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
                 {
                     addSuccess = AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
                     deltaSize += size;
