@@ -418,7 +418,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     {
         size = 0;
 
-        if (itemGroup.itemCount >= 0 && itemGroup.firstItemIdx < layoutConstrainCount)
+        if (itemGroup.itemCount <= 0 || itemGroup.firstItemIdx <= 0)
             return false;
 
         for (int i = 0; i < layoutConstrainCount; i++)
@@ -477,10 +477,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     {
         size = 0;
 
-        if (itemGroup.itemCount >= 0 && itemGroup.lastItemIdx >= itemGroup.itemCount)
+        if (itemGroup.itemCount <= 0 || itemGroup.lastItemIdx >= itemGroup.itemCount)
             return false;
 
-        //int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
         int availableItems = displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
         int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
         for (int i = 0; i < count; i++)
@@ -2834,7 +2833,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             /* Used for testing, can be deleted */
             PrintAllIGInformation("After clearing old elements");
 
-            RemoveItemGroupAtEnd();                                         /* */
+            RemoveItemGroupAtEnd();
 
             /* Set the head pointer and tail pointer of item groups, items, and subItems to the element which located in the head of the scroll view */
             /* We do this by virtually adding element to the scroll view (not create element object, only alter element data) */
