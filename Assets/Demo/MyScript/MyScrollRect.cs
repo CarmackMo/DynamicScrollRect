@@ -1070,9 +1070,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     public bool RemoveItemGroupAtStart()
     {
-        if (displayItemGroupCount <= 0 || firstItemGroupIdx >= itemGroupCount - 1)
+        if (displayItemGroupCount <= 0 || firstItemGroupIdx >= itemGroupCount)
         {
-            Debug.LogFormat("RemoveItemGroupAtStart fail, displayItemGroupCount: {0}, firstItemGroupIdx: {1}£¬ ", displayItemGroupCount, firstItemGroupIdx);
+            Debug.LogFormat("RemoveItemGroupAtStart fail, displayItemGroupCount: {0}, firstItemGroupIdx: {1}", displayItemGroupCount, firstItemGroupIdx);
             return false;
         }
 
@@ -3727,8 +3727,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     private void PrintAllIGInformation(string callName = "", ItemGroupConfig operatIG = null)
     {
-        if (itemGroupList[1].displayItemCount == 0 && (itemGroupList[1].firstItemIdx != 0 && itemGroupList[1].lastItemIdx != 0))
-            return;
+        //if (itemGroupList[1].displayItemCount == 0 && (itemGroupList[1].firstItemIdx != 0 && itemGroupList[1].lastItemIdx != 0))
+        //    return;
 
         print(" ===================== ");
         foreach (ItemGroupConfig itemGroup in itemGroupList)
