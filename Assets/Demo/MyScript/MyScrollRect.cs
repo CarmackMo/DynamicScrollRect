@@ -467,7 +467,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             contentStartPos += offset;
         }
 
-        /* Used for testing, can be deleted */
+        ///* Used for testing, can be deleted */
         //PrintAllIGInformation("AddItemAtStart", itemGroup);
 
         return true;
@@ -802,7 +802,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         int availableItems = itemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
 
         if (availableItems <= 0)
+        {
+            Debug.LogFormat("RemoveItemAtStart fail, displayItemCount: {0}, despawnItemCountStart: {1}, despawnItemCountEnd: {2}", itemGroup.displayItemCount, despawnItemCountStart, despawnItemCountEnd);
             return false;
+        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at start when we've reached the end of the whole scroll content */
         /* we reach the end of the whole scroll content when: the item group at end is the last item group AND the item at end inside the item group is
@@ -813,7 +816,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             lastItemGroup.lastItemIdx >= lastItemGroup.itemCount &&
             (lastItemGroup.lastItemIdx != lastItemGroup.nestedItemIdx + 1 ||
              lastItemGroup.lastItemIdx == lastItemGroup.nestedItemIdx + 1 && lastItemGroup.lastSubItemIdx + lastItemGroup.nestedConstrainCount >= lastItemGroup.subItemCount))
+        {
+            PrintAllIGInformation("RemoveItemAtStart fail", itemGroup);
             return false;
+        }
 
         for (int i = 0; i < layoutConstrainCount; i++)
         {
@@ -857,7 +863,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
 
         /* Used for testing, can be deleted */
-        //PrintAllIGInformation("RemoveItemAtStart", itemGroup);
+        PrintAllIGInformation("RemoveItemAtStart", itemGroup);
 
         return true;
     }
@@ -939,7 +945,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         int availableSubItems = itemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
 
         if (availableSubItems <= 0)
+        {
+            Debug.LogFormat("RemoveSubItemAtStart fail, displaySubItemCount: {0}, despawnSubItemCountStart: {1}, despawnSubItemCountEnd: {2}", itemGroup.displaySubItemCount, despawnSubItemCountStart, despawnSubItemCountEnd);
             return false;
+        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at start when we've reached the end of the whole scroll content */
         /* we reach the end of the whole scroll content when: the item group at end is the last item group AND the item at end inside the item group is
@@ -950,7 +959,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             lastItemGroup.lastItemIdx >= lastItemGroup.itemCount &&
             (lastItemGroup.lastItemIdx != lastItemGroup.nestedItemIdx + 1 ||
              lastItemGroup.lastItemIdx == lastItemGroup.nestedItemIdx + 1 && lastItemGroup.lastSubItemIdx + lastItemGroup.nestedConstrainCount >= lastItemGroup.subItemCount))
+        {
+            PrintAllIGInformation("RemoveSubItemAtStart fail", itemGroup);
             return false;
+        }
 
         // TO DO: the logic here is not safety, if the subitems cannot fully fill the nested item
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
@@ -986,7 +998,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
 
         /* Used for testing, can be deleted */
-        //PrintAllIGInformation("RemoveSubItemAtStart", itemGroup);
+        PrintAllIGInformation("RemoveSubItemAtStart", itemGroup);
 
         return true;
     }
@@ -1059,17 +1071,23 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     public bool RemoveItemGroupAtStart()
     {
         if (displayItemGroupCount <= 0 || firstItemGroupIdx >= itemGroupCount - 1)
+        {
+            Debug.LogFormat("RemoveItemGroupAtStart fail, displayItemGroupCount: {0}, firstItemGroupIdx: {1}£¬ ", displayItemGroupCount, firstItemGroupIdx);
             return false;
+        }
 
         var currentItemGroup = displayItemGroupList[0];
         if (currentItemGroup.displayItemCount > 0 || currentItemGroup.displaySubItemCount > 0)
+        {
+            Debug.LogFormat("RemoveItemGroupAtStart fail, displayItemCount: {0}, displaySubItemCount: {1}", currentItemGroup.displayItemCount, currentItemGroup.displaySubItemCount);
             return false;
+        }
 
         displayItemGroupList.RemoveAt(0);
         firstItemGroupIdx++;
 
         /* Used for testing, can be deleted */
-        //PrintAllIGInformation("RemoveItemGroupAtStart", currentItemGroup);
+        PrintAllIGInformation("RemoveItemGroupAtStart", currentItemGroup);
 
         return true;
     }
@@ -1085,7 +1103,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         var currentItemGroup = displayItemGroupList[displayItemGroupCount - 1];
         if (currentItemGroup.displayItemCount > 0 || currentItemGroup.displaySubItemCount > 0)
         {
-            Debug.LogErrorFormat("RemoveItemGroupAtEnd fail, displayItemCount: {0}, displaySubItemCount: {1}", currentItemGroup.displayItemCount, currentItemGroup.displaySubItemCount);
+            Debug.LogFormat("RemoveItemGroupAtEnd fail, displayItemCount: {0}, displaySubItemCount: {1}", currentItemGroup.displayItemCount, currentItemGroup.displaySubItemCount);
             return false;
         }
 
@@ -2609,7 +2627,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
                     removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
                     removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = displayItemGroupList[firstItemGroupIdx];
+                    currItemGroup = itemGroupList[firstItemGroupIdx];
                 }
                 else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
                          currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
@@ -2620,7 +2638,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
                     removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
                     removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = displayItemGroupList[firstItemGroupIdx];
+                    currItemGroup = itemGroupList[firstItemGroupIdx];
                 }
                 else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
                 {
@@ -2641,7 +2659,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     {
                         PrintAllIGInformation("Special Case 1, Before case 5", currItemGroup);
 
-                        RemoveSubItemAtStart(out _, true, currItemGroup.displayItemList[0], currItemGroup);
+                        removeSuccess = RemoveSubItemAtStart(out _, true, currItemGroup.displayItemList[0], currItemGroup);
 
                         if (currItemGroup.displaySubItemCount == 0)
                         {
@@ -2657,7 +2675,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             }
 
             /* Used for testing, can be deleted */
-            PrintAllIGInformation("After clearing old elements");
+            var temp1 = displayItemGroupList;
+            var temp2 = firstItemGroupIdx;
+            var temp3 = lastItemGroupIdx;
+            PrintAllIGInformation("Special case 1, After clearing old elements");
 
             RemoveItemGroupAtStart();
 
@@ -2768,27 +2789,29 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             deltaSize = 0f;
 
             /* Used for testing, can be deleted */
-            PrintAllIGInformation("After reseting pointer to head");
+            PrintAllIGInformation("Special case 1, After reseting pointer to tail");
 
             firstItemGroupIdx = lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0;
             displayItemGroupList.Add(currItemGroup);
 
-            AddItemAtEnd(out size, false, currItemGroup.itemList[currItemGroup.firstItemIdx], scrollContent, currItemGroup);
+            AddItemAtStart(out size, false, currItemGroup.itemList[currItemGroup.lastItemIdx > 0 ? currItemGroup.lastItemIdx - 1 : 0], scrollContent, currItemGroup);
             deltaSize += size;
 
             if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastItemIdx < currItemGroup.subItemCount)
             {
-                AddSubItemAtEnd(out size, false, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                AddSubItemAtStart(out size, false, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
                 deltaSize += size;
             }
 
-            scrollContentRect.anchoredPosition -= GetVector2(offsetSize + (reverseDirection ? 0 : contentSize));
-            scrollContentBounds.center -= GetVector3(offsetSize + (contentSize - deltaSize) / 2);
+            scrollContentRect.anchoredPosition -= GetVector2(offsetSize);
+            scrollContentBounds.center -= GetVector3(offsetSize + (contentSize + deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
             isChanged = true;
 
             /* Used for testing, can be deleted */
-            PrintAllIGInformation("After the whole process finish");
+            var temp4 = scrollViewRect.anchoredPosition;
+            var temp5 = scrollViewBounds;
+            PrintAllIGInformation("Special case 1, After the whole process finish");
         }
 
 
