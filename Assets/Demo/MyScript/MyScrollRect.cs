@@ -1587,8 +1587,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #endregion
 
-    /* TO DO: Refactor to new version */
+
     #region scrollviewÌø×ªÏà¹Ø
+
+    #region ¾É°æÌø×ªÂß¼­
 
     public int GetFirstItem(out float offset)
     {
@@ -1764,6 +1766,90 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         StopMovement();
         UpdatePrevData();
     }
+
+    #endregion
+
+    #region ÐÂ°æÌø×ªÂß¼­
+
+    public void ScrollToItemGroup(int itemGroupIdx)
+    {
+        if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
+            return;
+
+        float offsetSize = 0f;
+        ItemGroupConfig currItemGroup;
+        
+        if (itemGroupIdx <= firstItemGroupIdx)                                      /* Case 1: the item group we need to scroll to is above the head item group */
+        {
+            for (int i = firstItemGroupIdx; i >= itemGroupIdx; i--)
+            {
+                currItemGroup = itemGroupList[i];
+                for (int j = currItemGroup.firstItemIdx - (i == firstItemGroupIdx ? 0 : 1); j >= 0; j--)
+                {
+                    if (j == currItemGroup.nestedItemIdx)
+                    {
+                        int k = currItemGroup.firstSubItemIdx - (i == firstItemGroupIdx ? 0 : 1);
+                        while (k >= 0)
+                        {
+                            offsetSize -= GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), k != 0);
+
+                            if (k > currItemGroup.subItemCount - (currItemGroup.subItemCount % currItemGroup.nestedConstrainCount))
+                                k -= currItemGroup.subItemCount % currItemGroup.nestedConstrainCount;
+                            else
+                                k -= currItemGroup.nestedConstrainCount;
+                        }
+                    }
+                    else
+                    {
+                        offsetSize -= GetItemSize(currItemGroup.itemList[j].GetComponent<RectTransform>(), j != 0);
+                    }
+                }
+            }
+        }
+        else                                                                        /* Case 2: the item group we need to scroll to is underneath the head item group */
+        {
+            for (int i = firstItemGroupIdx; i <= itemGroupIdx; i++)
+            {
+                /* Only need to add the size of the first item/subItem of the destinate item group */
+                currItemGroup = itemGroupList[i];
+                if (i == itemGroupIdx)
+                {
+                    if (currItemGroup.nestedItemIdx != 0)
+                        offsetSize += GetItemSize(currItemGroup.itemList[0].GetComponent<RectTransform>(), false);
+                    else
+                        offsetSize += GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
+
+                    break;
+                }
+
+                for (int j = currItemGroup.firstItemIdx; j < currItemGroup.itemCount; j++)
+                {
+                    if (j == currItemGroup.nestedItemIdx)
+                    {
+                        int k = currItemGroup.firstSubItemIdx;
+                        while (k < currItemGroup.subItemCount)
+                        {
+                            offsetSize += GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), k != currItemGroup.subItemCount - 1);
+                            k += currItemGroup.nestedConstrainCount;
+                        }
+                    }
+                    else
+                    {
+                        offsetSize += GetItemSize(currItemGroup.itemList[j].GetComponent<RectTransform>(), j != currItemGroup.itemCount - 1);
+                    }
+                }
+            }
+        }
+
+        Vector2 offset = GetVector2(offsetSize);
+        scrollContentRect.anchoredPosition += offset;
+        prevPos += offset;
+        contentStartPos += offset;
+        UpdateBounds(true);
+        UpdatePrevData();
+    }
+
+    #endregion
 
     #endregion
 
@@ -3620,6 +3706,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         bounds.Encapsulate(vMax);
         return bounds;
     }
+
+
 
     #endregion
 
