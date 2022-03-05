@@ -1849,6 +1849,19 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         UpdatePrevData();
     }
 
+
+    /* Testing, can be deleted */
+    public int scrollIdx = 0;
+    private void OnGUI()
+    {
+        if (GUILayout.Button("Scroll Test"))
+        {
+            ScrollToItemGroup(scrollIdx);
+        }
+        
+    }
+
+
     #endregion
 
     #endregion

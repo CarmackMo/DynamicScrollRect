@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657826, g: 0.49641263, b: 0.57481676, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657874, g: 0.49641258, b: 0.5748172, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -1977,8 +1977,6 @@ MonoBehaviour:
     - {fileID: 1817159088}
     - {fileID: 1865640846}
     - {fileID: 867609428}
-    subItemList:
-    - {fileID: 297131030}
     subItem: {fileID: 297131030}
   - nestedItemIdx: 0
     subItemCount: 10
@@ -1987,8 +1985,6 @@ MonoBehaviour:
     - {fileID: 297131030}
     - {fileID: 1817159088}
     - {fileID: 1865640846}
-    subItemList:
-    - {fileID: 297131030}
     subItem: {fileID: 297131030}
   - nestedItemIdx: 2
     subItemCount: 70
@@ -2008,8 +2004,6 @@ MonoBehaviour:
     - {fileID: 1817159088}
     - {fileID: 1817159088}
     - {fileID: 1817159088}
-    subItemList:
-    - {fileID: 297131030}
     subItem: {fileID: 297131030}
   horizontalScrollbar: {fileID: 339932216}
   verticalScrollbar: {fileID: 1198309498}
@@ -2023,6 +2017,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   itemCount: 60
+  scrollIdx: 1
 --- !u!1 &2020397187
 GameObject:
   m_ObjectHideFlags: 0
