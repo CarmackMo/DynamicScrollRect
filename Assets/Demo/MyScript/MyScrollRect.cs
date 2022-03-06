@@ -1590,6 +1590,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #region scrollview跳转相关
 
+    #region 旧版跳转逻辑
+
     public int GetFirstItem(out float offset)
     {
         //if (direction == LoopScrollRectDirection.Vertical)
@@ -1644,7 +1646,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         StopAllCoroutines();
         if (speed <= 0)
         {
-            RefillItems(index);
+            //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
             return;
         }
         StartCoroutine(ScrollToCellCoroutine(index, speed));
@@ -1660,7 +1662,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         StopAllCoroutines();
         if (time <= 0)
         {
-            RefillItems(index);
+            //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
             return;
         }
         float dist = 0;
@@ -1764,6 +1766,103 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         StopMovement();
         UpdatePrevData();
     }
+
+    #endregion
+
+    #region 新版跳转逻辑
+
+    public void ScrollToItemGroup(int itemGroupIdx)
+    {
+        if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
+            return;
+
+        float offsetSize = 0f;
+        ItemGroupConfig currItemGroup;
+        
+        if (itemGroupIdx <= firstItemGroupIdx)                                      /* Case 1: the item group we need to scroll to is above the head item group */
+        {
+            for (int i = firstItemGroupIdx; i >= itemGroupIdx; i--)
+            {
+                currItemGroup = itemGroupList[i];
+                for (int j = currItemGroup.firstItemIdx - (i == firstItemGroupIdx ? 0 : 1); j >= 0; j--)
+                {
+                    if (j == currItemGroup.nestedItemIdx)
+                    {
+                        int k = currItemGroup.firstSubItemIdx - (i == firstItemGroupIdx ? 0 : 1);
+                        while (k >= 0)
+                        {
+                            offsetSize -= GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), k != 0);
+
+                            if (k > currItemGroup.subItemCount - (currItemGroup.subItemCount % currItemGroup.nestedConstrainCount))
+                                k -= currItemGroup.subItemCount % currItemGroup.nestedConstrainCount;
+                            else
+                                k -= currItemGroup.nestedConstrainCount;
+                        }
+                    }
+                    else
+                    {
+                        offsetSize -= GetItemSize(currItemGroup.itemList[j].GetComponent<RectTransform>(), j != 0);
+                    }
+                }
+            }
+        }
+        else                                                                        /* Case 2: the item group we need to scroll to is underneath the head item group */
+        {
+            for (int i = firstItemGroupIdx; i <= itemGroupIdx; i++)
+            {
+                /* Only need to add the size of the first item/subItem of the destinate item group */
+                currItemGroup = itemGroupList[i];
+                if (i == itemGroupIdx)
+                {
+                    if (currItemGroup.nestedItemIdx != 0)
+                        offsetSize += GetItemSize(currItemGroup.itemList[0].GetComponent<RectTransform>(), false);
+                    else
+                        offsetSize += GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
+
+                    break;
+                }
+
+                for (int j = currItemGroup.firstItemIdx; j < currItemGroup.itemCount; j++)
+                {
+                    if (j == currItemGroup.nestedItemIdx)
+                    {
+                        int k = currItemGroup.firstSubItemIdx;
+                        while (k < currItemGroup.subItemCount)
+                        {
+                            offsetSize += GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), k != currItemGroup.subItemCount - 1);
+                            k += currItemGroup.nestedConstrainCount;
+                        }
+                    }
+                    else
+                    {
+                        offsetSize += GetItemSize(currItemGroup.itemList[j].GetComponent<RectTransform>(), j != currItemGroup.itemCount - 1);
+                    }
+                }
+            }
+        }
+
+        Vector2 offset = GetVector2(offsetSize);
+        scrollContentRect.anchoredPosition += offset;
+        prevPos += offset;
+        contentStartPos += offset;
+        UpdateBounds(true);
+        UpdatePrevData();
+    }
+
+
+    /* Testing, can be deleted */
+    public int scrollIdx = 0;
+    private void OnGUI()
+    {
+        if (GUILayout.Button("Scroll Test"))
+        {
+            ScrollToItemGroup(scrollIdx);
+        }
+        
+    }
+
+
+    #endregion
 
     #endregion
 
@@ -2011,68 +2110,69 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     //    }
     //}
 
-    public void RefillItemsFromEnd(int endItem = 0, bool alignStart = false)
-    {
-        if (!Application.isPlaying)
-            return;
+    ///* Original logic, zero reference */
+    //public void RefillItemsFromEnd(int endItem = 0, bool alignStart = false)
+    //{
+    //    if (!Application.isPlaying)
+    //        return;
 
-        lastItemIdx = reverseDirection ? endItem : itemCount - endItem;
-        firstItemIdx = lastItemIdx;
+    //    lastItemIdx = reverseDirection ? endItem : itemCount - endItem;
+    //    firstItemIdx = lastItemIdx;
 
-        if (itemCount >= 0 && firstItemIdx % layoutConstrainCount != 0)
-        {
-            firstItemIdx = (firstItemIdx / layoutConstrainCount) * layoutConstrainCount;
-        }
+    //    if (itemCount >= 0 && firstItemIdx % layoutConstrainCount != 0)
+    //    {
+    //        firstItemIdx = (firstItemIdx / layoutConstrainCount) * layoutConstrainCount;
+    //    }
 
-        AddToItemDespawnList(!reverseDirection, lastItemIdx - firstItemIdx + 1);
-        //ReturnToTempPool(!reverseDirection, m_Content.childCount);
+    //    AddToItemDespawnList(!reverseDirection, lastItemIdx - firstItemIdx + 1);
+    //    //ReturnToTempPool(!reverseDirection, m_Content.childCount);
 
-        float sizeToFill = GetAbsDimension(scrollViewRect.rect.size);
-        float sizeFilled = 0;
+    //    float sizeToFill = GetAbsDimension(scrollViewRect.rect.size);
+    //    float sizeFilled = 0;
 
-        bool first = true;
-        while (sizeToFill > sizeFilled)
-        {
-            float size = 0f;
-            bool addSuccess = reverseDirection ? AddItemAtEnd(out size, !first, item, scrollContent): AddItemAtStart(out size, !first, item, scrollContent);
-            if (!addSuccess)
-                break;
-            first = false;
-            sizeFilled += size;
-        }
-        /* refill from start in case not full yet */
-        while (sizeToFill > sizeFilled)
-        {
-            float size = 0f;
-            bool addSuccess = reverseDirection ? AddItemAtStart(out size, !first, item, scrollContent) : AddItemAtEnd(out size, !first, item, scrollContent);
-            if (!addSuccess)
-                break;
-            first = false;
-            sizeFilled += size;
-        }
+    //    bool first = true;
+    //    while (sizeToFill > sizeFilled)
+    //    {
+    //        float size = 0f;
+    //        bool addSuccess = reverseDirection ? AddItemAtEnd(out size, !first, item, scrollContent): AddItemAtStart(out size, !first, item, scrollContent);
+    //        if (!addSuccess)
+    //            break;
+    //        first = false;
+    //        sizeFilled += size;
+    //    }
+    //    /* refill from start in case not full yet */
+    //    while (sizeToFill > sizeFilled)
+    //    {
+    //        float size = 0f;
+    //        bool addSuccess = reverseDirection ? AddItemAtStart(out size, !first, item, scrollContent) : AddItemAtEnd(out size, !first, item, scrollContent);
+    //        if (!addSuccess)
+    //            break;
+    //        first = false;
+    //        sizeFilled += size;
+    //    }
 
-        Vector2 pos = scrollContentRect.anchoredPosition;
-        float dist = alignStart ? 0 : Mathf.Max(0, sizeFilled - sizeToFill);
-        if (reverseDirection)
-            dist = -dist;
-        //if (direction == LoopScrollRectDirection.Vertical)
-        if (vertical)
-            pos.y = dist;
-        else
-            pos.x = -dist;
-        scrollContentRect.anchoredPosition = pos;
-        contentStartPos = pos;
+    //    Vector2 pos = scrollContentRect.anchoredPosition;
+    //    float dist = alignStart ? 0 : Mathf.Max(0, sizeFilled - sizeToFill);
+    //    if (reverseDirection)
+    //        dist = -dist;
+    //    //if (direction == LoopScrollRectDirection.Vertical)
+    //    if (vertical)
+    //        pos.y = dist;
+    //    else
+    //        pos.x = -dist;
+    //    scrollContentRect.anchoredPosition = pos;
+    //    contentStartPos = pos;
 
-        ClearItemDespawnList();
-        //ClearTempPool();
+    //    ClearItemDespawnList();
+    //    //ClearTempPool();
 
-        /* force build bounds here so scrollbar can access newest bounds */
-        LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
-        CalculateContentBounds();
-        UpdateScrollbars(Vector2.zero);
-        StopMovement();
-        UpdatePrevData();         /* 该函数的用途暂时不明 */
-    }
+    //    /* force build bounds here so scrollbar can access newest bounds */
+    //    LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+    //    CalculateContentBounds();
+    //    UpdateScrollbars(Vector2.zero);
+    //    StopMovement();
+    //    UpdatePrevData();         /* 该函数的用途暂时不明 */
+    //}
 
 
     public void RefillItemGroup(out float sizeFilled, ItemGroupConfig itemGroup, int startItem = 0, bool fillViewRect = false, float contentOffset = 0)
@@ -2245,303 +2345,306 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     }
 
 
-    public void RefillItems(int startItem = 0, bool fillViewRect = false, float contentOffset = 0)
-    {
-        if (!Application.isPlaying)
-            return;
+    ///* Original logic */
+    //public void RefillItems(int startItem = 0, bool fillViewRect = false, float contentOffset = 0)
+    //{
+    //    if (!Application.isPlaying)
+    //        return;
 
-        firstItemIdx = reverseDirection ? itemCount - startItem : startItem;
-        if (itemCount >= 0 && firstItemIdx % layoutConstrainCount != 0)
-        {
-            firstItemIdx = (firstItemIdx / layoutConstrainCount) * layoutConstrainCount;
-        }
-        lastItemIdx = firstItemIdx;
+    //    firstItemIdx = reverseDirection ? itemCount - startItem : startItem;
+    //    if (itemCount >= 0 && firstItemIdx % layoutConstrainCount != 0)
+    //    {
+    //        firstItemIdx = (firstItemIdx / layoutConstrainCount) * layoutConstrainCount;
+    //    }
+    //    lastItemIdx = firstItemIdx;
 
-        /* Don't `Canvas.ForceUpdateCanvases();` here, or it will new/delete cells to change itemTypeStart/End */
-        AddToItemDespawnList(reverseDirection, scrollContentRect.childCount);
-        //ReturnToTempPool(reverseDirection, m_Content.childCount);
+    //    /* Don't `Canvas.ForceUpdateCanvases();` here, or it will new/delete cells to change itemTypeStart/End */
+    //    AddToItemDespawnList(reverseDirection, scrollContentRect.childCount);
+    //    //ReturnToTempPool(reverseDirection, m_Content.childCount);
 
-        /* scrollViewBounds may be not ready when RefillCells on Start */
-        float sizeToFill = GetAbsDimension(scrollViewRect.rect.size) + Mathf.Abs(contentOffset);
-        float sizeFilled = 0;
-        float itemSize = 0;
+    //    /* scrollViewBounds may be not ready when RefillCells on Start */
+    //    float sizeToFill = GetAbsDimension(scrollViewRect.rect.size) + Mathf.Abs(contentOffset);
+    //    float sizeFilled = 0;
+    //    float itemSize = 0;
 
-        bool first = true;
-        while (sizeToFill > sizeFilled)
-        {
-            float size = 0;
-            bool addSuccess = reverseDirection ? AddItemAtStart(out size, !first, item, scrollContent) : AddItemAtEnd(out size, !first, item, scrollContent);
-            if (!addSuccess)
-                break;
-            first = false;
-            itemSize = size;
-            sizeFilled += size;
-        }
-        /* refill from start in case not full yet */
-        while (sizeToFill > sizeFilled)
-        {
-            float size = 0;
-            bool addSuccess = reverseDirection ? AddItemAtEnd(out size, !first, item, scrollContent) : AddItemAtStart(out size, !first, item, scrollContent);
-            if (!addSuccess)
-                break;
-            first = false;
-            sizeFilled += size;
-        }
+    //    bool first = true;
+    //    while (sizeToFill > sizeFilled)
+    //    {
+    //        float size = 0;
+    //        bool addSuccess = reverseDirection ? AddItemAtStart(out size, !first, item, scrollContent) : AddItemAtEnd(out size, !first, item, scrollContent);
+    //        if (!addSuccess)
+    //            break;
+    //        first = false;
+    //        itemSize = size;
+    //        sizeFilled += size;
+    //    }
+    //    /* refill from start in case not full yet */
+    //    while (sizeToFill > sizeFilled)
+    //    {
+    //        float size = 0;
+    //        bool addSuccess = reverseDirection ? AddItemAtEnd(out size, !first, item, scrollContent) : AddItemAtStart(out size, !first, item, scrollContent);
+    //        if (!addSuccess)
+    //            break;
+    //        first = false;
+    //        sizeFilled += size;
+    //    }
 
-        if (fillViewRect && itemSize > 0 && sizeFilled < sizeToFill)
-        {
-            int itemsToAddCount = (int)((sizeToFill - sizeFilled) / itemSize);          //calculate how many items can be added above the offset, so it still is visible in the view
-            int newOffset = startItem - itemsToAddCount;
-            if (newOffset < 0) newOffset = 0;
-            if (newOffset != startItem) RefillItems(newOffset);                         //refill again, with the new offset value, and now with fillViewRect disabled.
-        }
+    //    if (fillViewRect && itemSize > 0 && sizeFilled < sizeToFill)
+    //    {
+    //        int itemsToAddCount = (int)((sizeToFill - sizeFilled) / itemSize);          //calculate how many items can be added above the offset, so it still is visible in the view
+    //        int newOffset = startItem - itemsToAddCount;
+    //        if (newOffset < 0) newOffset = 0;
+    //        if (newOffset != startItem) RefillItems(newOffset);                         //refill again, with the new offset value, and now with fillViewRect disabled.
+    //    }
 
-        Vector2 pos = scrollContentRect.anchoredPosition;
-        //if (direction == LoopScrollRectDirection.Vertical)
-        if (vertical)
-            pos.y = -contentOffset;
-        else
-            pos.x = contentOffset;
-        scrollContentRect.anchoredPosition = pos;
-        contentStartPos = pos;
+    //    Vector2 pos = scrollContentRect.anchoredPosition;
+    //    //if (direction == LoopScrollRectDirection.Vertical)
+    //    if (vertical)
+    //        pos.y = -contentOffset;
+    //    else
+    //        pos.x = contentOffset;
+    //    scrollContentRect.anchoredPosition = pos;
+    //    contentStartPos = pos;
 
-        ClearItemDespawnList();
-        //ClearTempPool();
+    //    ClearItemDespawnList();
+    //    //ClearTempPool();
 
-        /* force build bounds here so scrollbar can access newest bounds */
-        LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
-        CalculateContentBounds();
-        UpdateScrollbars(Vector2.zero);
-        StopMovement();
-        UpdatePrevData();             /* 该函数的用途暂时不明 */
-    }
+    //    /* force build bounds here so scrollbar can access newest bounds */
+    //    LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+    //    CalculateContentBounds();
+    //    UpdateScrollbars(Vector2.zero);
+    //    StopMovement();
+    //    UpdatePrevData();             /* 该函数的用途暂时不明 */
+    //}
 
-    public void UpdateScrollItems()
-    {
-        bool isChanged = false;
 
-        /* special case 1: handling move several page upward in one frame */
-        if (scrollViewBounds.max.y < scrollContentBounds.min.y && lastItemIdx > firstItemIdx)
-        {
-            int maxFirstItemIdx = -1;
-            if (itemCount >= 0)
-            {
-                maxFirstItemIdx = Mathf.Max(0, itemCount - (lastItemIdx - firstItemIdx));
-            }
-            float currentSize = scrollContentBounds.size.y;
-            float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
-            AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
-            //ReturnToTempPool(true, itemTypeEnd - itemTypeStart);
+    /* Original logic, zero reference */
+    //public void UpdateScrollItems()
+    //{
+    //    bool isChanged = false;
 
-            firstItemIdx = lastItemIdx;
+    //    /* special case 1: handling move several page upward in one frame */
+    //    if (scrollViewBounds.max.y < scrollContentBounds.min.y && lastItemIdx > firstItemIdx)
+    //    {
+    //        int maxFirstItemIdx = -1;
+    //        if (itemCount >= 0)
+    //        {
+    //            maxFirstItemIdx = Mathf.Max(0, itemCount - (lastItemIdx - firstItemIdx));
+    //        }
+    //        float currentSize = scrollContentBounds.size.y;
+    //        float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
+    //        AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
+    //        //ReturnToTempPool(true, itemTypeEnd - itemTypeStart);
 
-            int offsetCount = Mathf.FloorToInt((scrollContentBounds.min.y - scrollViewBounds.max.y) / (elementSize + itemSpacing));       /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
-            if (maxFirstItemIdx >= 0 && firstItemIdx + offsetCount * layoutConstrainCount > maxFirstItemIdx)
-            {
-                offsetCount = Mathf.FloorToInt((float)(maxFirstItemIdx - firstItemIdx) / layoutConstrainCount);                     /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
-            }
-            firstItemIdx += offsetCount * layoutConstrainCount;
-            if (itemCount >= 0)
-            {
-                firstItemIdx = Mathf.Max(firstItemIdx, 0);                                                                          /* In case the head index is smaller than 0 */
-            }
-            lastItemIdx = firstItemIdx;
+    //        firstItemIdx = lastItemIdx;
 
-            float offset = offsetCount * (elementSize + itemSpacing);
-            scrollContentRect.anchoredPosition -= new Vector2(0, offset + (reverseDirection ? 0 : currentSize));
-            scrollContentBounds.center -= new Vector3(0, offset + currentSize / 2, 0);
-            scrollContentBounds.size = Vector3.zero;
-            isChanged = true;
-        }
+    //        int offsetCount = Mathf.FloorToInt((scrollContentBounds.min.y - scrollViewBounds.max.y) / (elementSize + itemSpacing));       /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
+    //        if (maxFirstItemIdx >= 0 && firstItemIdx + offsetCount * layoutConstrainCount > maxFirstItemIdx)
+    //        {
+    //            offsetCount = Mathf.FloorToInt((float)(maxFirstItemIdx - firstItemIdx) / layoutConstrainCount);                     /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
+    //        }
+    //        firstItemIdx += offsetCount * layoutConstrainCount;
+    //        if (itemCount >= 0)
+    //        {
+    //            firstItemIdx = Mathf.Max(firstItemIdx, 0);                                                                          /* In case the head index is smaller than 0 */
+    //        }
+    //        lastItemIdx = firstItemIdx;
 
-        /* special case 2: handling move several page downward in one frame */
-        if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemIdx > firstItemIdx)
-        {
-            float currentSize = scrollContentBounds.size.y;
-            float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
-            AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
-            //ReturnToTempPool(false, itemTypeEnd - itemTypeStart);
+    //        float offset = offsetCount * (elementSize + itemSpacing);
+    //        scrollContentRect.anchoredPosition -= new Vector2(0, offset + (reverseDirection ? 0 : currentSize));
+    //        scrollContentBounds.center -= new Vector3(0, offset + currentSize / 2, 0);
+    //        scrollContentBounds.size = Vector3.zero;
+    //        isChanged = true;
+    //    }
 
-            lastItemIdx = firstItemIdx;
+    //    /* special case 2: handling move several page downward in one frame */
+    //    if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemIdx > firstItemIdx)
+    //    {
+    //        float currentSize = scrollContentBounds.size.y;
+    //        float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
+    //        AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
+    //        //ReturnToTempPool(false, itemTypeEnd - itemTypeStart);
 
-            int offsetCount = Mathf.FloorToInt((scrollViewBounds.min.y - scrollContentBounds.max.y) / (elementSize + itemSpacing));       /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
-            if (itemCount >= 0 && firstItemIdx - offsetCount * layoutConstrainCount < 0)
-            {
-                offsetCount = Mathf.FloorToInt((float)(firstItemIdx) / layoutConstrainCount);                                       /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
-            }
-            firstItemIdx -= offsetCount * layoutConstrainCount;
-            if (itemCount >= 0)
-            {
-                firstItemIdx = Mathf.Max(firstItemIdx, 0);
-            }
-            lastItemIdx = firstItemIdx;
+    //        lastItemIdx = firstItemIdx;
 
-            float offset = offsetCount * (elementSize + itemSpacing);
-            scrollContentRect.anchoredPosition += new Vector2(0, offset + (reverseDirection ? currentSize : 0));
-            scrollContentBounds.center += new Vector3(0, offset + currentSize / 2, 0);
-            scrollContentBounds.size = Vector3.zero;
-            isChanged = true;
-        }
+    //        int offsetCount = Mathf.FloorToInt((scrollViewBounds.min.y - scrollContentBounds.max.y) / (elementSize + itemSpacing));       /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
+    //        if (itemCount >= 0 && firstItemIdx - offsetCount * layoutConstrainCount < 0)
+    //        {
+    //            offsetCount = Mathf.FloorToInt((float)(firstItemIdx) / layoutConstrainCount);                                       /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
+    //        }
+    //        firstItemIdx -= offsetCount * layoutConstrainCount;
+    //        if (itemCount >= 0)
+    //        {
+    //            firstItemIdx = Mathf.Max(firstItemIdx, 0);
+    //        }
+    //        lastItemIdx = firstItemIdx;
 
-        /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
-        /* Need to add new items at the bottom of the scrollContent */
-        if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
-        {
-            /* the last item needs to consider item spacing */
-            AddItemAtEnd(out float size, true, item, scrollContent);
-            float deltaSize = size;
+    //        float offset = offsetCount * (elementSize + itemSpacing);
+    //        scrollContentRect.anchoredPosition += new Vector2(0, offset + (reverseDirection ? currentSize : 0));
+    //        scrollContentBounds.center += new Vector3(0, offset + currentSize / 2, 0);
+    //        scrollContentBounds.size = Vector3.zero;
+    //        isChanged = true;
+    //    }
 
-            /* equals to (bottom of scrollContent) - (new item height + upward spacing) + offset */
-            while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
-            {
-                if (AddItemAtEnd(out size, true, item, scrollContent))
-                    deltaSize += size;
-                else
-                    break;
-            }
+    //    /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
+    //    /* Need to add new items at the bottom of the scrollContent */
+    //    if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
+    //    {
+    //        /* the last item needs to consider item spacing */
+    //        AddItemAtEnd(out float size, true, item, scrollContent);
+    //        float deltaSize = size;
 
-            if (deltaSize > 0)
-                isChanged = true;
-        }
-        //if (scrollViewBounds.min.y < scrollContentBounds.min.y + displayOffset)
-        //{
-        //    /* the last item needs to consider item spacing */
-        //    AddItemAtEnd(true, out float size);
-        //    float deltaSize = size;
+    //        /* equals to (bottom of scrollContent) - (new item height + upward spacing) + offset */
+    //        while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
+    //        {
+    //            if (AddItemAtEnd(out size, true, item, scrollContent))
+    //                deltaSize += size;
+    //            else
+    //                break;
+    //        }
 
-        //    /* equals to (bottom of scrollContent) - (new item height + upward spacing) + offset */
-        //    while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y - deltaSize + displayOffset)
-        //    {
-        //        if (AddItemAtEnd(true, out size))
-        //            deltaSize += size;
-        //        else
-        //            break;
-        //    }
+    //        if (deltaSize > 0)
+    //            isChanged = true;
+    //    }
+    //    //if (scrollViewBounds.min.y < scrollContentBounds.min.y + displayOffset)
+    //    //{
+    //    //    /* the last item needs to consider item spacing */
+    //    //    AddItemAtEnd(true, out float size);
+    //    //    float deltaSize = size;
 
-        //    if (deltaSize > 0)
-        //        isChanged = true;
-        //}
+    //    //    /* equals to (bottom of scrollContent) - (new item height + upward spacing) + offset */
+    //    //    while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y - deltaSize + displayOffset)
+    //    //    {
+    //    //        if (AddItemAtEnd(true, out size))
+    //    //            deltaSize += size;
+    //    //        else
+    //    //            break;
+    //    //    }
 
-        /* Case 2: the top of the last item is much lower than the bottom of the viewPort */
-        /* Need to remove old items at the bottom of the scrollContent */
-        if (scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding)
-        {
-            RemoveItemAtEnd(out float size, true);
-            float deltaSize = size;
+    //    //    if (deltaSize > 0)
+    //    //        isChanged = true;
+    //    //}
 
-            /* equals to (the bottom of scrollContent) + (last item height + upward spacing) + (second last item height + upward spacing) + offset */
-            while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding + deltaSize)
-            {
-                if (RemoveItemAtEnd(out size, true))
-                    deltaSize += size;
-                else
-                    break;
-            }
+    //    /* Case 2: the top of the last item is much lower than the bottom of the viewPort */
+    //    /* Need to remove old items at the bottom of the scrollContent */
+    //    if (scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding)
+    //    {
+    //        RemoveItemAtEnd(out float size, true);
+    //        float deltaSize = size;
 
-            if (deltaSize > 0)
-                isChanged = true;
-        }
-        //if (scrollViewBounds.min.y > scrollContentBounds.min.y + (itemRect.rect.height + itemSpacing) + displayOffset)
-        //{
-        //    RemoveItemAtEnd(true, out float size);
-        //    float deltaSize = size;
+    //        /* equals to (the bottom of scrollContent) + (last item height + upward spacing) + (second last item height + upward spacing) + offset */
+    //        while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding + deltaSize)
+    //        {
+    //            if (RemoveItemAtEnd(out size, true))
+    //                deltaSize += size;
+    //            else
+    //                break;
+    //        }
 
-        //    /* equals to (the bottom of scrollContent) + (last item height + upward spacing) + (second last item height + upward spacing) + offset */
-        //    while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + deltaSize + (itemRect.rect.height + itemSpacing) + displayOffset)
-        //    {
-        //        if (RemoveItemAtEnd(true, out size))
-        //            deltaSize += size;
-        //        else
-        //            break;
-        //    }
+    //        if (deltaSize > 0)
+    //            isChanged = true;
+    //    }
+    //    //if (scrollViewBounds.min.y > scrollContentBounds.min.y + (itemRect.rect.height + itemSpacing) + displayOffset)
+    //    //{
+    //    //    RemoveItemAtEnd(true, out float size);
+    //    //    float deltaSize = size;
 
-        //    if (deltaSize > 0)
-        //        isChanged = true;
-        //}
+    //    //    /* equals to (the bottom of scrollContent) + (last item height + upward spacing) + (second last item height + upward spacing) + offset */
+    //    //    while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + deltaSize + (itemRect.rect.height + itemSpacing) + displayOffset)
+    //    //    {
+    //    //        if (RemoveItemAtEnd(true, out size))
+    //    //            deltaSize += size;
+    //    //        else
+    //    //            break;
+    //    //    }
 
-        /* Case 3: the top of the first item is much lower than the top of the viewPort */
-        /* Need to add new items at the top of the scrollContent */
-        if (scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding)
-        {
-            /* need to consider downward item spacing for each item */
-            AddItemAtStart(out float size, true, item, scrollContent);
-            float deltaSize = size;
+    //    //    if (deltaSize > 0)
+    //    //        isChanged = true;
+    //    //}
 
-            /* equals to (top of scrollContent) + (new item hight + downward spacing) - offset */
-            while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
-            {
-                if (AddItemAtStart(out size, true, item, scrollContent))
-                    deltaSize += size;
-                else
-                    break;
-            }
+    //    /* Case 3: the top of the first item is much lower than the top of the viewPort */
+    //    /* Need to add new items at the top of the scrollContent */
+    //    if (scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding)
+    //    {
+    //        /* need to consider downward item spacing for each item */
+    //        AddItemAtStart(out float size, true, item, scrollContent);
+    //        float deltaSize = size;
 
-            if (deltaSize > 0)
-                isChanged = true;
-        }
-        //if (scrollViewBounds.max.y > scrollContentBounds.max.y)
-        //{
-        //    /* need to consider downward item spacing for each item */
-        //    AddItemAtStart(true, out float size);
-        //    float deltaSize = size;
+    //        /* equals to (top of scrollContent) + (new item hight + downward spacing) - offset */
+    //        while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
+    //        {
+    //            if (AddItemAtStart(out size, true, item, scrollContent))
+    //                deltaSize += size;
+    //            else
+    //                break;
+    //        }
 
-        //    /* equals to (top of scrollContent) + (new item hight + downward spacing) - offset */
-        //    while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y + deltaSize - displayOffset)
-        //    {
-        //        if (AddItemAtStart(true, out size))
-        //            deltaSize += size;
-        //        else
-        //            break;
-        //    }
+    //        if (deltaSize > 0)
+    //            isChanged = true;
+    //    }
+    //    //if (scrollViewBounds.max.y > scrollContentBounds.max.y)
+    //    //{
+    //    //    /* need to consider downward item spacing for each item */
+    //    //    AddItemAtStart(true, out float size);
+    //    //    float deltaSize = size;
 
-        //    if (deltaSize > 0)
-        //        isChanged = true;
-        //}
+    //    //    /* equals to (top of scrollContent) + (new item hight + downward spacing) - offset */
+    //    //    while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y + deltaSize - displayOffset)
+    //    //    {
+    //    //        if (AddItemAtStart(true, out size))
+    //    //            deltaSize += size;
+    //    //        else
+    //    //            break;
+    //    //    }
 
-        /* Case 4: the bottom of the first item is much higher than the top of the viewPort */
-        /* Need to remove old items at the top of the scrollContent */
-        if (scrollViewBounds.max.y < scrollContentBounds.max.y - threshold - contentTopPadding)
-        {
-            /* need to consider downward item spacing for each item */
-            RemoveItemAtStart(out float size, true);
-            float deltaSize = size;
+    //    //    if (deltaSize > 0)
+    //    //        isChanged = true;
+    //    //}
 
-            /* equals to (top of scrollContent) - (first item hight + downward spacing) - (next item hight + downward spacing) - offset */
-            while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - threshold - contentTopPadding - deltaSize)
-            {
-                if (RemoveItemAtStart(out size, true))
-                    deltaSize += size;
-                else
-                    break;
-            }
+    //    /* Case 4: the bottom of the first item is much higher than the top of the viewPort */
+    //    /* Need to remove old items at the top of the scrollContent */
+    //    if (scrollViewBounds.max.y < scrollContentBounds.max.y - threshold - contentTopPadding)
+    //    {
+    //        /* need to consider downward item spacing for each item */
+    //        RemoveItemAtStart(out float size, true);
+    //        float deltaSize = size;
 
-            if (deltaSize > 0)
-                isChanged = true;
-        }
-        //if (scrollViewBounds.max.y < scrollContentBounds.max.y - (itemRect.rect.height + itemSpacing) - displayOffset)
-        //{
-        //    /* need to consider downward item spacing for each item */
-        //    RemoveItemAtStart(true, out float size);
-        //    float deltaSize = size;
+    //        /* equals to (top of scrollContent) - (first item hight + downward spacing) - (next item hight + downward spacing) - offset */
+    //        while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - threshold - contentTopPadding - deltaSize)
+    //        {
+    //            if (RemoveItemAtStart(out size, true))
+    //                deltaSize += size;
+    //            else
+    //                break;
+    //        }
 
-        //    /* equals to (top of scrollContent) - (first item hight + downward spacing) - (next item hight + downward spacing) - offset */
-        //    while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - deltaSize - (itemRect.rect.height + itemSpacing) - displayOffset)
-        //    {
-        //        if (RemoveItemAtStart(true, out size))
-        //            deltaSize += size;
-        //        else
-        //            break;
-        //    }
+    //        if (deltaSize > 0)
+    //            isChanged = true;
+    //    }
+    //    //if (scrollViewBounds.max.y < scrollContentBounds.max.y - (itemRect.rect.height + itemSpacing) - displayOffset)
+    //    //{
+    //    //    /* need to consider downward item spacing for each item */
+    //    //    RemoveItemAtStart(true, out float size);
+    //    //    float deltaSize = size;
 
-        //    if (deltaSize > 0)
-        //        isChanged = true;
-        //}
+    //    //    /* equals to (top of scrollContent) - (first item hight + downward spacing) - (next item hight + downward spacing) - offset */
+    //    //    while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - deltaSize - (itemRect.rect.height + itemSpacing) - displayOffset)
+    //    //    {
+    //    //        if (RemoveItemAtStart(true, out size))
+    //    //            deltaSize += size;
+    //    //        else
+    //    //            break;
+    //    //    }
 
-        if (isChanged)
-        {
-            ClearItemDespawnList();
-        }
-    }
+    //    //    if (deltaSize > 0)
+    //    //        isChanged = true;
+    //    //}
+
+    //    if (isChanged)
+    //    {
+    //        ClearItemDespawnList();
+    //    }
+    //}
 
 
     public void UpdateScrollItemGroups()
@@ -3616,6 +3719,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         bounds.Encapsulate(vMax);
         return bounds;
     }
+
+
 
     #endregion
 
