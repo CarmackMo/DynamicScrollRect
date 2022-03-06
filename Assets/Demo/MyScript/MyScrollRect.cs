@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
-public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler
+public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler, ICanvasElement, ILayoutGroup
 {
     #region 用户设定相关
     public enum ScrollMovementType
@@ -115,8 +115,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     private ScrollMovementType movementType = ScrollMovementType.Elastic;
     public ScrollMovementType MovementType { get { return movementType; } set { movementType = value; } }
 
+
+
     [SerializeField]
-    private float elasticity = 0.1f;          /* Only used for ScrollMovementType.Elastic */
+    private float elasticity = 0.1f;                /* Only used for ScrollMovementType.Elastic */
     public float Elasticity { get { return elasticity; } set { elasticity = value; } }
 
     [SerializeField]
@@ -124,8 +126,16 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     public bool Inertia { get { return inertia; } set { inertia = value; } }
 
     [SerializeField]
-    private float decelerationRate = 0.135f; /* Only used when inertia is enabled */
+    private float decelerationRate = 0.135f;        /* Only used when inertia is enabled */
     public float DecelerationRate { get { return decelerationRate; } set { decelerationRate = value; } }
+
+    [SerializeField]
+    private float horizontalScrollbarSpacing;
+    public float HorizontalScrollbarSpacing { get { return horizontalScrollbarSpacing; } set { horizontalScrollbarSpacing = value; SetDirty(); } }
+
+    [SerializeField]
+    private float verticalScrollbarSpacing;
+    public float VerticalScrollbarSpacing { get { return verticalScrollbarSpacing; } set { verticalScrollbarSpacing = value; SetDirty(); } }
 
     [SerializeField]
     private ScrollRectEvent onValueChanged = new ScrollRectEvent();
@@ -143,6 +153,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     private RectTransform rect;
 
     private GridLayoutGroup gridLayout = null;
+
+    private DrivenRectTransformTracker tracker;
 
     private Bounds scrollViewBounds;
     private Bounds scrollContentBounds;
@@ -177,6 +189,12 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     protected float threshold = 0f;
 
     private bool isDragging;
+
+    private bool hasRebuiltLayout = false;
+    private bool horizontalSliderExpand;
+    private bool verticalSliderExpand;
+    private float horizontalSliderHeight;
+    private float verticalSliderWidth;
 
 
     #endregion
@@ -225,9 +243,12 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     #endregion
 
 
+    #region Monobehaviour相关
 
     protected override void Awake()
     {
+        base.Awake();
+
         scrollViewRect = scrollView.GetComponent<RectTransform>();
         scrollContentRect = scrollContent.GetComponent<RectTransform>();
         rect = GetComponent<RectTransform>();
@@ -240,11 +261,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     protected override void Start()
     {
-
         RefillItemGroup(out _, itemGroupList[0]);
-
-
-        //RefillItems();
     }
 
     protected virtual void LateUpdate()
@@ -310,6 +327,36 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             UpdatePrevData();
         }
     }
+
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+
+        if (horizontalScrollbar)
+            horizontalScrollbar.onValueChanged.AddListener(SetHorizontalNormalizedPosition);
+        if (verticalScrollbar)
+            verticalScrollbar.onValueChanged.AddListener(SetVerticalNormalizedPosition);
+
+        CanvasUpdateRegistry.RegisterCanvasElementForLayoutRebuild(this);
+    }
+
+    protected override void OnDisable()
+    {
+        CanvasUpdateRegistry.UnRegisterCanvasElementForRebuild(this);
+
+        if (horizontalScrollbar)
+            horizontalScrollbar.onValueChanged.RemoveListener(SetHorizontalNormalizedPosition);
+        if (verticalScrollbar)
+            verticalScrollbar.onValueChanged.RemoveListener(SetVerticalNormalizedPosition);
+
+        hasRebuiltLayout = false;
+        velocity = Vector2.zero;
+        tracker.Clear();
+        LayoutRebuilder.MarkLayoutForRebuild(scrollViewRect);
+        base.OnDisable();
+    }
+
+    #endregion
 
 
     #region 列表元素增加
@@ -1291,8 +1338,26 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         if (!IsActive())
             return;
 
-        //CanvasUpdateRegistry.RegisterCanvasElementForLayoutRebuild(this);
+        CanvasUpdateRegistry.RegisterCanvasElementForLayoutRebuild(this);
         LayoutRebuilder.MarkLayoutForRebuild(rect);
+    }
+
+    void UpdateCachedData()
+    {
+        Transform transform = this.transform;
+        horizontalScrollbarRect = horizontalScrollbar == null ? null : horizontalScrollbar.transform as RectTransform;
+        verticalScrollbarRect = verticalScrollbar == null ? null : verticalScrollbar.transform as RectTransform;
+
+        /* These are true if either the elements are children, or they don't exist at all. */
+        bool viewIsChild = (scrollViewRect.parent == transform);
+        bool hScrollbarIsChild = (!horizontalScrollbarRect || horizontalScrollbarRect.parent == transform);
+        bool vScrollbarIsChild = (!verticalScrollbarRect || verticalScrollbarRect.parent == transform);
+        bool allAreChildren = (viewIsChild && hScrollbarIsChild && vScrollbarIsChild);
+
+        horizontalSliderExpand = allAreChildren && horizontalScrollbarRect && horizontalScrollbarVisibility == ScrollbarVisibility.AutoHideAndExpandViewport;
+        verticalSliderExpand = allAreChildren && verticalScrollbarRect && verticalScrollbarVisibility == ScrollbarVisibility.AutoHideAndExpandViewport;
+        horizontalSliderHeight = (horizontalScrollbarRect == null ? 0 : horizontalScrollbarRect.rect.height);
+        verticalSliderWidth = (verticalScrollbarRect == null ? 0 : verticalScrollbarRect.rect.width);
     }
 
     public virtual void StopMovement()
@@ -1302,7 +1367,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     private void EnsureLayoutHasRebuilt()
     {
-        if (!CanvasUpdateRegistry.IsRebuildingLayout())
+        if (!hasRebuiltLayout && !CanvasUpdateRegistry.IsRebuildingLayout())
             Canvas.ForceUpdateCanvases();
     }
 
@@ -2064,28 +2129,45 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             horizontalScrollbar.gameObject.SetActive(horizontalScrollingNeeded);
     }
 
+    void UpdateScrollbarLayout()
+    {
+        if (verticalSliderExpand && horizontalScrollbar)
+        {
+            tracker.Add(this, horizontalScrollbarRect,
+                          DrivenTransformProperties.AnchorMinX |
+                          DrivenTransformProperties.AnchorMaxX |
+                          DrivenTransformProperties.SizeDeltaX |
+                          DrivenTransformProperties.AnchoredPositionX);
+            horizontalScrollbarRect.anchorMin = new Vector2(0, horizontalScrollbarRect.anchorMin.y);
+            horizontalScrollbarRect.anchorMax = new Vector2(1, horizontalScrollbarRect.anchorMax.y);
+            horizontalScrollbarRect.anchoredPosition = new Vector2(0, horizontalScrollbarRect.anchoredPosition.y);
+            if (verticalScrollingNeeded)
+                horizontalScrollbarRect.sizeDelta = new Vector2(-(verticalSliderWidth + verticalScrollbarSpacing), horizontalScrollbarRect.sizeDelta.y);
+            else
+                horizontalScrollbarRect.sizeDelta = new Vector2(0, horizontalScrollbarRect.sizeDelta.y);
+        }
+
+        if (horizontalSliderExpand && verticalScrollbar)
+        {
+            tracker.Add(this, verticalScrollbarRect,
+                          DrivenTransformProperties.AnchorMinY |
+                          DrivenTransformProperties.AnchorMaxY |
+                          DrivenTransformProperties.SizeDeltaY |
+                          DrivenTransformProperties.AnchoredPositionY);
+            verticalScrollbarRect.anchorMin = new Vector2(verticalScrollbarRect.anchorMin.x, 0);
+            verticalScrollbarRect.anchorMax = new Vector2(verticalScrollbarRect.anchorMax.x, 1);
+            verticalScrollbarRect.anchoredPosition = new Vector2(verticalScrollbarRect.anchoredPosition.x, 0);
+            if (horizontalScrollingNeeded)
+                verticalScrollbarRect.sizeDelta = new Vector2(verticalScrollbarRect.sizeDelta.x, -(horizontalSliderHeight + horizontalScrollbarSpacing));
+            else
+                verticalScrollbarRect.sizeDelta = new Vector2(verticalScrollbarRect.sizeDelta.x, 0);
+        }
+    }
+
     #endregion
 
 
     #region scrollitem相关
-
-    ///* 该函数的用途暂时不明 */
-    //public virtual void Rebuild(CanvasUpdate executing)
-    //{
-    //    if (executing == CanvasUpdate.Prelayout)
-    //    {
-    //        UpdateCachedData();
-    //    }
-
-    //    if (executing == CanvasUpdate.PostLayout)
-    //    {
-    //        UpdateBounds();
-    //        UpdateScrollbars(Vector2.zero);
-    //        UpdatePrevData();
-
-    //        m_HasRebuiltLayout = true;
-    //    }
-    //}
 
     ///* 该函数的用途暂时不明 */
     //public void RefreshCells()
@@ -3730,6 +3812,16 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #region 接口类 & 回调类函数
 
+    #region UI交互接口
+
+    public virtual void OnInitializePotentialDrag(PointerEventData eventData)
+    {
+        if (eventData.button != PointerEventData.InputButton.Left)
+            return;
+
+        velocity = Vector2.zero;
+    }
+
     public virtual void OnBeginDrag(PointerEventData eventData)
     {
         if (eventData.button != PointerEventData.InputButton.Left)
@@ -3756,8 +3848,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         if (!IsActive())
             return;
 
-        //Vector2 cursorEndPos;
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(scrollViewRect, eventData.position, eventData.pressEventCamera, out Vector2 cursorEndPos))
+        Vector2 cursorEndPos;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(scrollViewRect, eventData.position, eventData.pressEventCamera, out cursorEndPos))
             return;
 
         UpdateBounds(false);
@@ -3765,7 +3857,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         Vector2 pointerDelta = cursorEndPos - cursorStartPos;
         Vector2 position = contentStartPos + pointerDelta;
 
-        // Offset to get scrollContent into place in the view.
+        /* Offset to get scrollContent into place in the view. */
         Vector2 offset = CalculateOffset(position - scrollContentRect.anchoredPosition);
         position += offset;
         if (movementType == ScrollMovementType.Elastic)
@@ -3821,6 +3913,96 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         SetContentAnchoredPosition(position);
         UpdateBounds();
     }
+
+    #endregion
+
+
+    #region Canvas绘制接口
+
+    public virtual void LayoutComplete() { }
+
+    public virtual void GraphicUpdateComplete() { }
+
+    public virtual void Rebuild(CanvasUpdate executing)
+    {
+        if (executing == CanvasUpdate.Prelayout)
+            UpdateCachedData();
+
+        if (executing == CanvasUpdate.PostLayout)
+        {
+            UpdateBounds();
+            UpdateScrollbars(Vector2.zero);
+            UpdatePrevData();
+
+            hasRebuiltLayout = true;
+        }
+    }
+
+    #endregion
+
+
+    #region LayoutGroup & LayoutElement 接口
+
+    public virtual void SetLayoutHorizontal()
+    {
+        tracker.Clear();
+
+        if (horizontalSliderExpand || verticalSliderExpand)
+        {
+            tracker.Add(this, scrollViewRect,
+                DrivenTransformProperties.Anchors |
+                DrivenTransformProperties.SizeDelta |
+                DrivenTransformProperties.AnchoredPosition);
+
+            /* Make view full size to see if content fits. */
+            scrollViewRect.anchorMin = Vector2.zero;
+            scrollViewRect.anchorMax = Vector2.one;
+            scrollViewRect.sizeDelta = Vector2.zero;
+            scrollViewRect.anchoredPosition = Vector2.zero;
+
+            /* Recalculate content layout with this size to see if it fits when there are no scrollbars. */
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+            CalculateContentBounds();
+        }
+
+        /* If it doesn't fit vertically, enable vertical scrollbar and shrink view horizontally to make room for it. */
+        if (verticalSliderExpand && verticalScrollingNeeded)
+        {
+            scrollViewRect.sizeDelta = new Vector2(-(verticalSliderWidth + verticalScrollbarSpacing), scrollViewRect.sizeDelta.y);
+
+            /* Recalculate content layout with this size to see if it fits vertically */
+            /* when there is a vertical scrollbar (which may reflowed the content to make it taller). */
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+            CalculateContentBounds();
+        }
+
+        /* If it doesn't fit horizontally, enable horizontal scrollbar and shrink view vertically to make room for it. */
+        if (horizontalSliderExpand && horizontalScrollingNeeded)
+        {
+            scrollViewRect.sizeDelta = new Vector2(scrollViewRect.sizeDelta.x, -(horizontalSliderHeight + horizontalScrollbarSpacing));
+            scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+            CalculateContentBounds();
+        }
+
+        /* If the vertical slider didn't kick in the first time, and the horizontal one did, */
+        /* we need to check again if the vertical slider now needs to kick in. */
+        /* If it doesn't fit vertically, enable vertical scrollbar and shrink view horizontally to make room for it. */
+        if (verticalSliderExpand && verticalScrollingNeeded && scrollViewRect.sizeDelta.x == 0 && scrollViewRect.sizeDelta.y < 0)
+        {
+            scrollViewRect.sizeDelta = new Vector2(-(verticalSliderWidth + verticalScrollbarSpacing), scrollViewRect.sizeDelta.y);
+        }
+    }
+
+    public virtual void SetLayoutVertical()
+    {
+        UpdateScrollbarLayout();
+        scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+        CalculateContentBounds();
+    }
+
+    #endregion
 
     #endregion
 
