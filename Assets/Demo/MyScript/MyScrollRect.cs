@@ -142,6 +142,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private RectTransform horizontalScrollbarRect;
     private RectTransform verticalScrollbarRect;
 
+    private RectTransform Rect { get { if (rect = null) { rect = GetComponent<RectTransform>(); } return rect; } }
+    private RectTransform ScrollViewRect { get { if (scrollViewRect == null) { scrollViewRect = scrollView.GetComponent<RectTransform>(); } return scrollViewRect; } }
+    private RectTransform ScrollContentRect { get { if (scrollContentRect == null) { scrollContentRect = scrollContent.GetComponent<RectTransform>(); } return scrollContentRect; } }
+
     //private GridLayoutGroup gridLayout = null;
 
     private DrivenRectTransformTracker tracker;
@@ -194,11 +198,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     //private int firstItemIdx = 0;
     //private int lastItemIdx = 0;
-    private int firstItemGroupIdx = 0;
-    private int lastItemGroupIdx = 0;
 
     //private int displayItemCount { get { return displayItemList.Count; } }
     //private List<GameObject> displayItemList = new List<GameObject>();
+
+    private int firstItemGroupIdx = 0;
+    private int lastItemGroupIdx = 0;
 
     private int itemGroupCount { get { return itemGroupList.Count; } }
     private int displayItemGroupCount { get { return displayItemGroupList.Count; } }
@@ -3765,7 +3770,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     public void CalculateContentBounds()
     {
-        if (scrollContentRect == null)
+        if (ScrollContentRect == null)
             scrollContentBounds = new Bounds();
 
         /* scrollContent UI is dynamic, therefore needs to calculate from its world position */
@@ -3773,7 +3778,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
         var corners = new Vector3[4];
         var localMatrix = scrollViewRect.worldToLocalMatrix;
-        scrollContentRect.GetWorldCorners(corners);
+        ScrollContentRect.GetWorldCorners(corners);
 
         for (int j = 0; j < 4; j++)
         {
@@ -4018,7 +4023,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public virtual void SetLayoutVertical()
     {
         UpdateScrollbarLayout();
-        scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+        scrollViewBounds = new Bounds(ScrollViewRect.rect.center, ScrollViewRect.rect.size);
         CalculateContentBounds();
     }
 
