@@ -197,11 +197,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private int firstItemGroupIdx = 0;
     private int lastItemGroupIdx = 0;
 
+    //private int displayItemCount { get { return displayItemList.Count; } }
+    //private List<GameObject> displayItemList = new List<GameObject>();
+
     private int itemGroupCount { get { return itemGroupList.Count; } }
-    private int displayItemCount { get { return displayItemList.Count; } }
     private int displayItemGroupCount { get { return displayItemGroupList.Count; } }
 
-    private List<GameObject> displayItemList = new List<GameObject>();
     private List<ItemGroupConfig> displayItemGroupList = new List<ItemGroupConfig>();
 
     #endregion
@@ -352,6 +353,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     #region 列表元素增加
 
     #region 旧版单种类元素增加
+
     //public bool AddItemAtStart(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
     //{
     //    size = 0;
@@ -463,9 +465,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Special case: we will not spawn the nested item if there is not subItem inside, but we will record the data of the nested item still */
             if (itemGroup.firstItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
             {
-                displayItemList.Reverse();
-                displayItemList.Add(prefab);
-                displayItemList.Reverse();
+                //displayItemList.Reverse();
+                //displayItemList.Add(prefab);
+                //displayItemList.Reverse();
                 //firstItemIdx--;
                 itemGroup.displayItemList.Reverse();
                 itemGroup.displayItemList.Add(prefab);
@@ -480,9 +482,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 newItem.transform.SetAsFirstSibling();
 
                 /* Update the information for the items that are currently displaying */
-                displayItemList.Reverse();
-                displayItemList.Add(newItem);
-                displayItemList.Reverse();
+                //displayItemList.Reverse();
+                //displayItemList.Add(newItem);
+                //displayItemList.Reverse();
                 //firstItemIdx--;
                 itemGroup.displayItemList.Reverse();
                 itemGroup.displayItemList.Add(newItem);
@@ -524,7 +526,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Special case: we will not spawn the nested item if there is no subItem inside, but we will record the data of the nested item still */
             if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
             {
-                displayItemList.Add(prefab);
+                //displayItemList.Add(prefab);
                 //lastItemIdx++;
                 itemGroup.displayItemList.Add(prefab);
                 itemGroup.lastItemIdx++;
@@ -539,7 +541,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 /* Update the information for the items that are currently displaying */
                 newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
-                displayItemList.Add(newItem);
+                //displayItemList.Add(newItem);
                 //lastItemIdx++;
                 itemGroup.displayItemList.Add(newItem);
                 itemGroup.lastItemIdx++;
@@ -866,7 +868,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 availableItems--;
                 itemGroup.displayItemList.RemoveAt(0);
                 itemGroup.firstItemIdx++;
-                displayItemList.RemoveAt(0);
+                //displayItemList.RemoveAt(0);
                 //firstItemIdx++;
             }
             else
@@ -938,7 +940,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 availableItems--;
                 itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
                 itemGroup.lastItemIdx--;
-                displayItemList.RemoveAt(displayItemCount - 1);
+                //displayItemList.RemoveAt(displayItemCount - 1);
                 //lastItemIdx--;
             }
             else
@@ -1223,30 +1225,30 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             despawnItemCountEnd += count;
     }
 
-    public void ClearItemDespawnList()
-    {
-        Debug.Assert(scrollContentRect.childCount >= despawnItemCountStart + despawnItemCountEnd);
-        if (despawnItemCountStart > 0)
-        {
-            for (int i = 1; i <= despawnItemCountStart; i++)
-            {
-                GameObject item = displayItemList[0];
-                displayItemList.RemoveAt(0);
-                DespawnItem(item);
-            }
-            despawnItemCountStart = 0;
-        }
-        if (despawnItemCountEnd > 0)
-        {
-            for (int i = 1; i <= despawnItemCountEnd; i++)
-            {
-                GameObject item = displayItemList[displayItemCount - 1];
-                displayItemList.RemoveAt(displayItemCount - 1);
-                DespawnItem(item);
-            }
-            despawnItemCountEnd = 0;
-        }
-    }
+    //public void ClearItemDespawnList()
+    //{
+    //    Debug.Assert(scrollContentRect.childCount >= despawnItemCountStart + despawnItemCountEnd);
+    //    if (despawnItemCountStart > 0)
+    //    {
+    //        for (int i = 1; i <= despawnItemCountStart; i++)
+    //        {
+    //            GameObject item = displayItemList[0];
+    //            displayItemList.RemoveAt(0);
+    //            DespawnItem(item);
+    //        }
+    //        despawnItemCountStart = 0;
+    //    }
+    //    if (despawnItemCountEnd > 0)
+    //    {
+    //        for (int i = 1; i <= despawnItemCountEnd; i++)
+    //        {
+    //            GameObject item = displayItemList[displayItemCount - 1];
+    //            displayItemList.RemoveAt(displayItemCount - 1);
+    //            DespawnItem(item);
+    //        }
+    //        despawnItemCountEnd = 0;
+    //    }
+    //}
 
     public void ClearItemDespawnList(ItemGroupConfig itemGroup)
     {
@@ -1257,7 +1259,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             {
                 GameObject item = itemGroup.displayItemList[0];
                 itemGroup.displayItemList.RemoveAt(0);
-                displayItemList.RemoveAt(0);
+                //displayItemList.RemoveAt(0);
                 DespawnItem(item);
             }
             despawnItemCountStart = 0;
@@ -1268,7 +1270,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             {
                 GameObject item = itemGroup.displayItemList[itemGroup.displayItemCount - 1];
                 itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
-                displayItemList.RemoveAt(displayItemCount - 1);
+                //displayItemList.RemoveAt(displayItemCount - 1);
                 DespawnItem(item);
             }
             despawnItemCountEnd = 0;
@@ -2286,6 +2288,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         float itemSize = 0;
         float size = 0;
         bool first = true;
+
         while (sizeToFill > sizeFilled)
         {
             bool addSuccess = false;
@@ -2306,7 +2309,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (!addSuccess)
                     break;
 
-                RefillSubItems(out float nestedItemSize, itemGroup.subItem, displayItemList[displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
+                RefillSubItems(out float nestedItemSize, itemGroup.subItem, reverseDirection ? itemGroup.displayItemList[0] : itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
+                //RefillSubItems(out float nestedItemSize, itemGroup.subItem, displayItemList[displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
 
                 first = false;
                 itemSize = nestedItemSize;
@@ -2333,7 +2337,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (!addSuccess)
                     break;
 
-                RefillSubItems(out float subContentSize, itemGroup.subItem, displayItemList[0], itemGroup, sizeToFill - sizeFilled);
+                RefillSubItems(out float subContentSize, itemGroup.subItem, reverseDirection ? itemGroup.displayItemList[0] : itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
+                //RefillSubItems(out float subContentSize, itemGroup.subItem, displayItemList[0], itemGroup, sizeToFill - sizeFilled);
 
                 first = false;
                 itemSize = subContentSize;
@@ -3702,10 +3707,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             //}
         }
 
-        if (isChanged)
-        {
-            ClearItemDespawnList();
-        }
+        //if (isChanged)
+        //{
+        //    ClearItemDespawnList();
+        //}
     }
 
     #endregion
