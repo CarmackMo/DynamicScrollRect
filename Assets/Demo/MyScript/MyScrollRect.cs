@@ -60,10 +60,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public float RubberScale { get { return rubberScale; } set { rubberScale = value; } }
 
     [SerializeField]
-    private float displayOffset = 0f;
-    public float DisplayOffset { get { return displayOffset; } set { displayOffset = value; } }
-
-    [SerializeField]
     private bool reverseDirection = false;
     public bool ReverseDirection { get { return reverseDirection; } set { reverseDirection = value; } }
 
@@ -82,10 +78,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     [SerializeField]
     private GameObject scrollContent = null;
     public GameObject ScrollContent { get { return scrollContent; } set { scrollContent = value; } }
-
-    [SerializeField]
-    private GameObject item = null;
-    public GameObject Item { get { return item; } set { item = value; } }
 
     [SerializeField]
     private List<ItemGroupConfig> itemGroupList = new List<ItemGroupConfig>();
@@ -112,10 +104,16 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public ScrollbarVisibility VerticalScrollbarVisibility { get { return verticalScrollbarVisibility; } set { verticalScrollbarVisibility = value; SetDirtyCaching(); } }
 
     [SerializeField]
+    private float horizontalScrollbarSpacing;
+    public float HorizontalScrollbarSpacing { get { return horizontalScrollbarSpacing; } set { horizontalScrollbarSpacing = value; SetDirty(); } }
+
+    [SerializeField]
+    private float verticalScrollbarSpacing;
+    public float VerticalScrollbarSpacing { get { return verticalScrollbarSpacing; } set { verticalScrollbarSpacing = value; SetDirty(); } }
+
+    [SerializeField]
     private ScrollMovementType movementType = ScrollMovementType.Elastic;
     public ScrollMovementType MovementType { get { return movementType; } set { movementType = value; } }
-
-
 
     [SerializeField]
     private float elasticity = 0.1f;                /* Only used for ScrollMovementType.Elastic */
@@ -130,14 +128,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public float DecelerationRate { get { return decelerationRate; } set { decelerationRate = value; } }
 
     [SerializeField]
-    private float horizontalScrollbarSpacing;
-    public float HorizontalScrollbarSpacing { get { return horizontalScrollbarSpacing; } set { horizontalScrollbarSpacing = value; SetDirty(); } }
-
-    [SerializeField]
-    private float verticalScrollbarSpacing;
-    public float VerticalScrollbarSpacing { get { return verticalScrollbarSpacing; } set { verticalScrollbarSpacing = value; SetDirty(); } }
-
-    [SerializeField]
     private ScrollRectEvent onValueChanged = new ScrollRectEvent();
     public ScrollRectEvent OnValueChanged { get { return onValueChanged; } set { onValueChanged = value; } }
 
@@ -146,13 +136,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region 私有UI组件相关
 
+    private RectTransform rect;
     private RectTransform scrollViewRect;
     private RectTransform scrollContentRect;
     private RectTransform horizontalScrollbarRect;
     private RectTransform verticalScrollbarRect;
-    private RectTransform rect;
 
-    private GridLayoutGroup gridLayout = null;
+    //private GridLayoutGroup gridLayout = null;
 
     private DrivenRectTransformTracker tracker;
 
@@ -175,9 +165,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     private int layoutConstrainCount = -1;
     protected int LayoutConstraintCount { get { return GetLayoutConstraintCount(); } }
-    protected int startLine { get { return Mathf.CeilToInt((float)(firstItemIdx) / layoutConstrainCount); } }                       // the first line of item that display in scroll view among all lines of items
-    protected int currentLines { get { return Mathf.CeilToInt((float)(lastItemIdx - firstItemIdx) / layoutConstrainCount); } }      // the amount of lines of items that are displaying in the scroll view
-    protected int totalLines { get { return Mathf.CeilToInt((float)(itemCount) / layoutConstrainCount); } }                         // the amount of lines regarding to all items
+    //protected int startLine { get { return Mathf.CeilToInt((float)(firstItemIdx) / layoutConstrainCount); } }                       // the first line of item that display in scroll view among all lines of items
+    //protected int currentLines { get { return Mathf.CeilToInt((float)(lastItemIdx - firstItemIdx) / layoutConstrainCount); } }      // the amount of lines of items that are displaying in the scroll view
+    //protected int totalLines { get { return Mathf.CeilToInt((float)(itemCount) / layoutConstrainCount); } }                         // the amount of lines regarding to all items
 
     private float itemSpacing = -1.0f;
     protected float ItemSpacing { get { return GetItemSpacing(); } }
@@ -202,8 +192,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region 内容数据相关
 
-    private int firstItemIdx = 0;
-    private int lastItemIdx = 0;
+    //private int firstItemIdx = 0;
+    //private int lastItemIdx = 0;
     private int firstItemGroupIdx = 0;
     private int lastItemGroupIdx = 0;
 
@@ -476,7 +466,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 displayItemList.Reverse();
                 displayItemList.Add(prefab);
                 displayItemList.Reverse();
-                firstItemIdx--;
+                //firstItemIdx--;
                 itemGroup.displayItemList.Reverse();
                 itemGroup.displayItemList.Add(prefab);
                 itemGroup.displayItemList.Reverse();
@@ -493,14 +483,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 displayItemList.Reverse();
                 displayItemList.Add(newItem);
                 displayItemList.Reverse();
-                firstItemIdx--;
+                //firstItemIdx--;
                 itemGroup.displayItemList.Reverse();
                 itemGroup.displayItemList.Add(newItem);
                 itemGroup.displayItemList.Reverse();
                 itemGroup.firstItemIdx--;
 
                 size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + firstItemIdx.ToString());
+                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
             }
         }
@@ -535,7 +525,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
             {
                 displayItemList.Add(prefab);
-                lastItemIdx++;
+                //lastItemIdx++;
                 itemGroup.displayItemList.Add(prefab);
                 itemGroup.lastItemIdx++;
             }
@@ -547,10 +537,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 newItem.transform.SetAsLastSibling();
 
                 /* Update the information for the items that are currently displaying */
-                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + lastItemIdx.ToString());
+                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
                 displayItemList.Add(newItem);
-                lastItemIdx++;
+                //lastItemIdx++;
                 itemGroup.displayItemList.Add(newItem);
                 itemGroup.lastItemIdx++;
                 size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
@@ -877,7 +867,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 itemGroup.displayItemList.RemoveAt(0);
                 itemGroup.firstItemIdx++;
                 displayItemList.RemoveAt(0);
-                firstItemIdx++;
+                //firstItemIdx++;
             }
             else
             {
@@ -889,7 +879,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
                 availableItems--;
                 itemGroup.firstItemIdx++;
-                firstItemIdx++;
+                //firstItemIdx++;
             }
 
             if (availableItems == 0)
@@ -949,7 +939,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
                 itemGroup.lastItemIdx--;
                 displayItemList.RemoveAt(displayItemCount - 1);
-                lastItemIdx--;
+                //lastItemIdx--;
             }
             else
             {
@@ -961,7 +951,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
                 availableItems--;
                 itemGroup.lastItemIdx--;
-                lastItemIdx--;
+                //lastItemIdx--;
             }
 
             if (itemGroup.lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
@@ -1422,15 +1412,15 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 contentTopPadding = layout.padding.top;
                 contentDownPadding = layout.padding.bottom;
             }
-            gridLayout = scrollContentRect.GetComponent<GridLayoutGroup>();
-            if (gridLayout != null)
-            {
-                itemSpacing = GetAbsDimension(gridLayout.spacing);
-                contentLeftPadding = gridLayout.padding.left;
-                contentRightPadding = gridLayout.padding.right;
-                contentTopPadding = gridLayout.padding.top;
-                contentDownPadding = gridLayout.padding.bottom;
-            }
+            //gridLayout = scrollContentRect.GetComponent<GridLayoutGroup>();
+            //if (gridLayout != null)
+            //{
+            //    itemSpacing = GetAbsDimension(gridLayout.spacing);
+            //    contentLeftPadding = gridLayout.padding.left;
+            //    contentRightPadding = gridLayout.padding.right;
+            //    contentTopPadding = gridLayout.padding.top;
+            //    contentDownPadding = gridLayout.padding.bottom;
+            //}
         }
         return itemSpacing;
     }
@@ -1477,17 +1467,21 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         if (vertical && !horizontal)
         {
-            if (gridLayout != null)
-                size += gridLayout.cellSize.y;
-            else
-                size += itemRect.rect.height;
+            size += itemRect.rect.height;
+
+            //if (gridLayout == null)
+            //    size += itemRect.rect.height;
+            //else
+            //    size += gridLayout.cellSize.y;
         }
         else
         {
-            if (gridLayout != null)
-                size += gridLayout.cellSize.x;
-            else
-                size += itemRect.rect.width;
+            size += itemRect.rect.width;
+
+            //if (gridLayout == null)
+            //    size += itemRect.rect.width;
+            //else
+            //    size += gridLayout.cellSize.x;
         }
 
         if (vertical && !horizontal)
@@ -1618,10 +1612,20 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             if (itemCount < 0)
                 return offset;
-            if (GetDimension(delta) < 0 && firstItemIdx > 0)            // cannot continue move down if already reach the top of scrollContent
+
+            ItemGroupConfig headItemGroup = itemGroupList[0];
+            ItemGroupConfig tailItemGroup = itemGroupList[itemGroupCount - 1];
+            /* Can continue move up as long as scrollContent dosn't reach top yet */
+            if (GetDimension(delta) < 0 && (headItemGroup.nestedItemIdx == 0 ? headItemGroup.firstSubItemIdx > 0 : headItemGroup.firstItemIdx > 0))
                 return offset;
-            if (GetDimension(delta) > 0 && lastItemIdx < itemCount)     // cannot continue move up if already reach the top of scrollContent
+            /* Can continue move down as long as scrollContent dosn't reach bottom yet */
+            if (GetDimension(delta) > 0 && (tailItemGroup.nestedItemIdx == tailItemGroup.itemCount - 1 ? tailItemGroup.lastSubItemIdx < tailItemGroup.subItemCount : tailItemGroup.lastItemIdx < tailItemGroup.itemCount))
                 return offset;
+
+            //if (GetDimension(delta) < 0 && firstItemIdx > 0)            // cannot continue move down if already reach the top of scrollContent
+            //    return offset;
+            //if (GetDimension(delta) > 0 && lastItemIdx < itemCount)     // cannot continue move up if already reach the top of scrollContent
+            //    return offset;
         }
 
         Vector2 min = scrollContentBounds.min;
@@ -2891,8 +2895,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
                     for (int i = 0; i < count; i++)
                     {
-                        lastItemIdx++;
-                        firstItemIdx++;
+                        //lastItemIdx++;
+                        //firstItemIdx++;
                         newItemGroup.lastItemIdx++;
                         newItemGroup.firstItemIdx++;
                         size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
@@ -2960,8 +2964,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
                     for (int i = 0; i < count; i++)
                     {
-                        lastItemIdx++;
-                        firstItemIdx++;
+                        //lastItemIdx++;
+                        //firstItemIdx++;
                         currItemGroup.lastItemIdx++;
                         currItemGroup.firstItemIdx++;
                         size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
@@ -3236,8 +3240,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     /* Virtually add items to the new item group at start */
                     for (int i = 0; i < layoutConstrainCount; i++)
                     {
-                        firstItemIdx--;
-                        lastItemIdx--;
+                        //firstItemIdx--;
+                        //lastItemIdx--;
                         newItemGroup.firstItemIdx--;
                         newItemGroup.lastItemIdx--;
                         size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
@@ -3298,8 +3302,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
                     for (int i = 0; i < layoutConstrainCount; i++)
                     {
-                        firstItemIdx--;
-                        lastItemIdx--;
+                        //firstItemIdx--;
+                        //lastItemIdx--;
                         currItemGroup.firstItemIdx--;
                         currItemGroup.lastItemIdx--;
                         size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
@@ -3805,7 +3809,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     //}
 
     #endregion
-
 
     #endregion
 
