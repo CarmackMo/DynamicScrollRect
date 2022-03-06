@@ -315,100 +315,100 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     #region 列表元素增加
 
     #region 旧版单种类元素增加
-    public bool AddItemAtStart(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
-    {
-        size = 0;
+    //public bool AddItemAtStart(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
+    //{
+    //    size = 0;
 
-        if (itemCount >= 0 && firstItemIdx < layoutConstrainCount)
-            return false;
+    //    if (itemCount >= 0 && firstItemIdx < layoutConstrainCount)
+    //        return false;
 
-        for (int i = 0; i < layoutConstrainCount; i++)
-        {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.SetAsFirstSibling();
+    //    for (int i = 0; i < layoutConstrainCount; i++)
+    //    {
+    //        /* Add the gameObject of the item to the scrollContent */
+    //        GameObject newItem = SpawnItem(prefab);
+    //        newItem.transform.parent = parent.transform;
+    //        newItem.transform.SetAsFirstSibling();
 
-            /* Update the information for the items that are currently displaying */
-            displayItemList.Reverse();
-            displayItemList.Add(newItem);
-            displayItemList.Reverse();
-            firstItemIdx--;
-            size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-            newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
-            newItem.gameObject.name = firstItemIdx.ToString();
-        }
+    //        /* Update the information for the items that are currently displaying */
+    //        displayItemList.Reverse();
+    //        displayItemList.Add(newItem);
+    //        displayItemList.Reverse();
+    //        firstItemIdx--;
+    //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //        newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
+    //        newItem.gameObject.name = firstItemIdx.ToString();
+    //    }
 
-        threshold = Mathf.Max(threshold, size * 1.5f);        /* 用途暂时不明 */
+    //    threshold = Mathf.Max(threshold, size * 1.5f);        /* 用途暂时不明 */
 
-        /* Update the parameter of the scrollContent UI */
-        if (!reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition += offset;
-            prevPos += offset;
-            contentStartPos += offset;
-        }
+    //    /* Update the parameter of the scrollContent UI */
+    //    if (!reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition += offset;
+    //        prevPos += offset;
+    //        contentStartPos += offset;
+    //    }
 
-        return true;
-    }
-
-
-    public bool AddItemAtEnd(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
-    {
-        size = 0;
-
-        if (itemCount >= 0 && lastItemIdx >= itemCount)
-            return false;
+    //    return true;
+    //}
 
 
+    //public bool AddItemAtEnd(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
+    //{
+    //    size = 0;
 
-
-        ///* Add the gameObject of the item to the scrollContent */
-        //GameObject newItem = SpawnItem();
-        //newItem.transform.parent = scrollContent.transform;
-        //newItem.transform.SetAsLastSibling();
-
-        ///* Update the information for the items that are currently displaying */
-        //displayItemList.Add(newItem);
-        //lastItemIdx++;
-        //newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
-        //newItem.gameObject.name = lastItemIdx.ToString();
+    //    if (itemCount >= 0 && lastItemIdx >= itemCount)
+    //        return false;
 
 
 
-        int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
-        int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
-        for (int i = 0; i < count; i++)
-        {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.SetAsLastSibling();
 
-            /* Update the information for the items that are currently displaying */
-            newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
-            newItem.gameObject.name = lastItemIdx.ToString();
-            displayItemList.Add(newItem);
-            lastItemIdx++;
-            size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //    ///* Add the gameObject of the item to the scrollContent */
+    //    //GameObject newItem = SpawnItem();
+    //    //newItem.transform.parent = scrollContent.transform;
+    //    //newItem.transform.SetAsLastSibling();
 
-            if (itemCount >= 0 && lastItemIdx >= itemCount)
-                break;
-        }
+    //    ///* Update the information for the items that are currently displaying */
+    //    //displayItemList.Add(newItem);
+    //    //lastItemIdx++;
+    //    //newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
+    //    //newItem.gameObject.name = lastItemIdx.ToString();
 
-        threshold = Mathf.Max(threshold, size * 1.5f);        // 用途暂时不明
 
-        if (reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition -= offset;
-            prevPos -= offset;
-            contentStartPos -= offset;
-        }
 
-        return true;
-    }
+    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
+    //    int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
+    //    for (int i = 0; i < count; i++)
+    //    {
+    //        /* Add the gameObject of the item to the scrollContent */
+    //        GameObject newItem = SpawnItem(prefab);
+    //        newItem.transform.parent = parent.transform;
+    //        newItem.transform.SetAsLastSibling();
+
+    //        /* Update the information for the items that are currently displaying */
+    //        newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
+    //        newItem.gameObject.name = lastItemIdx.ToString();
+    //        displayItemList.Add(newItem);
+    //        lastItemIdx++;
+    //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+
+    //        if (itemCount >= 0 && lastItemIdx >= itemCount)
+    //            break;
+    //    }
+
+    //    threshold = Mathf.Max(threshold, size * 1.5f);        // 用途暂时不明
+
+    //    if (reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition -= offset;
+    //        prevPos -= offset;
+    //        contentStartPos -= offset;
+    //    }
+
+    //    return true;
+    //}
 
     #endregion
 
@@ -683,113 +683,113 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #region 旧版单种类元素删减
 
-    public bool RemoveItemAtStart(out float size, bool considerSpacing)
-    {
-        size = 0;
-        int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
+    //public bool RemoveItemAtStart(out float size, bool considerSpacing)
+    //{
+    //    size = 0;
+    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
 
 
 
 
-        //if (firstItemIdx == itemCount - 1)
-        //    return false;
+    //    //if (firstItemIdx == itemCount - 1)
+    //    //    return false;
 
-        ///* Remove the gameObject of the item from the scrollContent */
-        //GameObject oldItem = displayItemList[0];
-        //displayItemList.RemoveAt(0);
-        //DespawnItem(oldItem);
+    //    ///* Remove the gameObject of the item from the scrollContent */
+    //    //GameObject oldItem = displayItemList[0];
+    //    //displayItemList.RemoveAt(0);
+    //    //DespawnItem(oldItem);
 
-        ///* Update the information for the items that are currently displaying */
-        //firstItemIdx++;
-
-
-
-        /* special case: when moving or dragging, we cannot simply delete start when we've reached the end */
-        if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && lastItemIdx + layoutConstrainCount >= itemCount)
-            return false;
-        if (availableItems <= 0)
-            return false;
-
-        for (int i = 0; i < layoutConstrainCount; i++)
-        {
-            /* Add the item to the waiting list of despawn */
-            GameObject oldItem = displayItemList[despawnItemCountStart];
-            AddToItemDespawnList(true);
-
-            /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            availableItems--;
-            firstItemIdx++;
-
-            if (availableItems == 0)
-                break;
-        }
-
-        /* Update the parameter of the scrollContent UI */
-        if (!reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition -= offset;
-            prevPos -= offset;
-            contentStartPos -= offset;
-        }
-
-        return true;
-    }
-
-    public bool RemoveItemAtEnd(out float size, bool considerSpacing)
-    {
-        size = 0;
-        int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
+    //    ///* Update the information for the items that are currently displaying */
+    //    //firstItemIdx++;
 
 
 
+    //    /* special case: when moving or dragging, we cannot simply delete start when we've reached the end */
+    //    if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && lastItemIdx + layoutConstrainCount >= itemCount)
+    //        return false;
+    //    if (availableItems <= 0)
+    //        return false;
 
-        //if (lastItemIdx == 0)
-        //    return false;
+    //    for (int i = 0; i < layoutConstrainCount; i++)
+    //    {
+    //        /* Add the item to the waiting list of despawn */
+    //        GameObject oldItem = displayItemList[despawnItemCountStart];
+    //        AddToItemDespawnList(true);
 
-        ///* Remove the gameObject of the item from the scrollContent */
-        //GameObject oldItem = displayItemList[displayItemCount - 1];
-        //displayItemList.RemoveAt(displayItemCount - 1);
-        //DespawnItem(oldItem);
+    //        /* Update the information for the items that are currently displaying */
+    //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //        availableItems--;
+    //        firstItemIdx++;
 
-        ///* Update the information for the items that are currently displaying */
-        //lastItemIdx--;
+    //        if (availableItems == 0)
+    //            break;
+    //    }
+
+    //    /* Update the parameter of the scrollContent UI */
+    //    if (!reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition -= offset;
+    //        prevPos -= offset;
+    //        contentStartPos -= offset;
+    //    }
+
+    //    return true;
+    //}
+
+    //public bool RemoveItemAtEnd(out float size, bool considerSpacing)
+    //{
+    //    size = 0;
+    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
 
 
 
-        /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
-        if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && firstItemIdx < layoutConstrainCount)
-            return false;
-        if (availableItems <= 0)
-            return false;
 
-        for (int i = 0; i < layoutConstrainCount; i++)
-        {
-            /* Remove the gameObject of the item from the scrollContent */
-            GameObject oldItem = displayItemList[displayItemCount - 1 - despawnItemCountEnd];
-            AddToItemDespawnList(false);
+    //    //if (lastItemIdx == 0)
+    //    //    return false;
 
-            /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            availableItems--;
-            lastItemIdx--;
+    //    ///* Remove the gameObject of the item from the scrollContent */
+    //    //GameObject oldItem = displayItemList[displayItemCount - 1];
+    //    //displayItemList.RemoveAt(displayItemCount - 1);
+    //    //DespawnItem(oldItem);
 
-            if (lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
-                break;
-        }
+    //    ///* Update the information for the items that are currently displaying */
+    //    //lastItemIdx--;
 
-        /* Update the parameter of the scrollContent UI */
-        if (reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition += offset;
-            prevPos += offset;
-            contentStartPos += offset;
-        }
 
-        return true;
-    }
+
+    //    /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
+    //    if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && firstItemIdx < layoutConstrainCount)
+    //        return false;
+    //    if (availableItems <= 0)
+    //        return false;
+
+    //    for (int i = 0; i < layoutConstrainCount; i++)
+    //    {
+    //        /* Remove the gameObject of the item from the scrollContent */
+    //        GameObject oldItem = displayItemList[displayItemCount - 1 - despawnItemCountEnd];
+    //        AddToItemDespawnList(false);
+
+    //        /* Update the information for the items that are currently displaying */
+    //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //        availableItems--;
+    //        lastItemIdx--;
+
+    //        if (lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
+    //            break;
+    //    }
+
+    //    /* Update the parameter of the scrollContent UI */
+    //    if (reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition += offset;
+    //        prevPos += offset;
+    //        contentStartPos += offset;
+    //    }
+
+    //    return true;
+    //}
 
     #endregion
 
@@ -1592,180 +1592,182 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #region 旧版跳转逻辑
 
-    public int GetFirstItem(out float offset)
-    {
-        //if (direction == LoopScrollRectDirection.Vertical)
-        if (vertical)
-            offset = scrollViewBounds.max.y - scrollContentBounds.max.y;
-        else
-            offset = scrollContentBounds.min.x - scrollViewBounds.min.x;
-        int idx = 0;
-        if (lastItemIdx > firstItemIdx)
-        {
-            float size = GetItemSize(displayItemList[0].GetComponent<RectTransform>(), false);
-            while (size + offset <= 0 && firstItemIdx + idx + layoutConstrainCount < lastItemIdx)
-            {
-                offset += size;
-                idx += layoutConstrainCount;
-                size = GetItemSize(displayItemList[idx].GetComponent<RectTransform>(), true);
-            }
-        }
-        return idx + firstItemIdx;
-    }
+    //public int GetFirstItem(out float offset)
+    //{
+    //    //if (direction == LoopScrollRectDirection.Vertical)
+    //    if (vertical)
+    //        offset = scrollViewBounds.max.y - scrollContentBounds.max.y;
+    //    else
+    //        offset = scrollContentBounds.min.x - scrollViewBounds.min.x;
+    //    int idx = 0;
+    //    if (lastItemIdx > firstItemIdx)
+    //    {
+    //        float size = GetItemSize(displayItemList[0].GetComponent<RectTransform>(), false);
+    //        while (size + offset <= 0 && firstItemIdx + idx + layoutConstrainCount < lastItemIdx)
+    //        {
+    //            offset += size;
+    //            idx += layoutConstrainCount;
+    //            size = GetItemSize(displayItemList[idx].GetComponent<RectTransform>(), true);
+    //        }
+    //    }
+    //    return idx + firstItemIdx;
+    //}
 
-    public int GetLastItem(out float offset)
-    {
-        //if (direction == LoopScrollRectDirection.Vertical)
-        if (vertical)
-            offset = scrollContentBounds.min.y - scrollViewBounds.min.y;
-        else
-            offset = scrollViewBounds.max.x - scrollContentBounds.max.x;
-        int idx = 0;
-        if (lastItemIdx > firstItemIdx)
-        {
-            int currItemCount = displayItemCount;
-            float size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), false);
-            while (size + offset <= 0 && firstItemIdx < lastItemIdx - idx - layoutConstrainCount)
-            {
-                offset += size;
-                idx += layoutConstrainCount;
-                size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), true);
-            }
-        }
-        offset = -offset;
-        return lastItemIdx - idx - 1;
-    }
+    //public int GetLastItem(out float offset)
+    //{
+    //    //if (direction == LoopScrollRectDirection.Vertical)
+    //    if (vertical)
+    //        offset = scrollContentBounds.min.y - scrollViewBounds.min.y;
+    //    else
+    //        offset = scrollViewBounds.max.x - scrollContentBounds.max.x;
+    //    int idx = 0;
+    //    if (lastItemIdx > firstItemIdx)
+    //    {
+    //        int currItemCount = displayItemCount;
+    //        float size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), false);
+    //        while (size + offset <= 0 && firstItemIdx < lastItemIdx - idx - layoutConstrainCount)
+    //        {
+    //            offset += size;
+    //            idx += layoutConstrainCount;
+    //            size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), true);
+    //        }
+    //    }
+    //    offset = -offset;
+    //    return lastItemIdx - idx - 1;
+    //}
 
-    public void SrollToCell(int index, float speed)
-    {
-        if (itemCount >= 0 && (index < 0 || index >= itemCount))
-        {
-            Debug.LogErrorFormat("invalid index {0}", index);
-            return;
-        }
-        StopAllCoroutines();
-        if (speed <= 0)
-        {
-            //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
-            return;
-        }
-        StartCoroutine(ScrollToCellCoroutine(index, speed));
-    }
+    /* Zero reference */
+    //public void SrollToCell(int index, float speed)
+    //{
+    //    if (itemCount >= 0 && (index < 0 || index >= itemCount))
+    //    {
+    //        Debug.LogErrorFormat("invalid index {0}", index);
+    //        return;
+    //    }
+    //    StopAllCoroutines();
+    //    if (speed <= 0)
+    //    {
+    //        //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
+    //        return;
+    //    }
+    //    StartCoroutine(ScrollToCellCoroutine(index, speed));
+    //}
 
-    public void SrollToCellWithinTime(int index, float time)
-    {
-        if (itemCount >= 0 && (index < 0 || index >= itemCount))
-        {
-            Debug.LogErrorFormat("invalid index {0}", index);
-            return;
-        }
-        StopAllCoroutines();
-        if (time <= 0)
-        {
-            //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
-            return;
-        }
-        float dist = 0;
-        float offset = 0;
-        int currentFirst = reverseDirection ? GetLastItem(out offset) : GetFirstItem(out offset);
+    /* Zero reference */
+    //public void SrollToCellWithinTime(int index, float time)
+    //{
+    //    if (itemCount >= 0 && (index < 0 || index >= itemCount))
+    //    {
+    //        Debug.LogErrorFormat("invalid index {0}", index);
+    //        return;
+    //    }
+    //    StopAllCoroutines();
+    //    if (time <= 0)
+    //    {
+    //        //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
+    //        return;
+    //    }
+    //    float dist = 0;
+    //    float offset = 0;
+    //    int currentFirst = reverseDirection ? GetLastItem(out offset) : GetFirstItem(out offset);
 
-        int targetLine = (index / layoutConstrainCount);
-        int currentLine = (currentFirst / layoutConstrainCount);
+    //    int targetLine = (index / layoutConstrainCount);
+    //    int currentLine = (currentFirst / layoutConstrainCount);
 
-        if (targetLine == currentLine)
-        {
-            dist = offset;
-        }
-        else
-        {
-            //if (sizeHelper != null)
-            //{
-            //    dist = GetDimension(sizeHelper.GetItemsSize(currentFirst) - sizeHelper.GetItemsSize(index));
-            //    dist += offset;
-            //}
-            //else
-            float elementSize = (GetAbsDimension(scrollContentBounds.size) - itemSpacing * (currentLine - 1)) / currentLine;
-            dist = elementSize * (currentLine - targetLine) + itemSpacing * (currentLine - targetLine - 1);
-            dist -= offset;
-        }
-        StartCoroutine(ScrollToCellCoroutine(index, Mathf.Abs(dist) / time));
-    }
+    //    if (targetLine == currentLine)
+    //    {
+    //        dist = offset;
+    //    }
+    //    else
+    //    {
+    //        //if (sizeHelper != null)
+    //        //{
+    //        //    dist = GetDimension(sizeHelper.GetItemsSize(currentFirst) - sizeHelper.GetItemsSize(index));
+    //        //    dist += offset;
+    //        //}
+    //        //else
+    //        float elementSize = (GetAbsDimension(scrollContentBounds.size) - itemSpacing * (currentLine - 1)) / currentLine;
+    //        dist = elementSize * (currentLine - targetLine) + itemSpacing * (currentLine - targetLine - 1);
+    //        dist -= offset;
+    //    }
+    //    StartCoroutine(ScrollToCellCoroutine(index, Mathf.Abs(dist) / time));
+    //}
 
-    IEnumerator ScrollToCellCoroutine(int index, float speed)
-    {
-        bool needMoving = true;
-        while (needMoving)
-        {
-            yield return null;
-            if (!isDragging)
-            {
-                float move = 0;
-                if (index < firstItemIdx)
-                    move = -Time.deltaTime * speed;
-                else if (index >= lastItemIdx)
-                    move = Time.deltaTime * speed;
-                else
-                {
-                    scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
-                    var itemBounds = CalculateItemBounds(index);
-                    var offset = 0.0f;
-                    //if (direction == LoopScrollRectDirection.Vertical)
-                    if (vertical)
-                        offset = reverseDirection ? (scrollViewBounds.min.y - itemBounds.min.y) : (scrollViewBounds.max.y - itemBounds.max.y);
-                    else
-                        offset = reverseDirection ? (itemBounds.max.x - scrollViewBounds.max.x) : (itemBounds.min.x - scrollViewBounds.min.x);
-                    /* check if we cannot move on */
-                    if (itemCount >= 0)
-                    {
-                        if (offset > 0 && lastItemIdx == itemCount && !reverseDirection)
-                        {
-                            itemBounds = CalculateItemBounds(itemCount - 1);
-                            /* reach bottom */
-                            //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.min.y > scrollViewBounds.min.y) ||
-                            //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.max.x < scrollViewBounds.max.x))
-                            if ((vertical && itemBounds.min.y > scrollViewBounds.min.y) ||
-                                (horizontal && itemBounds.max.x < scrollViewBounds.max.x))
-                            {
-                                needMoving = false;
-                                break;
-                            }
-                        }
-                        else if (offset < 0 && firstItemIdx == 0 && reverseDirection)
-                        {
-                            itemBounds = CalculateItemBounds(0);
-                            //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.max.y < scrollViewBounds.max.y) ||
-                            //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.min.x > scrollViewBounds.min.x))
-                            if ((vertical && itemBounds.max.y < scrollViewBounds.max.y) ||
-                                (horizontal && itemBounds.min.x > scrollViewBounds.min.x))
-                            {
-                                needMoving = false;
-                                break;
-                            }
-                        }
-                    }
+    //IEnumerator ScrollToCellCoroutine(int index, float speed)
+    //{
+    //    bool needMoving = true;
+    //    while (needMoving)
+    //    {
+    //        yield return null;
+    //        if (!isDragging)
+    //        {
+    //            float move = 0;
+    //            if (index < firstItemIdx)
+    //                move = -Time.deltaTime * speed;
+    //            else if (index >= lastItemIdx)
+    //                move = Time.deltaTime * speed;
+    //            else
+    //            {
+    //                scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+    //                var itemBounds = CalculateItemBounds(index);
+    //                var offset = 0.0f;
+    //                //if (direction == LoopScrollRectDirection.Vertical)
+    //                if (vertical)
+    //                    offset = reverseDirection ? (scrollViewBounds.min.y - itemBounds.min.y) : (scrollViewBounds.max.y - itemBounds.max.y);
+    //                else
+    //                    offset = reverseDirection ? (itemBounds.max.x - scrollViewBounds.max.x) : (itemBounds.min.x - scrollViewBounds.min.x);
+    //                /* check if we cannot move on */
+    //                if (itemCount >= 0)
+    //                {
+    //                    if (offset > 0 && lastItemIdx == itemCount && !reverseDirection)
+    //                    {
+    //                        itemBounds = CalculateItemBounds(itemCount - 1);
+    //                        /* reach bottom */
+    //                        //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.min.y > scrollViewBounds.min.y) ||
+    //                        //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.max.x < scrollViewBounds.max.x))
+    //                        if ((vertical && itemBounds.min.y > scrollViewBounds.min.y) ||
+    //                            (horizontal && itemBounds.max.x < scrollViewBounds.max.x))
+    //                        {
+    //                            needMoving = false;
+    //                            break;
+    //                        }
+    //                    }
+    //                    else if (offset < 0 && firstItemIdx == 0 && reverseDirection)
+    //                    {
+    //                        itemBounds = CalculateItemBounds(0);
+    //                        //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.max.y < scrollViewBounds.max.y) ||
+    //                        //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.min.x > scrollViewBounds.min.x))
+    //                        if ((vertical && itemBounds.max.y < scrollViewBounds.max.y) ||
+    //                            (horizontal && itemBounds.min.x > scrollViewBounds.min.x))
+    //                        {
+    //                            needMoving = false;
+    //                            break;
+    //                        }
+    //                    }
+    //                }
 
-                    float maxMove = Time.deltaTime * speed;
-                    if (Mathf.Abs(offset) < maxMove)
-                    {
-                        needMoving = false;
-                        move = offset;
-                    }
-                    else
-                        move = Mathf.Sign(offset) * maxMove;
-                }
-                if (move != 0)
-                {
-                    Vector2 offset = GetVector2(move);
-                    scrollContentRect.anchoredPosition += offset;
-                    prevPos += offset;
-                    contentStartPos += offset;
-                    UpdateBounds(true);
-                }
-            }
-        }
-        StopMovement();
-        UpdatePrevData();
-    }
+    //                float maxMove = Time.deltaTime * speed;
+    //                if (Mathf.Abs(offset) < maxMove)
+    //                {
+    //                    needMoving = false;
+    //                    move = offset;
+    //                }
+    //                else
+    //                    move = Mathf.Sign(offset) * maxMove;
+    //            }
+    //            if (move != 0)
+    //            {
+    //                Vector2 offset = GetVector2(move);
+    //                scrollContentRect.anchoredPosition += offset;
+    //                prevPos += offset;
+    //                contentStartPos += offset;
+    //                UpdateBounds(true);
+    //            }
+    //        }
+    //    }
+    //    StopMovement();
+    //    UpdatePrevData();
+    //}
 
     #endregion
 
@@ -3692,35 +3694,33 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         scrollContentBounds.Encapsulate(vMax);
     }
 
-    private Bounds CalculateItemBounds(int index)
-    {
-        if (scrollContentRect == null)
-            return new Bounds();
+    //private Bounds CalculateItemBounds(int index)
+    //{
+    //    if (scrollContentRect == null)
+    //        return new Bounds();
 
-        var vMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-        var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
-        var corners = new Vector3[4];
-        var localMatrix = scrollViewRect.worldToLocalMatrix;
-        int offset = index - firstItemIdx;
-        if (offset < 0 || offset >= displayItemList.Count)
-            return new Bounds();
-        var rt = displayItemList[offset].GetComponent<RectTransform>();
-        if (rt == null)
-            return new Bounds();
-        rt.GetWorldCorners(corners);
-        for (int j = 0; j < 4; j++)
-        {
-            Vector3 v = localMatrix.MultiplyPoint3x4(corners[j]);
-            vMin = Vector3.Min(v, vMin);
-            vMax = Vector3.Max(v, vMax);
-        }
+    //    var vMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+    //    var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+    //    var corners = new Vector3[4];
+    //    var localMatrix = scrollViewRect.worldToLocalMatrix;
+    //    int offset = index - firstItemIdx;
+    //    if (offset < 0 || offset >= displayItemList.Count)
+    //        return new Bounds();
+    //    var rt = displayItemList[offset].GetComponent<RectTransform>();
+    //    if (rt == null)
+    //        return new Bounds();
+    //    rt.GetWorldCorners(corners);
+    //    for (int j = 0; j < 4; j++)
+    //    {
+    //        Vector3 v = localMatrix.MultiplyPoint3x4(corners[j]);
+    //        vMin = Vector3.Min(v, vMin);
+    //        vMax = Vector3.Max(v, vMax);
+    //    }
 
-        var bounds = new Bounds(vMin, Vector3.zero);
-        bounds.Encapsulate(vMax);
-        return bounds;
-    }
-
-
+    //    var bounds = new Bounds(vMin, Vector3.zero);
+    //    bounds.Encapsulate(vMax);
+    //    return bounds;
+    //}
 
     #endregion
 
