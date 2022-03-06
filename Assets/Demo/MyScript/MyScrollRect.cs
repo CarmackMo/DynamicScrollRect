@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
-public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler, ICanvasElement, ILayoutGroup
+public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler, ICanvasElement, ILayoutElement, ILayoutGroup
 {
     #region 用户设定相关
     public enum ScrollMovementType
@@ -3942,6 +3942,18 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
 
     #region LayoutGroup & LayoutElement 接口
+
+    public virtual float minWidth { get { return -1; } }
+    public virtual float minHeight { get { return -1; } }
+    public virtual float preferredWidth { get { return -1; } }
+    public virtual float preferredHeight { get { return -1; } }
+    public virtual float flexibleWidth { get { return -1; } }
+    public virtual float flexibleHeight { get { return -1; } }
+    public virtual int layoutPriority { get { return -1; } }
+
+    public virtual void CalculateLayoutInputHorizontal() { }
+
+    public virtual void CalculateLayoutInputVertical() { }
 
     public virtual void SetLayoutHorizontal()
     {
