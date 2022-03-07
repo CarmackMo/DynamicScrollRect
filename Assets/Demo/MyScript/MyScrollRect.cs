@@ -31,11 +31,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     {
         public int nestedItemIdx = -1;      /* value that smaller than 0 means there is no nested item in the item group */
         public int subItemCount = 0;
+        private int constrainCount = int.MinValue;
         
         public int itemCount { get { return itemList.Count; } }
         public int displayItemCount { get { return displayItemList.Count; } }
         public int displaySubItemCount { get { return displaySubItemList.Count; } }
-        public int nestedConstrainCount { get { return (nestedItemIdx >= 0 && itemList[nestedItemIdx].TryGetComponent<GridLayoutGroup>(out var layout) && (layout.constraint != GridLayoutGroup.Constraint.Flexible)) ? layout.constraintCount : 1; } }
+        public int nestedConstrainCount { get { if (constrainCount == int.MinValue) { constrainCount = (nestedItemIdx >= 0 && itemList[nestedItemIdx].TryGetComponent<GridLayoutGroup>(out var layout) && (layout.constraint != GridLayoutGroup.Constraint.Flexible)) ? layout.constraintCount : 1; } return constrainCount; } }
 
         [NonSerialized] public int firstItemIdx = 0;
         [NonSerialized] public int lastItemIdx = 0;
@@ -1391,13 +1392,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         layoutConstrainCount = 1;
         if (scrollContentRect != null)
         {
-            GridLayoutGroup layout = scrollContentRect.GetComponent<GridLayoutGroup>();
-            if (layout != null)
-            {
-                if (layout.constraint == GridLayoutGroup.Constraint.Flexible)
-                    Debug.LogError("[LoopScrollRect] Flexible not supported yet");
-                layoutConstrainCount = layout.constraintCount;
-            }
+            ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
+            //GridLayoutGroup layout = scrollContentRect.GetComponent<GridLayoutGroup>();
+            //if (layout != null)
+            //{
+            //    if (layout.constraint == GridLayoutGroup.Constraint.Flexible)
+            //        Debug.LogError("[LoopScrollRect] Flexible not supported yet");
+            //    layoutConstrainCount = layout.constraintCount;
+            //}
         }
         return layoutConstrainCount;
     }
@@ -1419,6 +1421,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 contentTopPadding = layout.padding.top;
                 contentDownPadding = layout.padding.bottom;
             }
+            ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
             //gridLayout = scrollContentRect.GetComponent<GridLayoutGroup>();
             //if (gridLayout != null)
             //{
@@ -1466,6 +1469,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     #endregion
 
 
+    // TO DO: Continue optimize program structure
     #region 通用UI计算相关
 
     protected virtual float GetItemSize(RectTransform itemRect, bool considerSpacing)
