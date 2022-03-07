@@ -719,6 +719,60 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return false;
     }
 
+
+    public bool AddElementAtStart(out float size, ItemGroupConfig itemGroup)
+    {
+        bool addSuccess = false;
+
+        if ((itemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
+             itemGroup.firstItemIdx != itemGroup.nestedItemIdx) ||
+            (itemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
+             itemGroup.firstItemIdx == itemGroup.nestedItemIdx &&
+             itemGroup.firstSubItemIdx <= 0))
+        {
+            addSuccess = AddItemGroupAtStart(out size, ScrollContent);
+        }
+        else if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx && 
+                 itemGroup.subItemCount > 0 && 
+                 itemGroup.firstSubItemIdx > 0)
+        {
+            addSuccess = AddSubItemAtStart(out size, true, itemGroup.subItem, itemGroup.displayItemList[0], itemGroup);
+        }
+        else
+        {
+            addSuccess = AddItemAtStart(out size, true, itemGroup.itemList[itemGroup.firstItemIdx - 1], scrollContent, itemGroup);
+        }
+
+        return addSuccess;
+    }
+
+
+    public bool AddElementAtEnd(out float size, ItemGroupConfig itemGroup)
+    {
+        bool addSuccess = false;
+
+        if ((itemGroup.lastItemIdx == itemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
+             itemGroup.lastItemIdx != itemGroup.nestedItemIdx + 1) ||
+            (itemGroup.lastItemIdx == itemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
+             itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&
+             itemGroup.lastSubItemIdx == itemGroup.subItemCount))
+        {
+            addSuccess = AddItemGroupAtEnd(out size, scrollContent);
+        }
+        else if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&    /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
+                 itemGroup.subItemCount > 0 &&
+                 itemGroup.lastSubItemIdx < itemGroup.subItemCount)
+        {
+            addSuccess = AddSubItemAtEnd(out size, true, itemGroup.subItem, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
+        }
+        else
+        {
+            addSuccess = AddItemAtEnd(out size, true, itemGroup.itemList[itemGroup.lastItemIdx], scrollContent, itemGroup);
+        }
+
+        return addSuccess;
+    }
+
     #endregion
 
     #endregion
@@ -2754,13 +2808,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         ///* Used for testing, can be deleted */
         //PrintAllIGInformation();
 
+        //bool isChanged = false;
 
         scrollBoundMax = scrollViewBounds.max;
         scrollBoundMin = scrollViewBounds.min;
         contentBoundMax = scrollContentBounds.max;
         contentBoundMin = scrollContentBounds.min;
 
-        bool isChanged = false;
+
 
         ItemGroupConfig currItemGroup;
 
@@ -3011,7 +3066,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             scrollContentRect.anchoredPosition -= GetVector2(offsetSize);
             scrollContentBounds.center -= GetVector3(offsetSize + (contentSize + deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
-            isChanged = true;
+            //isChanged = true;
 
             /* Used for testing, can be deleted */
             var temp4 = scrollViewRect.anchoredPosition;
@@ -3348,13 +3403,11 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             scrollContentBounds.center += GetVector3(offsetSize + GetAbsDimension(scrollViewBounds.size) + (contentSize - deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
 
-            isChanged = true;
+            //isChanged = true;
 
             /* Used for testing, can be deleted */
             PrintAllIGInformation("After the whole process finish");
         }
-
-
 
 
 
@@ -3370,61 +3423,79 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             float size = 0f;
             float deltaSize = 0f;
-            if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
-                 currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) || 
-                (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
-                 currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                 currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
-            {
-                Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
-                AddItemGroupAtEnd(out size, scrollContent);
-                deltaSize += size;
-                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-            }
-            else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)      /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
-            {
-                AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                deltaSize = size;
-            }
-            else
-            {
-                AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
-                deltaSize = size;
-            }
+
+            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+            //if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
+            //     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) || 
+            //    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
+            //     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+            //     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
+            //{
+            //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
+            //    AddItemGroupAtEnd(out size, scrollContent);
+            //    deltaSize += size;
+            //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+            //}
+            //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)      /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
+            //{
+            //    AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+            //    deltaSize += size;
+            //}
+            //else
+            //{
+            //    AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
+            //    deltaSize += size;
+            //}
+
+
+            AddElementAtEnd(out size, currItemGroup);
+            deltaSize += size;
+            currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+
+
 
             while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
             {
-                bool addSuccess = false;
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //bool addSuccess = false;
 
-                if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
-                     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) ||
-                    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
-                     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
-                {
-                    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
-                    addSuccess = AddItemGroupAtEnd(out size, scrollContent);
-                    deltaSize += size;
-                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-                }
-                else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
-                {
-                    addSuccess = AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                    deltaSize += size;
-                }
-                else
-                {
-                    addSuccess = AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
-                    deltaSize += size;
-                }
+                //if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
+                //     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) ||
+                //    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
+                //     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+                //     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
+                //{
+                //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
+                //    addSuccess = AddItemGroupAtEnd(out size, scrollContent);
+                //    deltaSize += size;
+                //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                //}
+                //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
+                //{
+                //    addSuccess = AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //    deltaSize += size;
+                //}
+                //else
+                //{
+                //    addSuccess = AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
+                //    deltaSize += size;
+                //}
+
+
+
+                bool addSuccess = AddElementAtEnd(out size, currItemGroup);
+                deltaSize += size;
+                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+
 
                 if (!addSuccess)
                     break;
             }
 
-            if (deltaSize > 0)
-                isChanged = true;
+            //if (deltaSize > 0)
+            //    isChanged = true;
         }
+
 
         /* Case 2: the top of the first item is much lower than the top of the viewPort */
         /* Need to add new items at the top of the scrollContent */
@@ -3435,60 +3506,78 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             float size = 0f;
             float deltaSize = 0f;
 
-            if ((currItemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
-                 currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-                (currItemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
-                 currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                 currItemGroup.firstSubItemIdx <= 0))
-            {
-                Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-                AddItemGroupAtStart(out size, ScrollContent);
-                deltaSize += size;
-                currItemGroup = displayItemGroupList[0];
-            }
-            else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
-            {
-                AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-                deltaSize += size;
-            }
-            else
-            {
-                AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-                deltaSize += size;
-            }
+            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+            //if ((currItemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
+            //     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+            //    (currItemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
+            //     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+            //     currItemGroup.firstSubItemIdx <= 0))
+            //{
+            //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+            //    AddItemGroupAtStart(out size, ScrollContent);
+            //    deltaSize += size;
+            //    currItemGroup = displayItemGroupList[0];
+            //}
+            //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
+            //{
+            //    AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
+            //    deltaSize += size;
+            //}
+            //else
+            //{
+            //    AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
+            //    deltaSize += size;
+            //}
+
+
+
+            AddElementAtStart(out size, currItemGroup);
+            deltaSize += size;
+            currItemGroup = displayItemGroupList[0];
+
+
 
             while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
             {
-                bool addSuccess = false;
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //bool addSuccess = false;
 
-                if ((currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-                    (currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                     currItemGroup.firstSubItemIdx <= 0))
-                {
-                    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-                    addSuccess = AddItemGroupAtStart(out size, ScrollContent);
-                    deltaSize += size;
-                    currItemGroup = displayItemGroupList[0];
-                }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
-                {
-                    addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-                    deltaSize += size;
-                }
-                else
-                {
-                    addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-                    deltaSize += size;
-                }
+                //if ((currItemGroup.firstItemIdx <= 0 &&
+                //     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+                //    (currItemGroup.firstItemIdx <= 0 &&
+                //     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+                //     currItemGroup.firstSubItemIdx <= 0))
+                //{
+                //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+                //    addSuccess = AddItemGroupAtStart(out size, ScrollContent);
+                //    deltaSize += size;
+                //    currItemGroup = displayItemGroupList[0];
+                //}
+                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
+                //{
+                //    addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
+                //    deltaSize += size;
+                //}
+                //else
+                //{
+                //    addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
+                //    deltaSize += size;
+                //}
+
+
+
+                bool addSuccess = AddElementAtStart(out size, currItemGroup);
+                deltaSize += size;
+                currItemGroup = displayItemGroupList[0];
+
+
 
                 if (!addSuccess)
                     break;
             }
 
-            if (deltaSize > 0)
-                isChanged = true;
+            //if (deltaSize > 0)
+            //    isChanged = true;
         }
 
         /* Case 3: the top of the last item is much lower than the bottom of the viewPort */
