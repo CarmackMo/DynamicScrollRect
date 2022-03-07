@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
-public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler
+public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler, ICanvasElement, ILayoutElement, ILayoutGroup
 {
     #region 用户设定相关
     public enum ScrollMovementType
@@ -60,10 +60,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     public float RubberScale { get { return rubberScale; } set { rubberScale = value; } }
 
     [SerializeField]
-    private float displayOffset = 0f;
-    public float DisplayOffset { get { return displayOffset; } set { displayOffset = value; } }
-
-    [SerializeField]
     private bool reverseDirection = false;
     public bool ReverseDirection { get { return reverseDirection; } set { reverseDirection = value; } }
 
@@ -82,10 +78,6 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     [SerializeField]
     private GameObject scrollContent = null;
     public GameObject ScrollContent { get { return scrollContent; } set { scrollContent = value; } }
-
-    [SerializeField]
-    private GameObject item = null;
-    public GameObject Item { get { return item; } set { item = value; } }
 
     [SerializeField]
     private List<ItemGroupConfig> itemGroupList = new List<ItemGroupConfig>();
@@ -112,11 +104,19 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     public ScrollbarVisibility VerticalScrollbarVisibility { get { return verticalScrollbarVisibility; } set { verticalScrollbarVisibility = value; SetDirtyCaching(); } }
 
     [SerializeField]
+    private float horizontalScrollbarSpacing;
+    public float HorizontalScrollbarSpacing { get { return horizontalScrollbarSpacing; } set { horizontalScrollbarSpacing = value; SetDirty(); } }
+
+    [SerializeField]
+    private float verticalScrollbarSpacing;
+    public float VerticalScrollbarSpacing { get { return verticalScrollbarSpacing; } set { verticalScrollbarSpacing = value; SetDirty(); } }
+
+    [SerializeField]
     private ScrollMovementType movementType = ScrollMovementType.Elastic;
     public ScrollMovementType MovementType { get { return movementType; } set { movementType = value; } }
 
     [SerializeField]
-    private float elasticity = 0.1f;          /* Only used for ScrollMovementType.Elastic */
+    private float elasticity = 0.1f;                /* Only used for ScrollMovementType.Elastic */
     public float Elasticity { get { return elasticity; } set { elasticity = value; } }
 
     [SerializeField]
@@ -124,7 +124,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     public bool Inertia { get { return inertia; } set { inertia = value; } }
 
     [SerializeField]
-    private float decelerationRate = 0.135f; /* Only used when inertia is enabled */
+    private float decelerationRate = 0.135f;        /* Only used when inertia is enabled */
     public float DecelerationRate { get { return decelerationRate; } set { decelerationRate = value; } }
 
     [SerializeField]
@@ -136,13 +136,19 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #region 私有UI组件相关
 
+    private RectTransform rect;
     private RectTransform scrollViewRect;
     private RectTransform scrollContentRect;
     private RectTransform horizontalScrollbarRect;
     private RectTransform verticalScrollbarRect;
-    private RectTransform rect;
 
-    private GridLayoutGroup gridLayout = null;
+    private RectTransform Rect { get { if (rect = null) { rect = GetComponent<RectTransform>(); } return rect; } }
+    private RectTransform ScrollViewRect { get { if (scrollViewRect == null) { scrollViewRect = scrollView.GetComponent<RectTransform>(); } return scrollViewRect; } }
+    private RectTransform ScrollContentRect { get { if (scrollContentRect == null) { scrollContentRect = scrollContent.GetComponent<RectTransform>(); } return scrollContentRect; } }
+
+    //private GridLayoutGroup gridLayout = null;
+
+    private DrivenRectTransformTracker tracker;
 
     private Bounds scrollViewBounds;
     private Bounds scrollContentBounds;
@@ -163,9 +169,9 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     private int layoutConstrainCount = -1;
     protected int LayoutConstraintCount { get { return GetLayoutConstraintCount(); } }
-    protected int startLine { get { return Mathf.CeilToInt((float)(firstItemIdx) / layoutConstrainCount); } }                       // the first line of item that display in scroll view among all lines of items
-    protected int currentLines { get { return Mathf.CeilToInt((float)(lastItemIdx - firstItemIdx) / layoutConstrainCount); } }      // the amount of lines of items that are displaying in the scroll view
-    protected int totalLines { get { return Mathf.CeilToInt((float)(itemCount) / layoutConstrainCount); } }                         // the amount of lines regarding to all items
+    //protected int startLine { get { return Mathf.CeilToInt((float)(firstItemIdx) / layoutConstrainCount); } }                       // the first line of item that display in scroll view among all lines of items
+    //protected int currentLines { get { return Mathf.CeilToInt((float)(lastItemIdx - firstItemIdx) / layoutConstrainCount); } }      // the amount of lines of items that are displaying in the scroll view
+    //protected int totalLines { get { return Mathf.CeilToInt((float)(itemCount) / layoutConstrainCount); } }                         // the amount of lines regarding to all items
 
     private float itemSpacing = -1.0f;
     protected float ItemSpacing { get { return GetItemSpacing(); } }
@@ -178,22 +184,30 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     private bool isDragging;
 
+    private bool hasRebuiltLayout = false;
+    private bool horizontalSliderExpand;
+    private bool verticalSliderExpand;
+    private float horizontalSliderHeight;
+    private float verticalSliderWidth;
+
 
     #endregion
 
 
     #region 内容数据相关
 
-    private int firstItemIdx = 0;
-    private int lastItemIdx = 0;
+    //private int firstItemIdx = 0;
+    //private int lastItemIdx = 0;
+
+    //private int displayItemCount { get { return displayItemList.Count; } }
+    //private List<GameObject> displayItemList = new List<GameObject>();
+
     private int firstItemGroupIdx = 0;
     private int lastItemGroupIdx = 0;
 
     private int itemGroupCount { get { return itemGroupList.Count; } }
-    private int displayItemCount { get { return displayItemList.Count; } }
     private int displayItemGroupCount { get { return displayItemGroupList.Count; } }
 
-    private List<GameObject> displayItemList = new List<GameObject>();
     private List<ItemGroupConfig> displayItemGroupList = new List<ItemGroupConfig>();
 
     #endregion
@@ -225,9 +239,12 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
     #endregion
 
 
+    #region Monobehaviour相关
 
     protected override void Awake()
     {
+        base.Awake();
+
         scrollViewRect = scrollView.GetComponent<RectTransform>();
         scrollContentRect = scrollContent.GetComponent<RectTransform>();
         rect = GetComponent<RectTransform>();
@@ -240,11 +257,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     protected override void Start()
     {
-
         RefillItemGroup(out _, itemGroupList[0]);
-
-
-        //RefillItems();
     }
 
     protected virtual void LateUpdate()
@@ -311,104 +324,135 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         }
     }
 
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+
+        if (horizontalScrollbar)
+            horizontalScrollbar.onValueChanged.AddListener(SetHorizontalNormalizedPosition);
+        if (verticalScrollbar)
+            verticalScrollbar.onValueChanged.AddListener(SetVerticalNormalizedPosition);
+
+        CanvasUpdateRegistry.RegisterCanvasElementForLayoutRebuild(this);
+    }
+
+    protected override void OnDisable()
+    {
+        CanvasUpdateRegistry.UnRegisterCanvasElementForRebuild(this);
+
+        if (horizontalScrollbar)
+            horizontalScrollbar.onValueChanged.RemoveListener(SetHorizontalNormalizedPosition);
+        if (verticalScrollbar)
+            verticalScrollbar.onValueChanged.RemoveListener(SetVerticalNormalizedPosition);
+
+        hasRebuiltLayout = false;
+        velocity = Vector2.zero;
+        tracker.Clear();
+        LayoutRebuilder.MarkLayoutForRebuild(scrollViewRect);
+        base.OnDisable();
+    }
+
+    #endregion
+
 
     #region 列表元素增加
 
     #region 旧版单种类元素增加
-    public bool AddItemAtStart(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
-    {
-        size = 0;
 
-        if (itemCount >= 0 && firstItemIdx < layoutConstrainCount)
-            return false;
+    //public bool AddItemAtStart(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
+    //{
+    //    size = 0;
 
-        for (int i = 0; i < layoutConstrainCount; i++)
-        {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.SetAsFirstSibling();
+    //    if (itemCount >= 0 && firstItemIdx < layoutConstrainCount)
+    //        return false;
 
-            /* Update the information for the items that are currently displaying */
-            displayItemList.Reverse();
-            displayItemList.Add(newItem);
-            displayItemList.Reverse();
-            firstItemIdx--;
-            size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-            newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
-            newItem.gameObject.name = firstItemIdx.ToString();
-        }
+    //    for (int i = 0; i < layoutConstrainCount; i++)
+    //    {
+    //        /* Add the gameObject of the item to the scrollContent */
+    //        GameObject newItem = SpawnItem(prefab);
+    //        newItem.transform.parent = parent.transform;
+    //        newItem.transform.SetAsFirstSibling();
 
-        threshold = Mathf.Max(threshold, size * 1.5f);        /* 用途暂时不明 */
+    //        /* Update the information for the items that are currently displaying */
+    //        displayItemList.Reverse();
+    //        displayItemList.Add(newItem);
+    //        displayItemList.Reverse();
+    //        firstItemIdx--;
+    //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //        newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
+    //        newItem.gameObject.name = firstItemIdx.ToString();
+    //    }
 
-        /* Update the parameter of the scrollContent UI */
-        if (!reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition += offset;
-            prevPos += offset;
-            contentStartPos += offset;
-        }
+    //    threshold = Mathf.Max(threshold, size * 1.5f);        /* 用途暂时不明 */
 
-        return true;
-    }
+    //    /* Update the parameter of the scrollContent UI */
+    //    if (!reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition += offset;
+    //        prevPos += offset;
+    //        contentStartPos += offset;
+    //    }
 
-
-    public bool AddItemAtEnd(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
-    {
-        size = 0;
-
-        if (itemCount >= 0 && lastItemIdx >= itemCount)
-            return false;
+    //    return true;
+    //}
 
 
+    //public bool AddItemAtEnd(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
+    //{
+    //    size = 0;
 
-
-        ///* Add the gameObject of the item to the scrollContent */
-        //GameObject newItem = SpawnItem();
-        //newItem.transform.parent = scrollContent.transform;
-        //newItem.transform.SetAsLastSibling();
-
-        ///* Update the information for the items that are currently displaying */
-        //displayItemList.Add(newItem);
-        //lastItemIdx++;
-        //newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
-        //newItem.gameObject.name = lastItemIdx.ToString();
+    //    if (itemCount >= 0 && lastItemIdx >= itemCount)
+    //        return false;
 
 
 
-        int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
-        int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
-        for (int i = 0; i < count; i++)
-        {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.SetAsLastSibling();
 
-            /* Update the information for the items that are currently displaying */
-            newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
-            newItem.gameObject.name = lastItemIdx.ToString();
-            displayItemList.Add(newItem);
-            lastItemIdx++;
-            size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //    ///* Add the gameObject of the item to the scrollContent */
+    //    //GameObject newItem = SpawnItem();
+    //    //newItem.transform.parent = scrollContent.transform;
+    //    //newItem.transform.SetAsLastSibling();
 
-            if (itemCount >= 0 && lastItemIdx >= itemCount)
-                break;
-        }
+    //    ///* Update the information for the items that are currently displaying */
+    //    //displayItemList.Add(newItem);
+    //    //lastItemIdx++;
+    //    //newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
+    //    //newItem.gameObject.name = lastItemIdx.ToString();
 
-        threshold = Mathf.Max(threshold, size * 1.5f);        // 用途暂时不明
 
-        if (reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition -= offset;
-            prevPos -= offset;
-            contentStartPos -= offset;
-        }
 
-        return true;
-    }
+    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
+    //    int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
+    //    for (int i = 0; i < count; i++)
+    //    {
+    //        /* Add the gameObject of the item to the scrollContent */
+    //        GameObject newItem = SpawnItem(prefab);
+    //        newItem.transform.parent = parent.transform;
+    //        newItem.transform.SetAsLastSibling();
+
+    //        /* Update the information for the items that are currently displaying */
+    //        newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
+    //        newItem.gameObject.name = lastItemIdx.ToString();
+    //        displayItemList.Add(newItem);
+    //        lastItemIdx++;
+    //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
+
+    //        if (itemCount >= 0 && lastItemIdx >= itemCount)
+    //            break;
+    //    }
+
+    //    threshold = Mathf.Max(threshold, size * 1.5f);        // 用途暂时不明
+
+    //    if (reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition -= offset;
+    //        prevPos -= offset;
+    //        contentStartPos -= offset;
+    //    }
+
+    //    return true;
+    //}
 
     #endregion
 
@@ -426,10 +470,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             /* Special case: we will not spawn the nested item if there is not subItem inside, but we will record the data of the nested item still */
             if (itemGroup.firstItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
             {
-                displayItemList.Reverse();
-                displayItemList.Add(prefab);
-                displayItemList.Reverse();
-                firstItemIdx--;
+                //displayItemList.Reverse();
+                //displayItemList.Add(prefab);
+                //displayItemList.Reverse();
+                //firstItemIdx--;
                 itemGroup.displayItemList.Reverse();
                 itemGroup.displayItemList.Add(prefab);
                 itemGroup.displayItemList.Reverse();
@@ -443,17 +487,17 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 newItem.transform.SetAsFirstSibling();
 
                 /* Update the information for the items that are currently displaying */
-                displayItemList.Reverse();
-                displayItemList.Add(newItem);
-                displayItemList.Reverse();
-                firstItemIdx--;
+                //displayItemList.Reverse();
+                //displayItemList.Add(newItem);
+                //displayItemList.Reverse();
+                //firstItemIdx--;
                 itemGroup.displayItemList.Reverse();
                 itemGroup.displayItemList.Add(newItem);
                 itemGroup.displayItemList.Reverse();
                 itemGroup.firstItemIdx--;
 
                 size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + firstItemIdx.ToString());
+                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
             }
         }
@@ -487,8 +531,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             /* Special case: we will not spawn the nested item if there is no subItem inside, but we will record the data of the nested item still */
             if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
             {
-                displayItemList.Add(prefab);
-                lastItemIdx++;
+                //displayItemList.Add(prefab);
+                //lastItemIdx++;
                 itemGroup.displayItemList.Add(prefab);
                 itemGroup.lastItemIdx++;
             }
@@ -500,10 +544,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 newItem.transform.SetAsLastSibling();
 
                 /* Update the information for the items that are currently displaying */
-                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + lastItemIdx.ToString());
+                newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
                 newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
-                displayItemList.Add(newItem);
-                lastItemIdx++;
+                //displayItemList.Add(newItem);
+                //lastItemIdx++;
                 itemGroup.displayItemList.Add(newItem);
                 itemGroup.lastItemIdx++;
                 size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
@@ -683,113 +727,113 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #region 旧版单种类元素删减
 
-    public bool RemoveItemAtStart(out float size, bool considerSpacing)
-    {
-        size = 0;
-        int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
+    //public bool RemoveItemAtStart(out float size, bool considerSpacing)
+    //{
+    //    size = 0;
+    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
 
 
 
 
-        //if (firstItemIdx == itemCount - 1)
-        //    return false;
+    //    //if (firstItemIdx == itemCount - 1)
+    //    //    return false;
 
-        ///* Remove the gameObject of the item from the scrollContent */
-        //GameObject oldItem = displayItemList[0];
-        //displayItemList.RemoveAt(0);
-        //DespawnItem(oldItem);
+    //    ///* Remove the gameObject of the item from the scrollContent */
+    //    //GameObject oldItem = displayItemList[0];
+    //    //displayItemList.RemoveAt(0);
+    //    //DespawnItem(oldItem);
 
-        ///* Update the information for the items that are currently displaying */
-        //firstItemIdx++;
-
-
-
-        /* special case: when moving or dragging, we cannot simply delete start when we've reached the end */
-        if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && lastItemIdx + layoutConstrainCount >= itemCount)
-            return false;
-        if (availableItems <= 0)
-            return false;
-
-        for (int i = 0; i < layoutConstrainCount; i++)
-        {
-            /* Add the item to the waiting list of despawn */
-            GameObject oldItem = displayItemList[despawnItemCountStart];
-            AddToItemDespawnList(true);
-
-            /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            availableItems--;
-            firstItemIdx++;
-
-            if (availableItems == 0)
-                break;
-        }
-
-        /* Update the parameter of the scrollContent UI */
-        if (!reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition -= offset;
-            prevPos -= offset;
-            contentStartPos -= offset;
-        }
-
-        return true;
-    }
-
-    public bool RemoveItemAtEnd(out float size, bool considerSpacing)
-    {
-        size = 0;
-        int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
+    //    ///* Update the information for the items that are currently displaying */
+    //    //firstItemIdx++;
 
 
 
+    //    /* special case: when moving or dragging, we cannot simply delete start when we've reached the end */
+    //    if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && lastItemIdx + layoutConstrainCount >= itemCount)
+    //        return false;
+    //    if (availableItems <= 0)
+    //        return false;
 
-        //if (lastItemIdx == 0)
-        //    return false;
+    //    for (int i = 0; i < layoutConstrainCount; i++)
+    //    {
+    //        /* Add the item to the waiting list of despawn */
+    //        GameObject oldItem = displayItemList[despawnItemCountStart];
+    //        AddToItemDespawnList(true);
 
-        ///* Remove the gameObject of the item from the scrollContent */
-        //GameObject oldItem = displayItemList[displayItemCount - 1];
-        //displayItemList.RemoveAt(displayItemCount - 1);
-        //DespawnItem(oldItem);
+    //        /* Update the information for the items that are currently displaying */
+    //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //        availableItems--;
+    //        firstItemIdx++;
 
-        ///* Update the information for the items that are currently displaying */
-        //lastItemIdx--;
+    //        if (availableItems == 0)
+    //            break;
+    //    }
+
+    //    /* Update the parameter of the scrollContent UI */
+    //    if (!reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition -= offset;
+    //        prevPos -= offset;
+    //        contentStartPos -= offset;
+    //    }
+
+    //    return true;
+    //}
+
+    //public bool RemoveItemAtEnd(out float size, bool considerSpacing)
+    //{
+    //    size = 0;
+    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
 
 
 
-        /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
-        if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && firstItemIdx < layoutConstrainCount)
-            return false;
-        if (availableItems <= 0)
-            return false;
 
-        for (int i = 0; i < layoutConstrainCount; i++)
-        {
-            /* Remove the gameObject of the item from the scrollContent */
-            GameObject oldItem = displayItemList[displayItemCount - 1 - despawnItemCountEnd];
-            AddToItemDespawnList(false);
+    //    //if (lastItemIdx == 0)
+    //    //    return false;
 
-            /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            availableItems--;
-            lastItemIdx--;
+    //    ///* Remove the gameObject of the item from the scrollContent */
+    //    //GameObject oldItem = displayItemList[displayItemCount - 1];
+    //    //displayItemList.RemoveAt(displayItemCount - 1);
+    //    //DespawnItem(oldItem);
 
-            if (lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
-                break;
-        }
+    //    ///* Update the information for the items that are currently displaying */
+    //    //lastItemIdx--;
 
-        /* Update the parameter of the scrollContent UI */
-        if (reverseDirection)
-        {
-            Vector2 offset = GetVector2(size);
-            scrollContentRect.anchoredPosition += offset;
-            prevPos += offset;
-            contentStartPos += offset;
-        }
 
-        return true;
-    }
+
+    //    /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
+    //    if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && firstItemIdx < layoutConstrainCount)
+    //        return false;
+    //    if (availableItems <= 0)
+    //        return false;
+
+    //    for (int i = 0; i < layoutConstrainCount; i++)
+    //    {
+    //        /* Remove the gameObject of the item from the scrollContent */
+    //        GameObject oldItem = displayItemList[displayItemCount - 1 - despawnItemCountEnd];
+    //        AddToItemDespawnList(false);
+
+    //        /* Update the information for the items that are currently displaying */
+    //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
+    //        availableItems--;
+    //        lastItemIdx--;
+
+    //        if (lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
+    //            break;
+    //    }
+
+    //    /* Update the parameter of the scrollContent UI */
+    //    if (reverseDirection)
+    //    {
+    //        Vector2 offset = GetVector2(size);
+    //        scrollContentRect.anchoredPosition += offset;
+    //        prevPos += offset;
+    //        contentStartPos += offset;
+    //    }
+
+    //    return true;
+    //}
 
     #endregion
 
@@ -829,8 +873,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 availableItems--;
                 itemGroup.displayItemList.RemoveAt(0);
                 itemGroup.firstItemIdx++;
-                displayItemList.RemoveAt(0);
-                firstItemIdx++;
+                //displayItemList.RemoveAt(0);
+                //firstItemIdx++;
             }
             else
             {
@@ -842,7 +886,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
                 availableItems--;
                 itemGroup.firstItemIdx++;
-                firstItemIdx++;
+                //firstItemIdx++;
             }
 
             if (availableItems == 0)
@@ -901,8 +945,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 availableItems--;
                 itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
                 itemGroup.lastItemIdx--;
-                displayItemList.RemoveAt(displayItemCount - 1);
-                lastItemIdx--;
+                //displayItemList.RemoveAt(displayItemCount - 1);
+                //lastItemIdx--;
             }
             else
             {
@@ -914,7 +958,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
                 availableItems--;
                 itemGroup.lastItemIdx--;
-                lastItemIdx--;
+                //lastItemIdx--;
             }
 
             if (itemGroup.lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
@@ -1186,30 +1230,30 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             despawnItemCountEnd += count;
     }
 
-    public void ClearItemDespawnList()
-    {
-        Debug.Assert(scrollContentRect.childCount >= despawnItemCountStart + despawnItemCountEnd);
-        if (despawnItemCountStart > 0)
-        {
-            for (int i = 1; i <= despawnItemCountStart; i++)
-            {
-                GameObject item = displayItemList[0];
-                displayItemList.RemoveAt(0);
-                DespawnItem(item);
-            }
-            despawnItemCountStart = 0;
-        }
-        if (despawnItemCountEnd > 0)
-        {
-            for (int i = 1; i <= despawnItemCountEnd; i++)
-            {
-                GameObject item = displayItemList[displayItemCount - 1];
-                displayItemList.RemoveAt(displayItemCount - 1);
-                DespawnItem(item);
-            }
-            despawnItemCountEnd = 0;
-        }
-    }
+    //public void ClearItemDespawnList()
+    //{
+    //    Debug.Assert(scrollContentRect.childCount >= despawnItemCountStart + despawnItemCountEnd);
+    //    if (despawnItemCountStart > 0)
+    //    {
+    //        for (int i = 1; i <= despawnItemCountStart; i++)
+    //        {
+    //            GameObject item = displayItemList[0];
+    //            displayItemList.RemoveAt(0);
+    //            DespawnItem(item);
+    //        }
+    //        despawnItemCountStart = 0;
+    //    }
+    //    if (despawnItemCountEnd > 0)
+    //    {
+    //        for (int i = 1; i <= despawnItemCountEnd; i++)
+    //        {
+    //            GameObject item = displayItemList[displayItemCount - 1];
+    //            displayItemList.RemoveAt(displayItemCount - 1);
+    //            DespawnItem(item);
+    //        }
+    //        despawnItemCountEnd = 0;
+    //    }
+    //}
 
     public void ClearItemDespawnList(ItemGroupConfig itemGroup)
     {
@@ -1220,7 +1264,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             {
                 GameObject item = itemGroup.displayItemList[0];
                 itemGroup.displayItemList.RemoveAt(0);
-                displayItemList.RemoveAt(0);
+                //displayItemList.RemoveAt(0);
                 DespawnItem(item);
             }
             despawnItemCountStart = 0;
@@ -1231,7 +1275,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             {
                 GameObject item = itemGroup.displayItemList[itemGroup.displayItemCount - 1];
                 itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
-                displayItemList.RemoveAt(displayItemCount - 1);
+                //displayItemList.RemoveAt(displayItemCount - 1);
                 DespawnItem(item);
             }
             despawnItemCountEnd = 0;
@@ -1291,8 +1335,26 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         if (!IsActive())
             return;
 
-        //CanvasUpdateRegistry.RegisterCanvasElementForLayoutRebuild(this);
+        CanvasUpdateRegistry.RegisterCanvasElementForLayoutRebuild(this);
         LayoutRebuilder.MarkLayoutForRebuild(rect);
+    }
+
+    void UpdateCachedData()
+    {
+        Transform transform = this.transform;
+        horizontalScrollbarRect = horizontalScrollbar == null ? null : horizontalScrollbar.transform as RectTransform;
+        verticalScrollbarRect = verticalScrollbar == null ? null : verticalScrollbar.transform as RectTransform;
+
+        /* These are true if either the elements are children, or they don't exist at all. */
+        bool viewIsChild = (scrollViewRect.parent == transform);
+        bool hScrollbarIsChild = (!horizontalScrollbarRect || horizontalScrollbarRect.parent == transform);
+        bool vScrollbarIsChild = (!verticalScrollbarRect || verticalScrollbarRect.parent == transform);
+        bool allAreChildren = (viewIsChild && hScrollbarIsChild && vScrollbarIsChild);
+
+        horizontalSliderExpand = allAreChildren && horizontalScrollbarRect && horizontalScrollbarVisibility == ScrollbarVisibility.AutoHideAndExpandViewport;
+        verticalSliderExpand = allAreChildren && verticalScrollbarRect && verticalScrollbarVisibility == ScrollbarVisibility.AutoHideAndExpandViewport;
+        horizontalSliderHeight = (horizontalScrollbarRect == null ? 0 : horizontalScrollbarRect.rect.height);
+        verticalSliderWidth = (verticalScrollbarRect == null ? 0 : verticalScrollbarRect.rect.width);
     }
 
     public virtual void StopMovement()
@@ -1302,7 +1364,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     private void EnsureLayoutHasRebuilt()
     {
-        if (!CanvasUpdateRegistry.IsRebuildingLayout())
+        if (!hasRebuiltLayout && !CanvasUpdateRegistry.IsRebuildingLayout())
             Canvas.ForceUpdateCanvases();
     }
 
@@ -1357,15 +1419,15 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 contentTopPadding = layout.padding.top;
                 contentDownPadding = layout.padding.bottom;
             }
-            gridLayout = scrollContentRect.GetComponent<GridLayoutGroup>();
-            if (gridLayout != null)
-            {
-                itemSpacing = GetAbsDimension(gridLayout.spacing);
-                contentLeftPadding = gridLayout.padding.left;
-                contentRightPadding = gridLayout.padding.right;
-                contentTopPadding = gridLayout.padding.top;
-                contentDownPadding = gridLayout.padding.bottom;
-            }
+            //gridLayout = scrollContentRect.GetComponent<GridLayoutGroup>();
+            //if (gridLayout != null)
+            //{
+            //    itemSpacing = GetAbsDimension(gridLayout.spacing);
+            //    contentLeftPadding = gridLayout.padding.left;
+            //    contentRightPadding = gridLayout.padding.right;
+            //    contentTopPadding = gridLayout.padding.top;
+            //    contentDownPadding = gridLayout.padding.bottom;
+            //}
         }
         return itemSpacing;
     }
@@ -1412,17 +1474,21 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
         if (vertical && !horizontal)
         {
-            if (gridLayout != null)
-                size += gridLayout.cellSize.y;
-            else
-                size += itemRect.rect.height;
+            size += itemRect.rect.height;
+
+            //if (gridLayout == null)
+            //    size += itemRect.rect.height;
+            //else
+            //    size += gridLayout.cellSize.y;
         }
         else
         {
-            if (gridLayout != null)
-                size += gridLayout.cellSize.x;
-            else
-                size += itemRect.rect.width;
+            size += itemRect.rect.width;
+
+            //if (gridLayout == null)
+            //    size += itemRect.rect.width;
+            //else
+            //    size += gridLayout.cellSize.x;
         }
 
         if (vertical && !horizontal)
@@ -1553,10 +1619,20 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         {
             if (itemCount < 0)
                 return offset;
-            if (GetDimension(delta) < 0 && firstItemIdx > 0)            // cannot continue move down if already reach the top of scrollContent
+
+            ItemGroupConfig headItemGroup = itemGroupList[0];
+            ItemGroupConfig tailItemGroup = itemGroupList[itemGroupCount - 1];
+            /* Can continue move up as long as scrollContent dosn't reach top yet */
+            if (GetDimension(delta) < 0 && (headItemGroup.nestedItemIdx == 0 ? headItemGroup.firstSubItemIdx > 0 : headItemGroup.firstItemIdx > 0))
                 return offset;
-            if (GetDimension(delta) > 0 && lastItemIdx < itemCount)     // cannot continue move up if already reach the top of scrollContent
+            /* Can continue move down as long as scrollContent dosn't reach bottom yet */
+            if (GetDimension(delta) > 0 && (tailItemGroup.nestedItemIdx == tailItemGroup.itemCount - 1 ? tailItemGroup.lastSubItemIdx < tailItemGroup.subItemCount : tailItemGroup.lastItemIdx < tailItemGroup.itemCount))
                 return offset;
+
+            //if (GetDimension(delta) < 0 && firstItemIdx > 0)            // cannot continue move down if already reach the top of scrollContent
+            //    return offset;
+            //if (GetDimension(delta) > 0 && lastItemIdx < itemCount)     // cannot continue move up if already reach the top of scrollContent
+            //    return offset;
         }
 
         Vector2 min = scrollContentBounds.min;
@@ -1592,180 +1668,182 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     #region 旧版跳转逻辑
 
-    public int GetFirstItem(out float offset)
-    {
-        //if (direction == LoopScrollRectDirection.Vertical)
-        if (vertical)
-            offset = scrollViewBounds.max.y - scrollContentBounds.max.y;
-        else
-            offset = scrollContentBounds.min.x - scrollViewBounds.min.x;
-        int idx = 0;
-        if (lastItemIdx > firstItemIdx)
-        {
-            float size = GetItemSize(displayItemList[0].GetComponent<RectTransform>(), false);
-            while (size + offset <= 0 && firstItemIdx + idx + layoutConstrainCount < lastItemIdx)
-            {
-                offset += size;
-                idx += layoutConstrainCount;
-                size = GetItemSize(displayItemList[idx].GetComponent<RectTransform>(), true);
-            }
-        }
-        return idx + firstItemIdx;
-    }
+    //public int GetFirstItem(out float offset)
+    //{
+    //    //if (direction == LoopScrollRectDirection.Vertical)
+    //    if (vertical)
+    //        offset = scrollViewBounds.max.y - scrollContentBounds.max.y;
+    //    else
+    //        offset = scrollContentBounds.min.x - scrollViewBounds.min.x;
+    //    int idx = 0;
+    //    if (lastItemIdx > firstItemIdx)
+    //    {
+    //        float size = GetItemSize(displayItemList[0].GetComponent<RectTransform>(), false);
+    //        while (size + offset <= 0 && firstItemIdx + idx + layoutConstrainCount < lastItemIdx)
+    //        {
+    //            offset += size;
+    //            idx += layoutConstrainCount;
+    //            size = GetItemSize(displayItemList[idx].GetComponent<RectTransform>(), true);
+    //        }
+    //    }
+    //    return idx + firstItemIdx;
+    //}
 
-    public int GetLastItem(out float offset)
-    {
-        //if (direction == LoopScrollRectDirection.Vertical)
-        if (vertical)
-            offset = scrollContentBounds.min.y - scrollViewBounds.min.y;
-        else
-            offset = scrollViewBounds.max.x - scrollContentBounds.max.x;
-        int idx = 0;
-        if (lastItemIdx > firstItemIdx)
-        {
-            int currItemCount = displayItemCount;
-            float size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), false);
-            while (size + offset <= 0 && firstItemIdx < lastItemIdx - idx - layoutConstrainCount)
-            {
-                offset += size;
-                idx += layoutConstrainCount;
-                size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), true);
-            }
-        }
-        offset = -offset;
-        return lastItemIdx - idx - 1;
-    }
+    //public int GetLastItem(out float offset)
+    //{
+    //    //if (direction == LoopScrollRectDirection.Vertical)
+    //    if (vertical)
+    //        offset = scrollContentBounds.min.y - scrollViewBounds.min.y;
+    //    else
+    //        offset = scrollViewBounds.max.x - scrollContentBounds.max.x;
+    //    int idx = 0;
+    //    if (lastItemIdx > firstItemIdx)
+    //    {
+    //        int currItemCount = displayItemCount;
+    //        float size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), false);
+    //        while (size + offset <= 0 && firstItemIdx < lastItemIdx - idx - layoutConstrainCount)
+    //        {
+    //            offset += size;
+    //            idx += layoutConstrainCount;
+    //            size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), true);
+    //        }
+    //    }
+    //    offset = -offset;
+    //    return lastItemIdx - idx - 1;
+    //}
 
-    public void SrollToCell(int index, float speed)
-    {
-        if (itemCount >= 0 && (index < 0 || index >= itemCount))
-        {
-            Debug.LogErrorFormat("invalid index {0}", index);
-            return;
-        }
-        StopAllCoroutines();
-        if (speed <= 0)
-        {
-            //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
-            return;
-        }
-        StartCoroutine(ScrollToCellCoroutine(index, speed));
-    }
+    /* Zero reference */
+    //public void SrollToCell(int index, float speed)
+    //{
+    //    if (itemCount >= 0 && (index < 0 || index >= itemCount))
+    //    {
+    //        Debug.LogErrorFormat("invalid index {0}", index);
+    //        return;
+    //    }
+    //    StopAllCoroutines();
+    //    if (speed <= 0)
+    //    {
+    //        //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
+    //        return;
+    //    }
+    //    StartCoroutine(ScrollToCellCoroutine(index, speed));
+    //}
 
-    public void SrollToCellWithinTime(int index, float time)
-    {
-        if (itemCount >= 0 && (index < 0 || index >= itemCount))
-        {
-            Debug.LogErrorFormat("invalid index {0}", index);
-            return;
-        }
-        StopAllCoroutines();
-        if (time <= 0)
-        {
-            //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
-            return;
-        }
-        float dist = 0;
-        float offset = 0;
-        int currentFirst = reverseDirection ? GetLastItem(out offset) : GetFirstItem(out offset);
+    /* Zero reference */
+    //public void SrollToCellWithinTime(int index, float time)
+    //{
+    //    if (itemCount >= 0 && (index < 0 || index >= itemCount))
+    //    {
+    //        Debug.LogErrorFormat("invalid index {0}", index);
+    //        return;
+    //    }
+    //    StopAllCoroutines();
+    //    if (time <= 0)
+    //    {
+    //        //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
+    //        return;
+    //    }
+    //    float dist = 0;
+    //    float offset = 0;
+    //    int currentFirst = reverseDirection ? GetLastItem(out offset) : GetFirstItem(out offset);
 
-        int targetLine = (index / layoutConstrainCount);
-        int currentLine = (currentFirst / layoutConstrainCount);
+    //    int targetLine = (index / layoutConstrainCount);
+    //    int currentLine = (currentFirst / layoutConstrainCount);
 
-        if (targetLine == currentLine)
-        {
-            dist = offset;
-        }
-        else
-        {
-            //if (sizeHelper != null)
-            //{
-            //    dist = GetDimension(sizeHelper.GetItemsSize(currentFirst) - sizeHelper.GetItemsSize(index));
-            //    dist += offset;
-            //}
-            //else
-            float elementSize = (GetAbsDimension(scrollContentBounds.size) - itemSpacing * (currentLine - 1)) / currentLine;
-            dist = elementSize * (currentLine - targetLine) + itemSpacing * (currentLine - targetLine - 1);
-            dist -= offset;
-        }
-        StartCoroutine(ScrollToCellCoroutine(index, Mathf.Abs(dist) / time));
-    }
+    //    if (targetLine == currentLine)
+    //    {
+    //        dist = offset;
+    //    }
+    //    else
+    //    {
+    //        //if (sizeHelper != null)
+    //        //{
+    //        //    dist = GetDimension(sizeHelper.GetItemsSize(currentFirst) - sizeHelper.GetItemsSize(index));
+    //        //    dist += offset;
+    //        //}
+    //        //else
+    //        float elementSize = (GetAbsDimension(scrollContentBounds.size) - itemSpacing * (currentLine - 1)) / currentLine;
+    //        dist = elementSize * (currentLine - targetLine) + itemSpacing * (currentLine - targetLine - 1);
+    //        dist -= offset;
+    //    }
+    //    StartCoroutine(ScrollToCellCoroutine(index, Mathf.Abs(dist) / time));
+    //}
 
-    IEnumerator ScrollToCellCoroutine(int index, float speed)
-    {
-        bool needMoving = true;
-        while (needMoving)
-        {
-            yield return null;
-            if (!isDragging)
-            {
-                float move = 0;
-                if (index < firstItemIdx)
-                    move = -Time.deltaTime * speed;
-                else if (index >= lastItemIdx)
-                    move = Time.deltaTime * speed;
-                else
-                {
-                    scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
-                    var itemBounds = CalculateItemBounds(index);
-                    var offset = 0.0f;
-                    //if (direction == LoopScrollRectDirection.Vertical)
-                    if (vertical)
-                        offset = reverseDirection ? (scrollViewBounds.min.y - itemBounds.min.y) : (scrollViewBounds.max.y - itemBounds.max.y);
-                    else
-                        offset = reverseDirection ? (itemBounds.max.x - scrollViewBounds.max.x) : (itemBounds.min.x - scrollViewBounds.min.x);
-                    /* check if we cannot move on */
-                    if (itemCount >= 0)
-                    {
-                        if (offset > 0 && lastItemIdx == itemCount && !reverseDirection)
-                        {
-                            itemBounds = CalculateItemBounds(itemCount - 1);
-                            /* reach bottom */
-                            //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.min.y > scrollViewBounds.min.y) ||
-                            //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.max.x < scrollViewBounds.max.x))
-                            if ((vertical && itemBounds.min.y > scrollViewBounds.min.y) ||
-                                (horizontal && itemBounds.max.x < scrollViewBounds.max.x))
-                            {
-                                needMoving = false;
-                                break;
-                            }
-                        }
-                        else if (offset < 0 && firstItemIdx == 0 && reverseDirection)
-                        {
-                            itemBounds = CalculateItemBounds(0);
-                            //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.max.y < scrollViewBounds.max.y) ||
-                            //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.min.x > scrollViewBounds.min.x))
-                            if ((vertical && itemBounds.max.y < scrollViewBounds.max.y) ||
-                                (horizontal && itemBounds.min.x > scrollViewBounds.min.x))
-                            {
-                                needMoving = false;
-                                break;
-                            }
-                        }
-                    }
+    //IEnumerator ScrollToCellCoroutine(int index, float speed)
+    //{
+    //    bool needMoving = true;
+    //    while (needMoving)
+    //    {
+    //        yield return null;
+    //        if (!isDragging)
+    //        {
+    //            float move = 0;
+    //            if (index < firstItemIdx)
+    //                move = -Time.deltaTime * speed;
+    //            else if (index >= lastItemIdx)
+    //                move = Time.deltaTime * speed;
+    //            else
+    //            {
+    //                scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+    //                var itemBounds = CalculateItemBounds(index);
+    //                var offset = 0.0f;
+    //                //if (direction == LoopScrollRectDirection.Vertical)
+    //                if (vertical)
+    //                    offset = reverseDirection ? (scrollViewBounds.min.y - itemBounds.min.y) : (scrollViewBounds.max.y - itemBounds.max.y);
+    //                else
+    //                    offset = reverseDirection ? (itemBounds.max.x - scrollViewBounds.max.x) : (itemBounds.min.x - scrollViewBounds.min.x);
+    //                /* check if we cannot move on */
+    //                if (itemCount >= 0)
+    //                {
+    //                    if (offset > 0 && lastItemIdx == itemCount && !reverseDirection)
+    //                    {
+    //                        itemBounds = CalculateItemBounds(itemCount - 1);
+    //                        /* reach bottom */
+    //                        //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.min.y > scrollViewBounds.min.y) ||
+    //                        //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.max.x < scrollViewBounds.max.x))
+    //                        if ((vertical && itemBounds.min.y > scrollViewBounds.min.y) ||
+    //                            (horizontal && itemBounds.max.x < scrollViewBounds.max.x))
+    //                        {
+    //                            needMoving = false;
+    //                            break;
+    //                        }
+    //                    }
+    //                    else if (offset < 0 && firstItemIdx == 0 && reverseDirection)
+    //                    {
+    //                        itemBounds = CalculateItemBounds(0);
+    //                        //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.max.y < scrollViewBounds.max.y) ||
+    //                        //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.min.x > scrollViewBounds.min.x))
+    //                        if ((vertical && itemBounds.max.y < scrollViewBounds.max.y) ||
+    //                            (horizontal && itemBounds.min.x > scrollViewBounds.min.x))
+    //                        {
+    //                            needMoving = false;
+    //                            break;
+    //                        }
+    //                    }
+    //                }
 
-                    float maxMove = Time.deltaTime * speed;
-                    if (Mathf.Abs(offset) < maxMove)
-                    {
-                        needMoving = false;
-                        move = offset;
-                    }
-                    else
-                        move = Mathf.Sign(offset) * maxMove;
-                }
-                if (move != 0)
-                {
-                    Vector2 offset = GetVector2(move);
-                    scrollContentRect.anchoredPosition += offset;
-                    prevPos += offset;
-                    contentStartPos += offset;
-                    UpdateBounds(true);
-                }
-            }
-        }
-        StopMovement();
-        UpdatePrevData();
-    }
+    //                float maxMove = Time.deltaTime * speed;
+    //                if (Mathf.Abs(offset) < maxMove)
+    //                {
+    //                    needMoving = false;
+    //                    move = offset;
+    //                }
+    //                else
+    //                    move = Mathf.Sign(offset) * maxMove;
+    //            }
+    //            if (move != 0)
+    //            {
+    //                Vector2 offset = GetVector2(move);
+    //                scrollContentRect.anchoredPosition += offset;
+    //                prevPos += offset;
+    //                contentStartPos += offset;
+    //                UpdateBounds(true);
+    //            }
+    //        }
+    //    }
+    //    StopMovement();
+    //    UpdatePrevData();
+    //}
 
     #endregion
 
@@ -2062,28 +2140,45 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             horizontalScrollbar.gameObject.SetActive(horizontalScrollingNeeded);
     }
 
+    void UpdateScrollbarLayout()
+    {
+        if (verticalSliderExpand && horizontalScrollbar)
+        {
+            tracker.Add(this, horizontalScrollbarRect,
+                          DrivenTransformProperties.AnchorMinX |
+                          DrivenTransformProperties.AnchorMaxX |
+                          DrivenTransformProperties.SizeDeltaX |
+                          DrivenTransformProperties.AnchoredPositionX);
+            horizontalScrollbarRect.anchorMin = new Vector2(0, horizontalScrollbarRect.anchorMin.y);
+            horizontalScrollbarRect.anchorMax = new Vector2(1, horizontalScrollbarRect.anchorMax.y);
+            horizontalScrollbarRect.anchoredPosition = new Vector2(0, horizontalScrollbarRect.anchoredPosition.y);
+            if (verticalScrollingNeeded)
+                horizontalScrollbarRect.sizeDelta = new Vector2(-(verticalSliderWidth + verticalScrollbarSpacing), horizontalScrollbarRect.sizeDelta.y);
+            else
+                horizontalScrollbarRect.sizeDelta = new Vector2(0, horizontalScrollbarRect.sizeDelta.y);
+        }
+
+        if (horizontalSliderExpand && verticalScrollbar)
+        {
+            tracker.Add(this, verticalScrollbarRect,
+                          DrivenTransformProperties.AnchorMinY |
+                          DrivenTransformProperties.AnchorMaxY |
+                          DrivenTransformProperties.SizeDeltaY |
+                          DrivenTransformProperties.AnchoredPositionY);
+            verticalScrollbarRect.anchorMin = new Vector2(verticalScrollbarRect.anchorMin.x, 0);
+            verticalScrollbarRect.anchorMax = new Vector2(verticalScrollbarRect.anchorMax.x, 1);
+            verticalScrollbarRect.anchoredPosition = new Vector2(verticalScrollbarRect.anchoredPosition.x, 0);
+            if (horizontalScrollingNeeded)
+                verticalScrollbarRect.sizeDelta = new Vector2(verticalScrollbarRect.sizeDelta.x, -(horizontalSliderHeight + horizontalScrollbarSpacing));
+            else
+                verticalScrollbarRect.sizeDelta = new Vector2(verticalScrollbarRect.sizeDelta.x, 0);
+        }
+    }
+
     #endregion
 
 
     #region scrollitem相关
-
-    ///* 该函数的用途暂时不明 */
-    //public virtual void Rebuild(CanvasUpdate executing)
-    //{
-    //    if (executing == CanvasUpdate.Prelayout)
-    //    {
-    //        UpdateCachedData();
-    //    }
-
-    //    if (executing == CanvasUpdate.PostLayout)
-    //    {
-    //        UpdateBounds();
-    //        UpdateScrollbars(Vector2.zero);
-    //        UpdatePrevData();
-
-    //        m_HasRebuiltLayout = true;
-    //    }
-    //}
 
     ///* 该函数的用途暂时不明 */
     //public void RefreshCells()
@@ -2198,6 +2293,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         float itemSize = 0;
         float size = 0;
         bool first = true;
+
         while (sizeToFill > sizeFilled)
         {
             bool addSuccess = false;
@@ -2218,7 +2314,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 if (!addSuccess)
                     break;
 
-                RefillSubItems(out float nestedItemSize, itemGroup.subItem, displayItemList[displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
+                RefillSubItems(out float nestedItemSize, itemGroup.subItem, reverseDirection ? itemGroup.displayItemList[0] : itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
+                //RefillSubItems(out float nestedItemSize, itemGroup.subItem, displayItemList[displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
 
                 first = false;
                 itemSize = nestedItemSize;
@@ -2245,7 +2342,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                 if (!addSuccess)
                     break;
 
-                RefillSubItems(out float subContentSize, itemGroup.subItem, displayItemList[0], itemGroup, sizeToFill - sizeFilled);
+                RefillSubItems(out float subContentSize, itemGroup.subItem, reverseDirection ? itemGroup.displayItemList[0] : itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
+                //RefillSubItems(out float subContentSize, itemGroup.subItem, displayItemList[0], itemGroup, sizeToFill - sizeFilled);
 
                 first = false;
                 itemSize = subContentSize;
@@ -2807,8 +2905,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
                     for (int i = 0; i < count; i++)
                     {
-                        lastItemIdx++;
-                        firstItemIdx++;
+                        //lastItemIdx++;
+                        //firstItemIdx++;
                         newItemGroup.lastItemIdx++;
                         newItemGroup.firstItemIdx++;
                         size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
@@ -2876,8 +2974,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
                     for (int i = 0; i < count; i++)
                     {
-                        lastItemIdx++;
-                        firstItemIdx++;
+                        //lastItemIdx++;
+                        //firstItemIdx++;
                         currItemGroup.lastItemIdx++;
                         currItemGroup.firstItemIdx++;
                         size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
@@ -3152,8 +3250,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
                     /* Virtually add items to the new item group at start */
                     for (int i = 0; i < layoutConstrainCount; i++)
                     {
-                        firstItemIdx--;
-                        lastItemIdx--;
+                        //firstItemIdx--;
+                        //lastItemIdx--;
                         newItemGroup.firstItemIdx--;
                         newItemGroup.lastItemIdx--;
                         size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
@@ -3214,8 +3312,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
                     for (int i = 0; i < layoutConstrainCount; i++)
                     {
-                        firstItemIdx--;
-                        lastItemIdx--;
+                        //firstItemIdx--;
+                        //lastItemIdx--;
                         currItemGroup.firstItemIdx--;
                         currItemGroup.lastItemIdx--;
                         size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
@@ -3614,10 +3712,10 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
             //}
         }
 
-        if (isChanged)
-        {
-            ClearItemDespawnList();
-        }
+        //if (isChanged)
+        //{
+        //    ClearItemDespawnList();
+        //}
     }
 
     #endregion
@@ -3672,7 +3770,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
 
     public void CalculateContentBounds()
     {
-        if (scrollContentRect == null)
+        if (ScrollContentRect == null)
             scrollContentBounds = new Bounds();
 
         /* scrollContent UI is dynamic, therefore needs to calculate from its world position */
@@ -3680,7 +3778,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
         var corners = new Vector3[4];
         var localMatrix = scrollViewRect.worldToLocalMatrix;
-        scrollContentRect.GetWorldCorners(corners);
+        ScrollContentRect.GetWorldCorners(corners);
 
         for (int j = 0; j < 4; j++)
         {
@@ -3692,43 +3790,50 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         scrollContentBounds.Encapsulate(vMax);
     }
 
-    private Bounds CalculateItemBounds(int index)
-    {
-        if (scrollContentRect == null)
-            return new Bounds();
+    //private Bounds CalculateItemBounds(int index)
+    //{
+    //    if (scrollContentRect == null)
+    //        return new Bounds();
 
-        var vMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-        var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
-        var corners = new Vector3[4];
-        var localMatrix = scrollViewRect.worldToLocalMatrix;
-        int offset = index - firstItemIdx;
-        if (offset < 0 || offset >= displayItemList.Count)
-            return new Bounds();
-        var rt = displayItemList[offset].GetComponent<RectTransform>();
-        if (rt == null)
-            return new Bounds();
-        rt.GetWorldCorners(corners);
-        for (int j = 0; j < 4; j++)
-        {
-            Vector3 v = localMatrix.MultiplyPoint3x4(corners[j]);
-            vMin = Vector3.Min(v, vMin);
-            vMax = Vector3.Max(v, vMax);
-        }
+    //    var vMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+    //    var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+    //    var corners = new Vector3[4];
+    //    var localMatrix = scrollViewRect.worldToLocalMatrix;
+    //    int offset = index - firstItemIdx;
+    //    if (offset < 0 || offset >= displayItemList.Count)
+    //        return new Bounds();
+    //    var rt = displayItemList[offset].GetComponent<RectTransform>();
+    //    if (rt == null)
+    //        return new Bounds();
+    //    rt.GetWorldCorners(corners);
+    //    for (int j = 0; j < 4; j++)
+    //    {
+    //        Vector3 v = localMatrix.MultiplyPoint3x4(corners[j]);
+    //        vMin = Vector3.Min(v, vMin);
+    //        vMax = Vector3.Max(v, vMax);
+    //    }
 
-        var bounds = new Bounds(vMin, Vector3.zero);
-        bounds.Encapsulate(vMax);
-        return bounds;
-    }
-
-
+    //    var bounds = new Bounds(vMin, Vector3.zero);
+    //    bounds.Encapsulate(vMax);
+    //    return bounds;
+    //}
 
     #endregion
-
 
     #endregion
 
 
     #region 接口类 & 回调类函数
+
+    #region UI交互接口
+
+    public virtual void OnInitializePotentialDrag(PointerEventData eventData)
+    {
+        if (eventData.button != PointerEventData.InputButton.Left)
+            return;
+
+        velocity = Vector2.zero;
+    }
 
     public virtual void OnBeginDrag(PointerEventData eventData)
     {
@@ -3756,8 +3861,8 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         if (!IsActive())
             return;
 
-        //Vector2 cursorEndPos;
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(scrollViewRect, eventData.position, eventData.pressEventCamera, out Vector2 cursorEndPos))
+        Vector2 cursorEndPos;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(scrollViewRect, eventData.position, eventData.pressEventCamera, out cursorEndPos))
             return;
 
         UpdateBounds(false);
@@ -3765,7 +3870,7 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         Vector2 pointerDelta = cursorEndPos - cursorStartPos;
         Vector2 position = contentStartPos + pointerDelta;
 
-        // Offset to get scrollContent into place in the view.
+        /* Offset to get scrollContent into place in the view. */
         Vector2 offset = CalculateOffset(position - scrollContentRect.anchoredPosition);
         position += offset;
         if (movementType == ScrollMovementType.Elastic)
@@ -3821,6 +3926,108 @@ public class MyScrollRect : UIBehaviour, IBeginDragHandler, IEndDragHandler, IDr
         SetContentAnchoredPosition(position);
         UpdateBounds();
     }
+
+    #endregion
+
+
+    #region Canvas绘制接口
+
+    public virtual void LayoutComplete() { }
+
+    public virtual void GraphicUpdateComplete() { }
+
+    public virtual void Rebuild(CanvasUpdate executing)
+    {
+        if (executing == CanvasUpdate.Prelayout)
+            UpdateCachedData();
+
+        if (executing == CanvasUpdate.PostLayout)
+        {
+            UpdateBounds();
+            UpdateScrollbars(Vector2.zero);
+            UpdatePrevData();
+
+            hasRebuiltLayout = true;
+        }
+    }
+
+    #endregion
+
+
+    #region LayoutGroup & LayoutElement 接口
+
+    public virtual float minWidth { get { return -1; } }
+    public virtual float minHeight { get { return -1; } }
+    public virtual float preferredWidth { get { return -1; } }
+    public virtual float preferredHeight { get { return -1; } }
+    public virtual float flexibleWidth { get { return -1; } }
+    public virtual float flexibleHeight { get { return -1; } }
+    public virtual int layoutPriority { get { return -1; } }
+
+    public virtual void CalculateLayoutInputHorizontal() { }
+
+    public virtual void CalculateLayoutInputVertical() { }
+
+    public virtual void SetLayoutHorizontal()
+    {
+        tracker.Clear();
+
+        if (horizontalSliderExpand || verticalSliderExpand)
+        {
+            tracker.Add(this, scrollViewRect,
+                DrivenTransformProperties.Anchors |
+                DrivenTransformProperties.SizeDelta |
+                DrivenTransformProperties.AnchoredPosition);
+
+            /* Make view full size to see if content fits. */
+            scrollViewRect.anchorMin = Vector2.zero;
+            scrollViewRect.anchorMax = Vector2.one;
+            scrollViewRect.sizeDelta = Vector2.zero;
+            scrollViewRect.anchoredPosition = Vector2.zero;
+
+            /* Recalculate content layout with this size to see if it fits when there are no scrollbars. */
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+            CalculateContentBounds();
+        }
+
+        /* If it doesn't fit vertically, enable vertical scrollbar and shrink view horizontally to make room for it. */
+        if (verticalSliderExpand && verticalScrollingNeeded)
+        {
+            scrollViewRect.sizeDelta = new Vector2(-(verticalSliderWidth + verticalScrollbarSpacing), scrollViewRect.sizeDelta.y);
+
+            /* Recalculate content layout with this size to see if it fits vertically */
+            /* when there is a vertical scrollbar (which may reflowed the content to make it taller). */
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+            CalculateContentBounds();
+        }
+
+        /* If it doesn't fit horizontally, enable horizontal scrollbar and shrink view vertically to make room for it. */
+        if (horizontalSliderExpand && horizontalScrollingNeeded)
+        {
+            scrollViewRect.sizeDelta = new Vector2(scrollViewRect.sizeDelta.x, -(horizontalSliderHeight + horizontalScrollbarSpacing));
+            scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
+            CalculateContentBounds();
+        }
+
+        /* If the vertical slider didn't kick in the first time, and the horizontal one did, */
+        /* we need to check again if the vertical slider now needs to kick in. */
+        /* If it doesn't fit vertically, enable vertical scrollbar and shrink view horizontally to make room for it. */
+        if (verticalSliderExpand && verticalScrollingNeeded && scrollViewRect.sizeDelta.x == 0 && scrollViewRect.sizeDelta.y < 0)
+        {
+            scrollViewRect.sizeDelta = new Vector2(-(verticalSliderWidth + verticalScrollbarSpacing), scrollViewRect.sizeDelta.y);
+        }
+    }
+
+    public virtual void SetLayoutVertical()
+    {
+        UpdateScrollbarLayout();
+        scrollViewBounds = new Bounds(ScrollViewRect.rect.center, ScrollViewRect.rect.size);
+        CalculateContentBounds();
+    }
+
+    #endregion
 
     #endregion
 
