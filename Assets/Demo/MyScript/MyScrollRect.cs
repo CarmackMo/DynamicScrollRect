@@ -31,11 +31,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     {
         public int nestedItemIdx = -1;      /* value that smaller than 0 means there is no nested item in the item group */
         public int subItemCount = 0;
+        private int constrainCount = int.MinValue;
         
         public int itemCount { get { return itemList.Count; } }
         public int displayItemCount { get { return displayItemList.Count; } }
         public int displaySubItemCount { get { return displaySubItemList.Count; } }
-        public int nestedConstrainCount { get { return (nestedItemIdx >= 0 && itemList[nestedItemIdx].TryGetComponent<GridLayoutGroup>(out var layout) && (layout.constraint != GridLayoutGroup.Constraint.Flexible)) ? layout.constraintCount : 1; } }
+        public int nestedConstrainCount { get { if (constrainCount == int.MinValue) { constrainCount = (nestedItemIdx >= 0 && itemList[nestedItemIdx].TryGetComponent<GridLayoutGroup>(out var layout) && (layout.constraint != GridLayoutGroup.Constraint.Flexible)) ? layout.constraintCount : 1; } return constrainCount; } }
 
         [NonSerialized] public int firstItemIdx = 0;
         [NonSerialized] public int lastItemIdx = 0;
@@ -718,6 +719,60 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return false;
     }
 
+
+    public bool AddElementAtStart(out float size, ItemGroupConfig itemGroup)
+    {
+        bool addSuccess = false;
+
+        if ((itemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
+             itemGroup.firstItemIdx != itemGroup.nestedItemIdx) ||
+            (itemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
+             itemGroup.firstItemIdx == itemGroup.nestedItemIdx &&
+             itemGroup.firstSubItemIdx <= 0))
+        {
+            addSuccess = AddItemGroupAtStart(out size, ScrollContent);
+        }
+        else if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx && 
+                 itemGroup.subItemCount > 0 && 
+                 itemGroup.firstSubItemIdx > 0)
+        {
+            addSuccess = AddSubItemAtStart(out size, true, itemGroup.subItem, itemGroup.displayItemList[0], itemGroup);
+        }
+        else
+        {
+            addSuccess = AddItemAtStart(out size, true, itemGroup.itemList[itemGroup.firstItemIdx - 1], scrollContent, itemGroup);
+        }
+
+        return addSuccess;
+    }
+
+
+    public bool AddElementAtEnd(out float size, ItemGroupConfig itemGroup)
+    {
+        bool addSuccess = false;
+
+        if ((itemGroup.lastItemIdx == itemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
+             itemGroup.lastItemIdx != itemGroup.nestedItemIdx + 1) ||
+            (itemGroup.lastItemIdx == itemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
+             itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&
+             itemGroup.lastSubItemIdx == itemGroup.subItemCount))
+        {
+            addSuccess = AddItemGroupAtEnd(out size, scrollContent);
+        }
+        else if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&    /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
+                 itemGroup.subItemCount > 0 &&
+                 itemGroup.lastSubItemIdx < itemGroup.subItemCount)
+        {
+            addSuccess = AddSubItemAtEnd(out size, true, itemGroup.subItem, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
+        }
+        else
+        {
+            addSuccess = AddItemAtEnd(out size, true, itemGroup.itemList[itemGroup.lastItemIdx], scrollContent, itemGroup);
+        }
+
+        return addSuccess;
+    }
+
     #endregion
 
     #endregion
@@ -1160,6 +1215,116 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         return true;
     }
 
+
+    public bool RemoveElementAtStart(out float deltaSize, ItemGroupConfig itemGroup)
+    {
+        bool removeSuccess = false;
+        float size = 0f;
+        deltaSize = 0f;
+
+        if (itemGroup.firstItemIdx >= itemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
+            itemGroup.firstItemIdx != itemGroup.nestedItemIdx)
+        {
+            /* Need to consider upward item spacing between another item group */
+            removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
+            deltaSize += size;
+            removeSuccess = RemoveItemGroupAtStart();
+        }
+        else if (itemGroup.firstItemIdx >= itemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
+                 itemGroup.firstItemIdx == itemGroup.nestedItemIdx &&
+                 itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)
+        {
+            removeSuccess = RemoveSubItemAtStart(out size, false, itemGroup.displayItemList[0], itemGroup);
+            deltaSize += size;
+            removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
+            deltaSize += size;
+            removeSuccess = RemoveItemGroupAtStart();
+        }
+        else if (itemGroup.firstItemIdx != itemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
+        {
+            removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
+            deltaSize += size;
+        }
+        else if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx)
+        {
+            //if (itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+            if (itemGroup.firstSubItemIdx + itemGroup.nestedConstrainCount >= itemGroup.lastSubItemIdx)    /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+            {
+                removeSuccess = RemoveSubItemAtStart(out size, false, itemGroup.displayItemList[0], itemGroup);
+                deltaSize += size;
+                removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
+                deltaSize += size;
+            }
+            else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
+            {
+                removeSuccess = RemoveSubItemAtStart(out size, true, itemGroup.displayItemList[0], itemGroup);
+                deltaSize += size;
+            }
+        }
+
+        return removeSuccess;
+    }
+
+
+    public bool RemoveElementAtEnd(out float deltaSize, ItemGroupConfig itemGroup)
+    {
+        bool removeSuccess = false;
+        float size = 0f;
+        deltaSize = 0f;
+
+        if (itemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
+            itemGroup.lastItemIdx != itemGroup.nestedItemIdx + 1)
+        {
+            /* Need to consider upward item spacing between another item group */
+            PrintAllIGInformation("Remove element at end,  Before case 1", itemGroup);
+
+            removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
+            deltaSize += size;
+            removeSuccess = RemoveItemGroupAtEnd();
+        }
+        else if (itemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+                 itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&
+                 itemGroup.lastSubItemIdx <= itemGroup.nestedConstrainCount)
+        {
+            PrintAllIGInformation("Remove element at end,  Before case 2", itemGroup);
+
+            removeSuccess = RemoveSubItemAtEnd(out size, false, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
+            deltaSize += size;
+            removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
+            deltaSize += size;
+            removeSuccess = RemoveItemGroupAtEnd();
+        }
+        else if (itemGroup.lastItemIdx - 1 != itemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
+        {
+            PrintAllIGInformation("Remove element at end,  Before case 3", itemGroup);
+
+            removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
+            deltaSize += size;
+        }
+        else if (itemGroup.lastItemIdx - 1 == itemGroup.nestedItemIdx)
+        {
+            //if (itemGroup.lastSubItemIdx <= itemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+            if ((itemGroup.lastSubItemIdx - itemGroup.nestedConstrainCount) <= itemGroup.firstSubItemIdx)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+            {
+                PrintAllIGInformation("Remove element at end,  Before case 4", itemGroup);
+
+                removeSuccess = RemoveSubItemAtEnd(out size, false, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
+                deltaSize += size;
+                removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
+                deltaSize += size;
+            }
+            else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
+            {
+                PrintAllIGInformation("Remove element at end,  Before case 5", itemGroup);
+
+                removeSuccess = RemoveSubItemAtEnd(out size, true, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
+                deltaSize += size;
+            }
+        }
+
+        return removeSuccess;
+    }
+
     #endregion
 
     #endregion
@@ -1391,13 +1556,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         layoutConstrainCount = 1;
         if (scrollContentRect != null)
         {
-            GridLayoutGroup layout = scrollContentRect.GetComponent<GridLayoutGroup>();
-            if (layout != null)
-            {
-                if (layout.constraint == GridLayoutGroup.Constraint.Flexible)
-                    Debug.LogError("[LoopScrollRect] Flexible not supported yet");
-                layoutConstrainCount = layout.constraintCount;
-            }
+            ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
+            //GridLayoutGroup layout = scrollContentRect.GetComponent<GridLayoutGroup>();
+            //if (layout != null)
+            //{
+            //    if (layout.constraint == GridLayoutGroup.Constraint.Flexible)
+            //        Debug.LogError("[LoopScrollRect] Flexible not supported yet");
+            //    layoutConstrainCount = layout.constraintCount;
+            //}
         }
         return layoutConstrainCount;
     }
@@ -1419,6 +1585,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 contentTopPadding = layout.padding.top;
                 contentDownPadding = layout.padding.bottom;
             }
+            ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
             //gridLayout = scrollContentRect.GetComponent<GridLayoutGroup>();
             //if (gridLayout != null)
             //{
@@ -1466,6 +1633,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     #endregion
 
 
+    // TO DO: Continue optimize program structure
     #region 通用UI计算相关
 
     protected virtual float GetItemSize(RectTransform itemRect, bool considerSpacing)
@@ -2750,13 +2918,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         ///* Used for testing, can be deleted */
         //PrintAllIGInformation();
 
+        //bool isChanged = false;
 
         scrollBoundMax = scrollViewBounds.max;
         scrollBoundMin = scrollViewBounds.min;
         contentBoundMax = scrollContentBounds.max;
         contentBoundMin = scrollContentBounds.min;
 
-        bool isChanged = false;
+
 
         ItemGroupConfig currItemGroup;
 
@@ -2821,55 +2990,63 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (tailItemGroup.displayItemCount == 0 && tailItemGroup.displaySubItemCount == 0)          /* Remove all displaying items and subitems from head to tail */
                     break;
 
-                if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-                    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
-                {
-                    PrintAllIGInformation("Special Case 1, Before case 1", currItemGroup);
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
+                //    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
+                //{
+                //    PrintAllIGInformation("Special Case 1, Before case 1", currItemGroup);
 
-                    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                    removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = itemGroupList[firstItemGroupIdx];
-                }
-                else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-                         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
-                {
-                    PrintAllIGInformation("Special Case 1, Before case 2", currItemGroup);
+                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //    removeSuccess = RemoveItemGroupAtStart();
+                //    currItemGroup = itemGroupList[firstItemGroupIdx];
+                //}
+                //else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
+                //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+                //         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
+                //{
+                //    PrintAllIGInformation("Special Case 1, Before case 2", currItemGroup);
 
-                    removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
-                    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                    removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = itemGroupList[firstItemGroupIdx];
-                }
-                else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
-                {
-                    PrintAllIGInformation("Special Case 1, Before case 3", currItemGroup);
+                //    removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
+                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //    removeSuccess = RemoveItemGroupAtStart();
+                //    currItemGroup = itemGroupList[firstItemGroupIdx];
+                //}
+                //else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
+                //{
+                //    PrintAllIGInformation("Special Case 1, Before case 3", currItemGroup);
 
-                    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
-                {
-                    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
-                    {
-                        PrintAllIGInformation("Special Case 1, Before case 4", currItemGroup);
+                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //}
+                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
+                //{
+                //    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+                //    {
+                //        PrintAllIGInformation("Special Case 1, Before case 4", currItemGroup);
 
-                        removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
-                        removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                    }
-                    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
-                    {
-                        PrintAllIGInformation("Special Case 1, Before case 5", currItemGroup);
+                //        removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
+                //        removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //    }
+                //    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
+                //    {
+                //        PrintAllIGInformation("Special Case 1, Before case 5", currItemGroup);
 
-                        removeSuccess = RemoveSubItemAtStart(out _, true, currItemGroup.displayItemList[0], currItemGroup);
+                //        removeSuccess = RemoveSubItemAtStart(out _, true, currItemGroup.displayItemList[0], currItemGroup);
 
-                        if (currItemGroup.displaySubItemCount == 0)
-                        {
-                            PrintAllIGInformation("Special Case 1, Before case 6", currItemGroup);
+                //        if (currItemGroup.displaySubItemCount == 0)
+                //        {
+                //            PrintAllIGInformation("Special Case 1, Before case 6", currItemGroup);
 
-                            removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                        }
-                    }
-                }
+                //            removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //        }
+                //    }
+                //}
+
+
+
+                removeSuccess = RemoveElementAtStart(out _, currItemGroup);
+                currItemGroup = itemGroupList[firstItemGroupIdx];
+
+
 
                 if (!removeSuccess)
                     break;
@@ -3007,7 +3184,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             scrollContentRect.anchoredPosition -= GetVector2(offsetSize);
             scrollContentBounds.center -= GetVector3(offsetSize + (contentSize + deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
-            isChanged = true;
+            //isChanged = true;
 
             /* Used for testing, can be deleted */
             var temp4 = scrollViewRect.anchoredPosition;
@@ -3171,55 +3348,63 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (headItemGroup.displayItemCount == 0 && headItemGroup.displaySubItemCount == 0)      /* Remove all displaying items and subitems from tail to head */
                     break;
 
-                if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-                    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
-                {
-                    PrintAllIGInformation("Before case 1", currItemGroup);
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
+                //    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
+                //{
+                //    PrintAllIGInformation("Before case 1", currItemGroup);
 
-                    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                    removeSuccess = RemoveItemGroupAtEnd();
-                    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-                }
-                else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                         currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                         currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
-                {
-                    PrintAllIGInformation("Before case 2", currItemGroup);
+                //    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                //    removeSuccess = RemoveItemGroupAtEnd();
+                //    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
+                //}
+                //else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+                //         currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+                //         currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
+                //{
+                //    PrintAllIGInformation("Before case 2", currItemGroup);
 
-                    removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                    removeSuccess = RemoveItemGroupAtEnd();
-                    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-                }
-                else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
-                {
-                    PrintAllIGInformation("Before case 3", currItemGroup);
+                //    removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                //    removeSuccess = RemoveItemGroupAtEnd();
+                //    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
+                //}
+                //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
+                //{
+                //    PrintAllIGInformation("Before case 3", currItemGroup);
 
-                    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                }
-                else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
-                {
-                    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                    {
-                        PrintAllIGInformation("Before case 4", currItemGroup);
+                //    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                //}
+                //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
+                //{
+                //    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+                //    {
+                //        PrintAllIGInformation("Before case 4", currItemGroup);
 
-                        removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                        removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                    }
-                    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
-                    {
-                        PrintAllIGInformation("Before case 5", currItemGroup);
+                //        removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //        removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                //    }
+                //    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
+                //    {
+                //        PrintAllIGInformation("Before case 5", currItemGroup);
 
-                        removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //        removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
 
-                        if (currItemGroup.displaySubItemCount == 0)
-                        {
-                            PrintAllIGInformation("Before case 6", currItemGroup);
+                //        if (currItemGroup.displaySubItemCount == 0)
+                //        {
+                //            PrintAllIGInformation("Before case 6", currItemGroup);
 
-                            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                        }
-                    }
-                }
+                //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
+                //        }
+                //    }
+                //}
+
+
+
+                removeSuccess = RemoveElementAtEnd(out _, currItemGroup);
+                currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
+
+
 
                 if (!removeSuccess)
                     break;
@@ -3344,13 +3529,11 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             scrollContentBounds.center += GetVector3(offsetSize + GetAbsDimension(scrollViewBounds.size) + (contentSize - deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
 
-            isChanged = true;
+            //isChanged = true;
 
             /* Used for testing, can be deleted */
             PrintAllIGInformation("After the whole process finish");
         }
-
-
 
 
 
@@ -3366,61 +3549,79 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             float size = 0f;
             float deltaSize = 0f;
-            if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
-                 currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) || 
-                (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
-                 currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                 currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
-            {
-                Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
-                AddItemGroupAtEnd(out size, scrollContent);
-                deltaSize += size;
-                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-            }
-            else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)      /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
-            {
-                AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                deltaSize = size;
-            }
-            else
-            {
-                AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
-                deltaSize = size;
-            }
+
+            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+            //if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
+            //     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) || 
+            //    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
+            //     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+            //     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
+            //{
+            //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
+            //    AddItemGroupAtEnd(out size, scrollContent);
+            //    deltaSize += size;
+            //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+            //}
+            //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)      /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
+            //{
+            //    AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+            //    deltaSize += size;
+            //}
+            //else
+            //{
+            //    AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
+            //    deltaSize += size;
+            //}
+
+
+            AddElementAtEnd(out size, currItemGroup);
+            deltaSize += size;
+            currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+
+
 
             while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
             {
-                bool addSuccess = false;
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //bool addSuccess = false;
 
-                if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
-                     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) ||
-                    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
-                     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
-                {
-                    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
-                    addSuccess = AddItemGroupAtEnd(out size, scrollContent);
-                    deltaSize += size;
-                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-                }
-                else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
-                {
-                    addSuccess = AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                    deltaSize += size;
-                }
-                else
-                {
-                    addSuccess = AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
-                    deltaSize += size;
-                }
+                //if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
+                //     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) ||
+                //    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
+                //     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+                //     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
+                //{
+                //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
+                //    addSuccess = AddItemGroupAtEnd(out size, scrollContent);
+                //    deltaSize += size;
+                //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                //}
+                //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
+                //{
+                //    addSuccess = AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //    deltaSize += size;
+                //}
+                //else
+                //{
+                //    addSuccess = AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
+                //    deltaSize += size;
+                //}
+
+
+
+                bool addSuccess = AddElementAtEnd(out size, currItemGroup);
+                deltaSize += size;
+                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+
 
                 if (!addSuccess)
                     break;
             }
 
-            if (deltaSize > 0)
-                isChanged = true;
+            //if (deltaSize > 0)
+            //    isChanged = true;
         }
+
 
         /* Case 2: the top of the first item is much lower than the top of the viewPort */
         /* Need to add new items at the top of the scrollContent */
@@ -3431,61 +3632,80 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             float size = 0f;
             float deltaSize = 0f;
 
-            if ((currItemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
-                 currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-                (currItemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
-                 currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                 currItemGroup.firstSubItemIdx <= 0))
-            {
-                Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-                AddItemGroupAtStart(out size, ScrollContent);
-                deltaSize += size;
-                currItemGroup = displayItemGroupList[0];
-            }
-            else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
-            {
-                AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-                deltaSize += size;
-            }
-            else
-            {
-                AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-                deltaSize += size;
-            }
+            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+            //if ((currItemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
+            //     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+            //    (currItemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
+            //     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+            //     currItemGroup.firstSubItemIdx <= 0))
+            //{
+            //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+            //    AddItemGroupAtStart(out size, ScrollContent);
+            //    deltaSize += size;
+            //    currItemGroup = displayItemGroupList[0];
+            //}
+            //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
+            //{
+            //    AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
+            //    deltaSize += size;
+            //}
+            //else
+            //{
+            //    AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
+            //    deltaSize += size;
+            //}
+
+
+
+            AddElementAtStart(out size, currItemGroup);
+            deltaSize += size;
+            currItemGroup = displayItemGroupList[0];
+
+
 
             while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
             {
-                bool addSuccess = false;
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //bool addSuccess = false;
 
-                if ((currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-                    (currItemGroup.firstItemIdx <= 0 &&
-                     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                     currItemGroup.firstSubItemIdx <= 0))
-                {
-                    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-                    addSuccess = AddItemGroupAtStart(out size, ScrollContent);
-                    deltaSize += size;
-                    currItemGroup = displayItemGroupList[0];
-                }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
-                {
-                    addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-                    deltaSize += size;
-                }
-                else
-                {
-                    addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-                    deltaSize += size;
-                }
+                //if ((currItemGroup.firstItemIdx <= 0 &&
+                //     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
+                //    (currItemGroup.firstItemIdx <= 0 &&
+                //     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+                //     currItemGroup.firstSubItemIdx <= 0))
+                //{
+                //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
+                //    addSuccess = AddItemGroupAtStart(out size, ScrollContent);
+                //    deltaSize += size;
+                //    currItemGroup = displayItemGroupList[0];
+                //}
+                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
+                //{
+                //    addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
+                //    deltaSize += size;
+                //}
+                //else
+                //{
+                //    addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
+                //    deltaSize += size;
+                //}
+
+
+
+                bool addSuccess = AddElementAtStart(out size, currItemGroup);
+                deltaSize += size;
+                currItemGroup = displayItemGroupList[0];
+
+
 
                 if (!addSuccess)
                     break;
             }
 
-            if (deltaSize > 0)
-                isChanged = true;
+            //if (deltaSize > 0)
+            //    isChanged = true;
         }
+
 
         /* Case 3: the top of the last item is much lower than the bottom of the viewPort */
         /* Need to remove old items at the bottom of the scrollContent */
@@ -3501,91 +3721,108 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             float size = 0f;
             float deltaSize = 0f;
 
-            if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-                currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
-            {
-                /* Need to consider upward item spacing between another item group */
-                RemoveItemAtEnd(out size, true, currItemGroup);
-                deltaSize += size;
-                RemoveItemGroupAtEnd();
-                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-            }
-            else if(currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                    currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                    currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
-            {
-                RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                deltaSize += size;
-                RemoveItemAtEnd(out size, true, currItemGroup);
-                deltaSize += size;
-                RemoveItemGroupAtEnd();
-                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-            }
-            else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
-            {
-                RemoveItemAtEnd(out size, true, currItemGroup);
-                deltaSize += size;
-            }
-            else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
-            {
-                if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                {
-                    RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                    deltaSize += size;
-                    RemoveItemAtEnd(out size, true, currItemGroup);
-                    deltaSize += size;
-                }
-                else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
-                {
-                    RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                    deltaSize += size;
-                }
-            }
+            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+            //if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
+            //    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
+            //{
+            //    /* Need to consider upward item spacing between another item group */
+            //    RemoveItemAtEnd(out size, true, currItemGroup);
+            //    deltaSize += size;
+            //    RemoveItemGroupAtEnd();
+            //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+            //}
+            //else if(currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+            //        currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+            //        currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
+            //{
+            //    RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+            //    deltaSize += size;
+            //    RemoveItemAtEnd(out size, true, currItemGroup);
+            //    deltaSize += size;
+            //    RemoveItemGroupAtEnd();
+            //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+            //}
+            //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
+            //{
+            //    RemoveItemAtEnd(out size, true, currItemGroup);
+            //    deltaSize += size;
+            //}
+            //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
+            //{
+            //    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+            //    {
+            //        RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+            //        deltaSize += size;
+            //        RemoveItemAtEnd(out size, true, currItemGroup);
+            //        deltaSize += size;
+            //    }
+            //    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
+            //    {
+            //        RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+            //        deltaSize += size;
+            //    }
+            //}
+
+
+            RemoveElementAtEnd(out size, currItemGroup);
+            deltaSize += size;
+            currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+
+
 
             while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize)
             {
-                bool removeSuccess = false;
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //bool removeSuccess = false;
 
-                if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-                    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
-                {
-                    /* Need to consider upward item spacing between another item group */
-                    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                    deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtEnd();
-                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-                }
-                else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                        currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                        currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
-                {
-                    removeSuccess = RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                    deltaSize += size;
-                    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                    deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtEnd();
-                    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-                }
-                else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
-                {
-                    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                    deltaSize += size;
-                }
-                else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
-                {
-                    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                    {
-                        removeSuccess = RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                        deltaSize += size;
-                        removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                        deltaSize += size;
-                    }
-                    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
-                    {
-                        removeSuccess = RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                        deltaSize += size;
-                    }
-                }
+                //if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
+                //    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
+                //{
+                //    /* Need to consider upward item spacing between another item group */
+                //    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                //    deltaSize += size;
+                //    removeSuccess = RemoveItemGroupAtEnd();
+                //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                //}
+                //else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+                //        currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
+                //        currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
+                //{
+                //    removeSuccess = RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //    deltaSize += size;
+                //    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                //    deltaSize += size;
+                //    removeSuccess = RemoveItemGroupAtEnd();
+                //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+                //}
+                //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
+                //{
+                //    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                //    deltaSize += size;
+                //}
+                //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
+                //{
+                //    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+                //    {
+                //        removeSuccess = RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //        deltaSize += size;
+                //        removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
+                //        deltaSize += size;
+                //    }
+                //    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
+                //    {
+                //        removeSuccess = RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
+                //        deltaSize += size;
+                //    }
+                //}
+
+
+
+                bool removeSuccess = RemoveElementAtEnd(out size, currItemGroup);
+                deltaSize += size;
+                currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
+
+
 
                 if (!removeSuccess)
                     break;
@@ -3614,91 +3851,111 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             float size = 0f;
             float deltaSize = 0f;
 
-            if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-                currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
-            {
-                /* Need to consider upward item spacing between another item group */
-                RemoveItemAtStart(out size, true, currItemGroup);
-                deltaSize += size;
-                RemoveItemGroupAtStart();
-                currItemGroup = displayItemGroupList[0];
-            }
-            else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-                     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                     currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
-            {
-                RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-                deltaSize += size;
-                RemoveItemAtStart(out size, true, currItemGroup);
-                deltaSize += size;
-                RemoveItemGroupAtStart();
-                currItemGroup = displayItemGroupList[0];
-            }
-            else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
-            {
-                RemoveItemAtStart(out size, true, currItemGroup);
-                deltaSize += size;
-            }
-            else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
-            {
-                if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
-                {
-                    RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-                    deltaSize += size;
-                    RemoveItemAtStart(out size, true, currItemGroup);
-                    deltaSize += size;
-                }
-                else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
-                {
-                    RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
-                    deltaSize += size;
-                }
-            }
+            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+            //if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
+            //    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
+            //{
+            //    /* Need to consider upward item spacing between another item group */
+            //    RemoveItemAtStart(out size, true, currItemGroup);
+            //    deltaSize += size;
+            //    RemoveItemGroupAtStart();
+            //    currItemGroup = displayItemGroupList[0];
+            //}
+            //else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
+            //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+            //         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
+            //{
+            //    RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
+            //    deltaSize += size;
+            //    RemoveItemAtStart(out size, true, currItemGroup);
+            //    deltaSize += size;
+            //    RemoveItemGroupAtStart();
+            //    currItemGroup = displayItemGroupList[0];
+            //}
+            //else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
+            //{
+            //    RemoveItemAtStart(out size, true, currItemGroup);
+            //    deltaSize += size;
+            //}
+            //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
+            //{
+            //    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+            //    {
+            //        RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
+            //        deltaSize += size;
+            //        RemoveItemAtStart(out size, true, currItemGroup);
+            //        deltaSize += size;
+            //    }
+            //    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
+            //    {
+            //        RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
+            //        deltaSize += size;
+            //    }
+            //}
+
+
+
+
+
+            RemoveElementAtStart(out size, currItemGroup);
+            deltaSize += size;
+            currItemGroup = displayItemGroupList[0];
+
+
 
             while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize)
             {
-                bool removeSuccess = false;
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //bool removeSuccess = false;
 
-                if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-                    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
-                {
-                    /* Need to consider upward item spacing between another item group */
-                    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                    deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = displayItemGroupList[0];
-                }
-                else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-                         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
-                {
-                    removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-                    deltaSize += size;
-                    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                    deltaSize += size;
-                    removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = displayItemGroupList[0];
-                }
-                else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
-                {
-                    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                    deltaSize += size;
-                }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
-                {
-                    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
-                    {
-                        removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-                        deltaSize += size;
-                        removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                        deltaSize += size;
-                    }
-                    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
-                    {
-                        removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
-                        deltaSize += size;
-                    }
-                }
+                //if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
+                //    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
+                //{
+                //    /* Need to consider upward item spacing between another item group */
+                //    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
+                //    deltaSize += size;
+                //    removeSuccess = RemoveItemGroupAtStart();
+                //    currItemGroup = displayItemGroupList[0];
+                //}
+                //else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
+                //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+                //         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
+                //{
+                //    removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
+                //    deltaSize += size;
+                //    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
+                //    deltaSize += size;
+                //    removeSuccess = RemoveItemGroupAtStart();
+                //    currItemGroup = displayItemGroupList[0];
+                //}
+                //else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
+                //{
+                //    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
+                //    deltaSize += size;
+                //}
+                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
+                //{
+                //    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+                //    {
+                //        removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
+                //        deltaSize += size;
+                //        removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
+                //        deltaSize += size;
+                //    }
+                //    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
+                //    {
+                //        removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
+                //        deltaSize += size;
+                //    }
+                //}
+
+
+
+
+                bool removeSuccess = RemoveElementAtStart(out size, currItemGroup);
+                deltaSize += size;
+                currItemGroup = displayItemGroupList[0];
+
 
                 if (!removeSuccess)
                     break;

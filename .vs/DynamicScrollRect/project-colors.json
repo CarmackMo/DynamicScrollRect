@@ -5,7 +5,17 @@
       "ProjectGuid": "dd1d66c5-9318-22a7-4e15-cdec462c82a8",
       "DisplayName": "Assembly-CSharp",
       "ColorIndex": 0
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "杂项文件",
+      "ColorIndex": -1
+    },
+    "8faf6ebc-daa5-fbd2-2964-ba781ecbded7": {
+      "ProjectGuid": "8faf6ebc-daa5-fbd2-2964-ba781ecbded7",
+      "DisplayName": "Assembly-CSharp-Editor",
+      "ColorIndex": 1
     }
   },
-  "NextColorIndex": 1
+  "NextColorIndex": 2
 }
