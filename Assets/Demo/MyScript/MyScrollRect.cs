@@ -1247,7 +1247,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
         else if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx)
         {
-            if (itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+            //if (itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+            if (itemGroup.firstSubItemIdx + itemGroup.nestedConstrainCount >= itemGroup.lastSubItemIdx)    /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
             {
                 removeSuccess = RemoveSubItemAtStart(out size, false, itemGroup.displayItemList[0], itemGroup);
                 deltaSize += size;
@@ -1303,7 +1304,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         else if (itemGroup.lastItemIdx - 1 == itemGroup.nestedItemIdx)
         {
             //if (itemGroup.lastSubItemIdx <= itemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-            if ((itemGroup.lastSubItemIdx - itemGroup.firstSubItemIdx) <= itemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
+            if ((itemGroup.lastSubItemIdx - itemGroup.nestedConstrainCount) <= itemGroup.firstSubItemIdx)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
             {
                 PrintAllIGInformation("Remove element at end,  Before case 4", itemGroup);
 
@@ -2989,55 +2990,63 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (tailItemGroup.displayItemCount == 0 && tailItemGroup.displaySubItemCount == 0)          /* Remove all displaying items and subitems from head to tail */
                     break;
 
-                if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-                    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
-                {
-                    PrintAllIGInformation("Special Case 1, Before case 1", currItemGroup);
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
+                //if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
+                //    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
+                //{
+                //    PrintAllIGInformation("Special Case 1, Before case 1", currItemGroup);
 
-                    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                    removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = itemGroupList[firstItemGroupIdx];
-                }
-                else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-                         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
-                {
-                    PrintAllIGInformation("Special Case 1, Before case 2", currItemGroup);
+                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //    removeSuccess = RemoveItemGroupAtStart();
+                //    currItemGroup = itemGroupList[firstItemGroupIdx];
+                //}
+                //else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
+                //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
+                //         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
+                //{
+                //    PrintAllIGInformation("Special Case 1, Before case 2", currItemGroup);
 
-                    removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
-                    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                    removeSuccess = RemoveItemGroupAtStart();
-                    currItemGroup = itemGroupList[firstItemGroupIdx];
-                }
-                else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
-                {
-                    PrintAllIGInformation("Special Case 1, Before case 3", currItemGroup);
+                //    removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
+                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //    removeSuccess = RemoveItemGroupAtStart();
+                //    currItemGroup = itemGroupList[firstItemGroupIdx];
+                //}
+                //else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
+                //{
+                //    PrintAllIGInformation("Special Case 1, Before case 3", currItemGroup);
 
-                    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                }
-                else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
-                {
-                    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
-                    {
-                        PrintAllIGInformation("Special Case 1, Before case 4", currItemGroup);
+                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //}
+                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
+                //{
+                //    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
+                //    {
+                //        PrintAllIGInformation("Special Case 1, Before case 4", currItemGroup);
 
-                        removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
-                        removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                    }
-                    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
-                    {
-                        PrintAllIGInformation("Special Case 1, Before case 5", currItemGroup);
+                //        removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
+                //        removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //    }
+                //    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
+                //    {
+                //        PrintAllIGInformation("Special Case 1, Before case 5", currItemGroup);
 
-                        removeSuccess = RemoveSubItemAtStart(out _, true, currItemGroup.displayItemList[0], currItemGroup);
+                //        removeSuccess = RemoveSubItemAtStart(out _, true, currItemGroup.displayItemList[0], currItemGroup);
 
-                        if (currItemGroup.displaySubItemCount == 0)
-                        {
-                            PrintAllIGInformation("Special Case 1, Before case 6", currItemGroup);
+                //        if (currItemGroup.displaySubItemCount == 0)
+                //        {
+                //            PrintAllIGInformation("Special Case 1, Before case 6", currItemGroup);
 
-                            removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                        }
-                    }
-                }
+                //            removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
+                //        }
+                //    }
+                //}
+
+
+
+                removeSuccess = RemoveElementAtStart(out _, currItemGroup);
+                currItemGroup = itemGroupList[firstItemGroupIdx];
+
+
 
                 if (!removeSuccess)
                     break;
@@ -3339,6 +3348,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (headItemGroup.displayItemCount == 0 && headItemGroup.displaySubItemCount == 0)      /* Remove all displaying items and subitems from tail to head */
                     break;
 
+                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
                 //if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
                 //    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
                 //{
