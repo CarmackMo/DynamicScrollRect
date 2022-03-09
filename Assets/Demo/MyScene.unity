@@ -1962,13 +1962,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scrollSensitivity: 10
   rubberScale: 1
-  displayOffset: 0
   reverseDirection: 0
   horizontal: 0
   vertical: 1
   scrollView: {fileID: 1921117356}
   scrollContent: {fileID: 1209627759}
-  item: {fileID: 297131030}
   itemGroupList:
   - nestedItemIdx: 3
     subItemCount: 51
@@ -1985,6 +1983,11 @@ MonoBehaviour:
     - {fileID: 297131030}
     - {fileID: 1817159088}
     - {fileID: 1865640846}
+    subItem: {fileID: 297131030}
+  - nestedItemIdx: 0
+    subItemCount: 18
+    itemList:
+    - {fileID: 867609428}
     subItem: {fileID: 297131030}
   - nestedItemIdx: 2
     subItemCount: 70
@@ -2009,6 +2012,8 @@ MonoBehaviour:
   verticalScrollbar: {fileID: 1198309498}
   horizontalScrollbarVisibility: 1
   verticalScrollbarVisibility: 1
+  horizontalScrollbarSpacing: 0
+  verticalScrollbarSpacing: 0
   movementType: 1
   elasticity: 0.1
   inertia: 1
