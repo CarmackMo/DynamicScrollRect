@@ -11,9 +11,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     #region 用户设定相关
     public enum ScrollMovementType
     {
-        Unrestricted,   // Unrestricted movement -- can scroll forever
-        Elastic,        // Restricted but flexible -- can go past the edges, but springs back in place
-        Clamped,        // Restricted movement where it's not possible to go past the edges
+        Unrestricted,   /* Unrestricted movement -- can scroll forever */
+        Elastic,        /* Restricted but flexible -- can go past the edges, but springs back in place */
+        Clamped,        /* Restricted movement where it's not possible to go past the edges */
     }
 
     public enum ScrollbarVisibility
@@ -168,8 +168,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private bool horizontalScrollingNeeded { get { if (Application.isPlaying) return scrollContentBounds.size.x > scrollViewBounds.size.x + 0.01f; else return true; } }
     private bool verticalScrollingNeeded { get { if (Application.isPlaying) return scrollContentBounds.size.y > scrollViewBounds.size.y + 0.01f; else return true; } }
 
-    private int layoutConstrainCount = -1;
-    protected int LayoutConstraintCount { get { return GetLayoutConstraintCount(); } }
+    //private int layoutConstrainCount = -1;
+    //protected int LayoutConstraintCount { get { return GetLayoutConstraintCount(); } }
     //protected int startLine { get { return Mathf.CeilToInt((float)(firstItemIdx) / layoutConstrainCount); } }                       // the first line of item that display in scroll view among all lines of items
     //protected int currentLines { get { return Mathf.CeilToInt((float)(lastItemIdx - firstItemIdx) / layoutConstrainCount); } }      // the amount of lines of items that are displaying in the scroll view
     //protected int totalLines { get { return Mathf.CeilToInt((float)(itemCount) / layoutConstrainCount); } }                         // the amount of lines regarding to all items
@@ -252,7 +252,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         SetScrollBar(SetHorizontalNormalizedPosition, ref horizontalScrollbar, ref horizontalScrollbarRect);
         SetScrollBar(SetVerticalNormalizedPosition, ref verticalScrollbar, ref verticalScrollbarRect);
-        GetLayoutConstraintCount();
+        //GetLayoutConstraintCount();
         GetItemSpacing();
     }
 
@@ -1694,25 +1694,25 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
     }
 
-    private int GetLayoutConstraintCount()
-    {
-        if (layoutConstrainCount != -1)
-            return layoutConstrainCount;
+    //private int GetLayoutConstraintCount()
+    //{
+    //    if (layoutConstrainCount != -1)
+    //        return layoutConstrainCount;
 
-        layoutConstrainCount = 1;
-        if (scrollContentRect != null)
-        {
-            ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
-            //GridLayoutGroup layout = scrollContentRect.GetComponent<GridLayoutGroup>();
-            //if (layout != null)
-            //{
-            //    if (layout.constraint == GridLayoutGroup.Constraint.Flexible)
-            //        Debug.LogError("[LoopScrollRect] Flexible not supported yet");
-            //    layoutConstrainCount = layout.constraintCount;
-            //}
-        }
-        return layoutConstrainCount;
-    }
+    //    layoutConstrainCount = 1;
+    //    if (scrollContentRect != null)
+    //    {
+    //        ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
+    //        //GridLayoutGroup layout = scrollContentRect.GetComponent<GridLayoutGroup>();
+    //        //if (layout != null)
+    //        //{
+    //        //    if (layout.constraint == GridLayoutGroup.Constraint.Flexible)
+    //        //        Debug.LogError("[LoopScrollRect] Flexible not supported yet");
+    //        //    layoutConstrainCount = layout.constraintCount;
+    //        //}
+    //    }
+    //    return layoutConstrainCount;
+    //}
 
     private float GetItemSpacing()
     {
@@ -1779,7 +1779,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     #endregion
 
 
-    // TO DO: Continue optimize program structure
     #region 通用UI计算相关
 
     protected virtual float GetItemSize(RectTransform itemRect, bool considerSpacing)
