@@ -147,8 +147,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private RectTransform ScrollViewRect { get { if (scrollViewRect == null) { scrollViewRect = scrollView.GetComponent<RectTransform>(); } return scrollViewRect; } }
     private RectTransform ScrollContentRect { get { if (scrollContentRect == null) { scrollContentRect = scrollContent.GetComponent<RectTransform>(); } return scrollContentRect; } }
 
-    //private GridLayoutGroup gridLayout = null;
-
     private DrivenRectTransformTracker tracker;
 
     private Bounds scrollViewBounds;
@@ -168,12 +166,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private bool horizontalScrollingNeeded { get { if (Application.isPlaying) return scrollContentBounds.size.x > scrollViewBounds.size.x + 0.01f; else return true; } }
     private bool verticalScrollingNeeded { get { if (Application.isPlaying) return scrollContentBounds.size.y > scrollViewBounds.size.y + 0.01f; else return true; } }
 
-    //private int layoutConstrainCount = -1;
-    //protected int LayoutConstraintCount { get { return GetLayoutConstraintCount(); } }
-    //protected int startLine { get { return Mathf.CeilToInt((float)(firstItemIdx) / layoutConstrainCount); } }                       // the first line of item that display in scroll view among all lines of items
-    //protected int currentLines { get { return Mathf.CeilToInt((float)(lastItemIdx - firstItemIdx) / layoutConstrainCount); } }      // the amount of lines of items that are displaying in the scroll view
-    //protected int totalLines { get { return Mathf.CeilToInt((float)(itemCount) / layoutConstrainCount); } }                         // the amount of lines regarding to all items
-
     private float itemSpacing = -1.0f;
     protected float ItemSpacing { get { return GetItemSpacing(); } }
 
@@ -191,17 +183,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private float horizontalSliderHeight;
     private float verticalSliderWidth;
 
-
     #endregion
 
 
     #region 内容数据相关
-
-    //private int firstItemIdx = 0;
-    //private int lastItemIdx = 0;
-
-    //private int displayItemCount { get { return displayItemList.Count; } }
-    //private List<GameObject> displayItemList = new List<GameObject>();
 
     private int firstItemGroupIdx = 0;
     private int lastItemGroupIdx = 0;
@@ -221,11 +206,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private int despawnSubItemCountStart = 0;
     private int despawnSubItemCountEnd = 0;
 
-    //public Stack<GameObject> itemPool = new Stack<GameObject>();
-
     private class ItemPoolMember : MonoBehaviour { public GameObject prefab = null; }    /* Added to freshly instantiated objects, so we can link back to the correct pool on despawn. */
 
     protected Dictionary<GameObject, Stack<GameObject>> itemPoolDict = new Dictionary<GameObject, Stack<GameObject>>();
+    
     #endregion
 
 
@@ -252,7 +236,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         SetScrollBar(SetHorizontalNormalizedPosition, ref horizontalScrollbar, ref horizontalScrollbarRect);
         SetScrollBar(SetVerticalNormalizedPosition, ref verticalScrollbar, ref verticalScrollbarRect);
-        //GetLayoutConstraintCount();
         GetItemSpacing();
     }
 
@@ -358,107 +341,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region 列表元素增加
 
-    #region 旧版单种类元素增加
-
-    //public bool AddItemAtStart(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
-    //{
-    //    size = 0;
-
-    //    if (itemCount >= 0 && firstItemIdx < layoutConstrainCount)
-    //        return false;
-
-    //    for (int i = 0; i < layoutConstrainCount; i++)
-    //    {
-    //        /* Add the gameObject of the item to the scrollContent */
-    //        GameObject newItem = SpawnItem(prefab);
-    //        newItem.transform.parent = parent.transform;
-    //        newItem.transform.SetAsFirstSibling();
-
-    //        /* Update the information for the items that are currently displaying */
-    //        displayItemList.Reverse();
-    //        displayItemList.Add(newItem);
-    //        displayItemList.Reverse();
-    //        firstItemIdx--;
-    //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-    //        newItem.GetComponent<MyItem>().SetText(firstItemIdx.ToString());
-    //        newItem.gameObject.name = firstItemIdx.ToString();
-    //    }
-
-    //    threshold = Mathf.Max(threshold, size * 1.5f);        /* 用途暂时不明 */
-
-    //    /* Update the parameter of the scrollContent UI */
-    //    if (!reverseDirection)
-    //    {
-    //        Vector2 offset = GetVector2(size);
-    //        scrollContentRect.anchoredPosition += offset;
-    //        prevPos += offset;
-    //        contentStartPos += offset;
-    //    }
-
-    //    return true;
-    //}
-
-
-    //public bool AddItemAtEnd(out float size, bool considerSpacing, GameObject prefab, GameObject parent)
-    //{
-    //    size = 0;
-
-    //    if (itemCount >= 0 && lastItemIdx >= itemCount)
-    //        return false;
-
-
-
-
-    //    ///* Add the gameObject of the item to the scrollContent */
-    //    //GameObject newItem = SpawnItem();
-    //    //newItem.transform.parent = scrollContent.transform;
-    //    //newItem.transform.SetAsLastSibling();
-
-    //    ///* Update the information for the items that are currently displaying */
-    //    //displayItemList.Add(newItem);
-    //    //lastItemIdx++;
-    //    //newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
-    //    //newItem.gameObject.name = lastItemIdx.ToString();
-
-
-
-    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
-    //    int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
-    //    for (int i = 0; i < count; i++)
-    //    {
-    //        /* Add the gameObject of the item to the scrollContent */
-    //        GameObject newItem = SpawnItem(prefab);
-    //        newItem.transform.parent = parent.transform;
-    //        newItem.transform.SetAsLastSibling();
-
-    //        /* Update the information for the items that are currently displaying */
-    //        newItem.GetComponent<MyItem>().SetText(lastItemIdx.ToString());
-    //        newItem.gameObject.name = lastItemIdx.ToString();
-    //        displayItemList.Add(newItem);
-    //        lastItemIdx++;
-    //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-
-    //        if (itemCount >= 0 && lastItemIdx >= itemCount)
-    //            break;
-    //    }
-
-    //    threshold = Mathf.Max(threshold, size * 1.5f);        // 用途暂时不明
-
-    //    if (reverseDirection)
-    //    {
-    //        Vector2 offset = GetVector2(size);
-    //        scrollContentRect.anchoredPosition -= offset;
-    //        prevPos -= offset;
-    //        contentStartPos -= offset;
-    //    }
-
-    //    return true;
-    //}
-
-    #endregion
-
-
-    #region 新版多种类元素增加
     public bool AddItemAtStart(out float size, bool considerSpacing, GameObject prefab, GameObject parent, ItemGroupConfig itemGroup)
     {
         size = 0;
@@ -466,53 +348,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (itemGroup.itemCount <= 0 || itemGroup.firstItemIdx <= 0)
             return false;
 
-        ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-        //for (int i = 0; i < layoutConstrainCount; i++)
-        //{
-        //    /* Special case: we will not spawn the nested item if there is not subItem inside, but we will record the data of the nested item still */
-        //    if (itemGroup.firstItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
-        //    {
-        //        //displayItemList.Reverse();
-        //        //displayItemList.Add(prefab);
-        //        //displayItemList.Reverse();
-        //        //firstItemIdx--;
-        //        itemGroup.displayItemList.Reverse();
-        //        itemGroup.displayItemList.Add(prefab);
-        //        itemGroup.displayItemList.Reverse();
-        //        itemGroup.firstItemIdx--;
-        //    }
-        //    else
-        //    {
-        //        /* Add the gameObject of the item to the scrollContent */
-        //        GameObject newItem = SpawnItem(prefab);
-        //        newItem.transform.parent = parent.transform;
-        //        newItem.transform.SetAsFirstSibling();
-
-        //        /* Update the information for the items that are currently displaying */
-        //        //displayItemList.Reverse();
-        //        //displayItemList.Add(newItem);
-        //        //displayItemList.Reverse();
-        //        //firstItemIdx--;
-        //        itemGroup.displayItemList.Reverse();
-        //        itemGroup.displayItemList.Add(newItem);
-        //        itemGroup.displayItemList.Reverse();
-        //        itemGroup.firstItemIdx--;
-
-        //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-        //        newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstItemIdx.ToString());
-        //        newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
-        //    }
-        //}
-
-
-
         /* Special case: we will not spawn the nested item if there is not subItem inside, but we will record the data of the nested item still */
         if (itemGroup.firstItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
         {
-            //displayItemList.Reverse();
-            //displayItemList.Add(prefab);
-            //displayItemList.Reverse();
-            //firstItemIdx--;
             itemGroup.displayItemList.Reverse();
             itemGroup.displayItemList.Add(prefab);
             itemGroup.displayItemList.Reverse();
@@ -526,10 +364,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             newItem.transform.SetAsFirstSibling();
 
             /* Update the information for the items that are currently displaying */
-            //displayItemList.Reverse();
-            //displayItemList.Add(newItem);
-            //displayItemList.Reverse();
-            //firstItemIdx--;
             itemGroup.displayItemList.Reverse();
             itemGroup.displayItemList.Add(newItem);
             itemGroup.displayItemList.Reverse();
@@ -539,7 +373,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstItemIdx.ToString());
             newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
         }
-
 
         /* Update the parameter of the scrollContent UI */
         if (!reverseDirection)
@@ -563,47 +396,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (itemGroup.itemCount <= 0 || itemGroup.lastItemIdx >= itemGroup.itemCount)
             return false;
 
-        ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-        //int availableItems = itemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
-        //int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
-        //for (int i = 0; i < count; i++)
-        //{
-        //    /* Special case: we will not spawn the nested item if there is no subItem inside, but we will record the data of the nested item still */
-        //    if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
-        //    {
-        //        //displayItemList.Add(prefab);
-        //        //lastItemIdx++;
-        //        itemGroup.displayItemList.Add(prefab);
-        //        itemGroup.lastItemIdx++;
-        //    }
-        //    else
-        //    {
-        //        /* Add the gameObject of the item to the scrollContent */
-        //        GameObject newItem = SpawnItem(prefab);
-        //        newItem.transform.parent = parent.transform;
-        //        newItem.transform.SetAsLastSibling();
-
-        //        /* Update the information for the items that are currently displaying */
-        //        newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
-        //        newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
-        //        //displayItemList.Add(newItem);
-        //        //lastItemIdx++;
-        //        itemGroup.displayItemList.Add(newItem);
-        //        itemGroup.lastItemIdx++;
-        //        size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-        //    }
-
-        //    if (itemGroup.itemCount >= 0 && itemGroup.lastItemIdx >= itemGroup.itemCount)
-        //        break;
-        //}
-
-
-
         /* Special case: we will not spawn the nested item if there is no subItem inside, but we will record the data of the nested item still */
         if (itemGroup.lastItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
         {
-            //displayItemList.Add(prefab);
-            //lastItemIdx++;
             itemGroup.displayItemList.Add(prefab);
             itemGroup.lastItemIdx++;
         }
@@ -617,14 +412,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Update the information for the items that are currently displaying */
             newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
             newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
-            //displayItemList.Add(newItem);
-            //lastItemIdx++;
             itemGroup.displayItemList.Add(newItem);
             itemGroup.lastItemIdx++;
             size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
         }
-
-
 
         if (reverseDirection)
         {
@@ -843,125 +634,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #endregion
 
-    #endregion
-
 
     #region 列表元素删减
-
-    #region 旧版单种类元素删减
-
-    //public bool RemoveItemAtStart(out float size, bool considerSpacing)
-    //{
-    //    size = 0;
-    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
-
-
-
-
-    //    //if (firstItemIdx == itemCount - 1)
-    //    //    return false;
-
-    //    ///* Remove the gameObject of the item from the scrollContent */
-    //    //GameObject oldItem = displayItemList[0];
-    //    //displayItemList.RemoveAt(0);
-    //    //DespawnItem(oldItem);
-
-    //    ///* Update the information for the items that are currently displaying */
-    //    //firstItemIdx++;
-
-
-
-    //    /* special case: when moving or dragging, we cannot simply delete start when we've reached the end */
-    //    if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && lastItemIdx + layoutConstrainCount >= itemCount)
-    //        return false;
-    //    if (availableItems <= 0)
-    //        return false;
-
-    //    for (int i = 0; i < layoutConstrainCount; i++)
-    //    {
-    //        /* Add the item to the waiting list of despawn */
-    //        GameObject oldItem = displayItemList[despawnItemCountStart];
-    //        AddToItemDespawnList(true);
-
-    //        /* Update the information for the items that are currently displaying */
-    //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-    //        availableItems--;
-    //        firstItemIdx++;
-
-    //        if (availableItems == 0)
-    //            break;
-    //    }
-
-    //    /* Update the parameter of the scrollContent UI */
-    //    if (!reverseDirection)
-    //    {
-    //        Vector2 offset = GetVector2(size);
-    //        scrollContentRect.anchoredPosition -= offset;
-    //        prevPos -= offset;
-    //        contentStartPos -= offset;
-    //    }
-
-    //    return true;
-    //}
-
-    //public bool RemoveItemAtEnd(out float size, bool considerSpacing)
-    //{
-    //    size = 0;
-    //    int availableItems = scrollContentRect.childCount - (despawnItemCountStart + despawnItemCountEnd);
-
-
-
-
-    //    //if (lastItemIdx == 0)
-    //    //    return false;
-
-    //    ///* Remove the gameObject of the item from the scrollContent */
-    //    //GameObject oldItem = displayItemList[displayItemCount - 1];
-    //    //displayItemList.RemoveAt(displayItemCount - 1);
-    //    //DespawnItem(oldItem);
-
-    //    ///* Update the information for the items that are currently displaying */
-    //    //lastItemIdx--;
-
-
-
-    //    /* special case: when moving or dragging, we cannot simply delete end when we've reached the top */
-    //    if ((isDragging || velocity != Vector2.zero) && itemCount >= 0 && firstItemIdx < layoutConstrainCount)
-    //        return false;
-    //    if (availableItems <= 0)
-    //        return false;
-
-    //    for (int i = 0; i < layoutConstrainCount; i++)
-    //    {
-    //        /* Remove the gameObject of the item from the scrollContent */
-    //        GameObject oldItem = displayItemList[displayItemCount - 1 - despawnItemCountEnd];
-    //        AddToItemDespawnList(false);
-
-    //        /* Update the information for the items that are currently displaying */
-    //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-    //        availableItems--;
-    //        lastItemIdx--;
-
-    //        if (lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
-    //            break;
-    //    }
-
-    //    /* Update the parameter of the scrollContent UI */
-    //    if (reverseDirection)
-    //    {
-    //        Vector2 offset = GetVector2(size);
-    //        scrollContentRect.anchoredPosition += offset;
-    //        prevPos += offset;
-    //        contentStartPos += offset;
-    //    }
-
-    //    return true;
-    //}
-
-    #endregion
-
-
-    #region 新版多种类元素删减
 
     public bool RemoveItemAtStart(out float size, bool considerSpacing, ItemGroupConfig itemGroup)
     {
@@ -988,46 +662,11 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return false;
         }
 
-        ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-        //for (int i = 0; i < layoutConstrainCount; i++)
-        //{
-        //    /* Special case: only need to delete the data of the nested item if the subItem number of it is smaller than 0 (no subItem in this nested item) */
-        //    if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
-        //    {
-        //        availableItems--;
-        //        itemGroup.displayItemList.RemoveAt(0);
-        //        itemGroup.firstItemIdx++;
-        //        //displayItemList.RemoveAt(0);
-        //        //firstItemIdx++;
-        //    }
-        //    else
-        //    {
-        //        /* Add the item to the waiting list of despawn */
-        //        GameObject oldItem = itemGroup.displayItemList[despawnItemCountStart];
-        //        AddToItemDespawnList(true);
-
-        //        /* Update the information for the items that are currently displaying */
-        //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-        //        availableItems--;
-        //        itemGroup.firstItemIdx++;
-        //        //firstItemIdx++;
-        //    }
-
-        //    if (availableItems == 0)
-        //        break;
-        //}
-
-
-
-
         /* Special case: only need to delete the data of the nested item if the subItem number of it is smaller than 0 (no subItem in this nested item) */
         if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
         {
             itemGroup.displayItemList.RemoveAt(0);
             itemGroup.firstItemIdx++;
-            //displayItemList.RemoveAt(0);
-            //firstItemIdx++;
-            //availableItems--;
         }
         else
         {
@@ -1038,11 +677,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Update the information for the items that are currently displaying */
             size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
             itemGroup.firstItemIdx++;
-            //firstItemIdx++;
-            //availableItems--;
         }
-
-
 
         if (size != 0)
             ClearItemDespawnList(itemGroup);
@@ -1088,46 +723,11 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return false;
         }
 
-        ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-        //for (int i = 0; i < layoutConstrainCount; i++)
-        //{
-        //    /* Special case: only need to delete the data of the nested item if the subItem number of it is smaller than 0 (no subItem in this nested item) */
-        //    if (itemGroup.lastItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
-        //    {
-        //        availableItems--;
-        //        itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
-        //        itemGroup.lastItemIdx--;
-        //        //displayItemList.RemoveAt(displayItemCount - 1);
-        //        //lastItemIdx--;
-        //    }
-        //    else
-        //    {
-        //        /* Remove the gameObject of the item from the scrollContent */
-        //        GameObject oldItem = itemGroup.displayItemList[itemGroup.displayItemCount - 1 - despawnItemCountEnd];
-        //        AddToItemDespawnList(false);
-
-        //        /* Update the information for the items that are currently displaying */
-        //        size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-        //        availableItems--;
-        //        itemGroup.lastItemIdx--;
-        //        //lastItemIdx--;
-        //    }
-
-        //    if (itemGroup.lastItemIdx % layoutConstrainCount == 0 || availableItems == 0)
-        //        break;
-        //}
-
-
-
-
         /* Special case: only need to delete the data of the nested item if the subItem number of it is smaller than 0 (no subItem in this nested item) */
         if (itemGroup.lastItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
         {
             itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
             itemGroup.lastItemIdx--;
-            //displayItemList.RemoveAt(displayItemCount - 1);
-            //lastItemIdx--;
-            //availableItems--;
         }
         else
         {
@@ -1138,11 +738,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Update the information for the items that are currently displaying */
             size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
             itemGroup.lastItemIdx--;
-            //lastItemIdx--;
-            //availableItems--;
         }
-
-
 
         if (size != 0)
             ClearItemDespawnList(itemGroup);
@@ -1207,7 +803,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (!reverseDirection)
         {
             Vector2 offset = GetVector2(size);
-            //parent.GetComponent<RectTransform>().anchoredPosition -= offset;
             scrollContentRect.anchoredPosition -= offset;
             prevPos -= offset;
             contentStartPos -= offset;
@@ -1271,7 +866,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (reverseDirection)
         {
             Vector2 offset = GetVector2(size);
-            //parent.GetComponent<RectTransform>().anchoredPosition += offset;
             scrollContentRect.anchoredPosition += offset;
             prevPos += offset;
             contentStartPos += offset;
@@ -1346,11 +940,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         float size = 0f;
         deltaSize = 0f;
 
-        ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
         if (itemGroup.firstItemIdx == itemGroup.itemCount - 1 &&                            /* Case 1: the first item is the last item and is not a nested item */
             itemGroup.firstItemIdx != itemGroup.nestedItemIdx)
-        //if (itemGroup.firstItemIdx >= itemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-        //    itemGroup.firstItemIdx != itemGroup.nestedItemIdx)
         {
             PrintAllIGInformation("Remove element at start,  Before case 1", itemGroup);
 
@@ -1362,9 +953,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         else if (itemGroup.firstItemIdx == itemGroup.itemCount - 1 &&                       /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
                  itemGroup.firstItemIdx == itemGroup.nestedItemIdx &&
                  itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)
-        //else if (itemGroup.firstItemIdx >= itemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-        //         itemGroup.firstItemIdx == itemGroup.nestedItemIdx &&
-        //         itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)
         {
             PrintAllIGInformation("Remove element at start,  Before case 2", itemGroup);
 
@@ -1383,7 +971,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
         else if (itemGroup.firstItemIdx == itemGroup.nestedItemIdx)
         {
-            //if (itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
             if (itemGroup.firstSubItemIdx + itemGroup.nestedConstrainCount >= itemGroup.lastSubItemIdx)    /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
             {
                 PrintAllIGInformation("Remove element at start,  Before case 4", itemGroup);
@@ -1412,11 +999,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         float size = 0f;
         deltaSize = 0f;
 
-        ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
         if (itemGroup.lastItemIdx == 1 &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
             itemGroup.lastItemIdx != itemGroup.nestedItemIdx + 1)
-        //if (itemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-        //    itemGroup.lastItemIdx != itemGroup.nestedItemIdx + 1)
         {
             PrintAllIGInformation("Remove element at end,  Before case 1", itemGroup);
 
@@ -1428,9 +1012,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         else if (itemGroup.lastItemIdx == 1 &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
                  itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&
                  itemGroup.lastSubItemIdx <= itemGroup.nestedConstrainCount)
-        //else if (itemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-        //         itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&
-        //         itemGroup.lastSubItemIdx <= itemGroup.nestedConstrainCount)
         {
             PrintAllIGInformation("Remove element at end,  Before case 2", itemGroup);
 
@@ -1449,7 +1030,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
         else if (itemGroup.lastItemIdx - 1 == itemGroup.nestedItemIdx)
         {
-            //if (itemGroup.lastSubItemIdx <= itemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
             if ((itemGroup.lastSubItemIdx - itemGroup.nestedConstrainCount) <= itemGroup.firstSubItemIdx)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
             {
                 PrintAllIGInformation("Remove element at end,  Before case 4", itemGroup);
@@ -1470,8 +1050,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         return removeSuccess;
     }
-
-    #endregion
 
     #endregion
 
@@ -1541,31 +1119,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             despawnItemCountEnd += count;
     }
 
-    //public void ClearItemDespawnList()
-    //{
-    //    Debug.Assert(scrollContentRect.childCount >= despawnItemCountStart + despawnItemCountEnd);
-    //    if (despawnItemCountStart > 0)
-    //    {
-    //        for (int i = 1; i <= despawnItemCountStart; i++)
-    //        {
-    //            GameObject item = displayItemList[0];
-    //            displayItemList.RemoveAt(0);
-    //            DespawnItem(item);
-    //        }
-    //        despawnItemCountStart = 0;
-    //    }
-    //    if (despawnItemCountEnd > 0)
-    //    {
-    //        for (int i = 1; i <= despawnItemCountEnd; i++)
-    //        {
-    //            GameObject item = displayItemList[displayItemCount - 1];
-    //            displayItemList.RemoveAt(displayItemCount - 1);
-    //            DespawnItem(item);
-    //        }
-    //        despawnItemCountEnd = 0;
-    //    }
-    //}
-
     public void ClearItemDespawnList(ItemGroupConfig itemGroup)
     {
         Debug.Assert(itemGroup.displayItemCount >= despawnItemCountStart + despawnItemCountEnd);
@@ -1575,7 +1128,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             {
                 GameObject item = itemGroup.displayItemList[0];
                 itemGroup.displayItemList.RemoveAt(0);
-                //displayItemList.RemoveAt(0);
                 DespawnItem(item);
             }
             despawnItemCountStart = 0;
@@ -1586,7 +1138,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             {
                 GameObject item = itemGroup.displayItemList[itemGroup.displayItemCount - 1];
                 itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
-                //displayItemList.RemoveAt(displayItemCount - 1);
                 DespawnItem(item);
             }
             despawnItemCountEnd = 0;
@@ -1694,26 +1245,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
     }
 
-    //private int GetLayoutConstraintCount()
-    //{
-    //    if (layoutConstrainCount != -1)
-    //        return layoutConstrainCount;
-
-    //    layoutConstrainCount = 1;
-    //    if (scrollContentRect != null)
-    //    {
-    //        ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
-    //        //GridLayoutGroup layout = scrollContentRect.GetComponent<GridLayoutGroup>();
-    //        //if (layout != null)
-    //        //{
-    //        //    if (layout.constraint == GridLayoutGroup.Constraint.Flexible)
-    //        //        Debug.LogError("[LoopScrollRect] Flexible not supported yet");
-    //        //    layoutConstrainCount = layout.constraintCount;
-    //        //}
-    //    }
-    //    return layoutConstrainCount;
-    //}
-
     private float GetItemSpacing()
     {
         if (itemSpacing != -1)
@@ -1731,16 +1262,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 contentTopPadding = layout.padding.top;
                 contentDownPadding = layout.padding.bottom;
             }
-            ///* Since we force scroll content cannot contain GridLayoutGrouop, this part of code is deleted */
-            //gridLayout = scrollContentRect.GetComponent<GridLayoutGroup>();
-            //if (gridLayout != null)
-            //{
-            //    itemSpacing = GetAbsDimension(gridLayout.spacing);
-            //    contentLeftPadding = gridLayout.padding.left;
-            //    contentRightPadding = gridLayout.padding.right;
-            //    contentTopPadding = gridLayout.padding.top;
-            //    contentDownPadding = gridLayout.padding.bottom;
-            //}
         }
         return itemSpacing;
     }
@@ -1786,23 +1307,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         float size = considerSpacing ? itemSpacing : 0;
 
         if (vertical && !horizontal)
-        {
             size += itemRect.rect.height;
-
-            //if (gridLayout == null)
-            //    size += itemRect.rect.height;
-            //else
-            //    size += gridLayout.cellSize.y;
-        }
         else
-        {
             size += itemRect.rect.width;
-
-            //if (gridLayout == null)
-            //    size += itemRect.rect.width;
-            //else
-            //    size += gridLayout.cellSize.x;
-        }
 
         if (vertical && !horizontal)
             size *= scrollContentRect.localScale.y;
@@ -1941,11 +1448,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Can continue move down as long as scrollContent dosn't reach bottom yet */
             if (GetDimension(delta) > 0 && (tailItemGroup.nestedItemIdx == tailItemGroup.itemCount - 1 ? tailItemGroup.lastSubItemIdx < tailItemGroup.subItemCount : tailItemGroup.lastItemIdx < tailItemGroup.itemCount))
                 return offset;
-
-            //if (GetDimension(delta) < 0 && firstItemIdx > 0)            // cannot continue move down if already reach the top of scrollContent
-            //    return offset;
-            //if (GetDimension(delta) > 0 && lastItemIdx < itemCount)     // cannot continue move up if already reach the top of scrollContent
-            //    return offset;
         }
 
         Vector2 min = scrollContentBounds.min;
@@ -2494,96 +1996,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region scrollitem相关
 
-    ///* 该函数的用途暂时不明 */
-    //public void RefreshCells()
-    //{
-    //    if (Application.isPlaying && this.isActiveAndEnabled)
-    //    {
-    //        lastItemIdx = firstItemIdx;
-    //        // recycle items if we can
-    //        for (int i = 0; i < scrollContentRect.childCount; i++)
-    //        {
-    //            if (lastItemIdx < itemCount)
-    //            {
-    //                ProvideData(scrollContent.GetChild(i), itemTypeEnd);
-    //                lastItemIdx++;
-    //            }
-    //            else
-    //            {
-    //                prefabSource.ReturnObject(scrollContent.GetChild(i));
-    //                i--;
-    //            }
-    //        }
-    //        UpdateBounds(true);
-    //        UpdateScrollbars(Vector2.zero);
-    //    }
-    //}
-
-    ///* Original logic, zero reference */
-    //public void RefillItemsFromEnd(int endItem = 0, bool alignStart = false)
-    //{
-    //    if (!Application.isPlaying)
-    //        return;
-
-    //    lastItemIdx = reverseDirection ? endItem : itemCount - endItem;
-    //    firstItemIdx = lastItemIdx;
-
-    //    if (itemCount >= 0 && firstItemIdx % layoutConstrainCount != 0)
-    //    {
-    //        firstItemIdx = (firstItemIdx / layoutConstrainCount) * layoutConstrainCount;
-    //    }
-
-    //    AddToItemDespawnList(!reverseDirection, lastItemIdx - firstItemIdx + 1);
-    //    //ReturnToTempPool(!reverseDirection, m_Content.childCount);
-
-    //    float sizeToFill = GetAbsDimension(scrollViewRect.rect.size);
-    //    float sizeFilled = 0;
-
-    //    bool first = true;
-    //    while (sizeToFill > sizeFilled)
-    //    {
-    //        float size = 0f;
-    //        bool addSuccess = reverseDirection ? AddItemAtEnd(out size, !first, item, scrollContent): AddItemAtStart(out size, !first, item, scrollContent);
-    //        if (!addSuccess)
-    //            break;
-    //        first = false;
-    //        sizeFilled += size;
-    //    }
-    //    /* refill from start in case not full yet */
-    //    while (sizeToFill > sizeFilled)
-    //    {
-    //        float size = 0f;
-    //        bool addSuccess = reverseDirection ? AddItemAtStart(out size, !first, item, scrollContent) : AddItemAtEnd(out size, !first, item, scrollContent);
-    //        if (!addSuccess)
-    //            break;
-    //        first = false;
-    //        sizeFilled += size;
-    //    }
-
-    //    Vector2 pos = scrollContentRect.anchoredPosition;
-    //    float dist = alignStart ? 0 : Mathf.Max(0, sizeFilled - sizeToFill);
-    //    if (reverseDirection)
-    //        dist = -dist;
-    //    //if (direction == LoopScrollRectDirection.Vertical)
-    //    if (vertical)
-    //        pos.y = dist;
-    //    else
-    //        pos.x = -dist;
-    //    scrollContentRect.anchoredPosition = pos;
-    //    contentStartPos = pos;
-
-    //    ClearItemDespawnList();
-    //    //ClearTempPool();
-
-    //    /* force build bounds here so scrollbar can access newest bounds */
-    //    LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
-    //    CalculateContentBounds();
-    //    UpdateScrollbars(Vector2.zero);
-    //    StopMovement();
-    //    UpdatePrevData();         /* 该函数的用途暂时不明 */
-    //}
-
-
     public void RefillItemGroup(out float sizeFilled, ItemGroupConfig itemGroup, int startItem = 0, bool fillViewRect = false, float contentOffset = 0)
     {
         sizeFilled = 0;
@@ -2591,22 +2003,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (!Application.isPlaying)
             return;
 
-        ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-        //itemGroup.firstItemIdx = reverseDirection ? itemGroup.itemCount - startItem : startItem;
-        //if (itemGroup.itemCount >= 0 && itemGroup.firstItemIdx % layoutConstrainCount != 0)
-        //{
-        //    itemGroup.firstItemIdx = (itemGroup.firstItemIdx / layoutConstrainCount) * layoutConstrainCount;
-        //}
-        //itemGroup.lastItemIdx = itemGroup.firstItemIdx;
-
-
         itemGroup.firstItemIdx = reverseDirection ? itemGroup.itemCount - startItem : startItem;
         itemGroup.lastItemIdx = itemGroup.firstItemIdx;
 
-
-
         /* Don't `Canvas.ForceUpdateCanvases();` here, or it will new/delete cells to change itemTypeStart/End */
-        //AddToItemDespawnList(reverseDirection, scrollContentRect.childCount);
         AddToItemDespawnList(reverseDirection, itemGroup.displayItemCount);
 
         /* scrollViewBounds may be not ready when RefillItems on Start */
@@ -2636,7 +2036,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     break;
 
                 RefillSubItems(out float nestedItemSize, itemGroup.subItem, reverseDirection ? itemGroup.displayItemList[0] : itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
-                //RefillSubItems(out float nestedItemSize, itemGroup.subItem, displayItemList[displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
 
                 first = false;
                 itemSize = nestedItemSize;
@@ -2664,7 +2063,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     break;
 
                 RefillSubItems(out float subContentSize, itemGroup.subItem, reverseDirection ? itemGroup.displayItemList[0] : itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup, sizeToFill - sizeFilled);
-                //RefillSubItems(out float subContentSize, itemGroup.subItem, displayItemList[0], itemGroup, sizeToFill - sizeFilled);
 
                 first = false;
                 itemSize = subContentSize;
@@ -2694,7 +2092,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         scrollContentRect.anchoredPosition = pos;
         contentStartPos = pos;
 
-        //ClearItemDespawnList();
         ClearItemDespawnList(itemGroup);
 
         /* force build bounds here so scrollbar can access newest bounds */
@@ -2746,7 +2143,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
 
         Vector2 pos = scrollContentRect.anchoredPosition;
-        //if (direction == LoopScrollRectDirection.Vertical)
         if (vertical)
             pos.y = -contentOffset;
         else
@@ -2764,314 +2160,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     }
 
 
-    ///* Original logic */
-    //public void RefillItems(int startItem = 0, bool fillViewRect = false, float contentOffset = 0)
-    //{
-    //    if (!Application.isPlaying)
-    //        return;
-
-    //    firstItemIdx = reverseDirection ? itemCount - startItem : startItem;
-    //    if (itemCount >= 0 && firstItemIdx % layoutConstrainCount != 0)
-    //    {
-    //        firstItemIdx = (firstItemIdx / layoutConstrainCount) * layoutConstrainCount;
-    //    }
-    //    lastItemIdx = firstItemIdx;
-
-    //    /* Don't `Canvas.ForceUpdateCanvases();` here, or it will new/delete cells to change itemTypeStart/End */
-    //    AddToItemDespawnList(reverseDirection, scrollContentRect.childCount);
-    //    //ReturnToTempPool(reverseDirection, m_Content.childCount);
-
-    //    /* scrollViewBounds may be not ready when RefillCells on Start */
-    //    float sizeToFill = GetAbsDimension(scrollViewRect.rect.size) + Mathf.Abs(contentOffset);
-    //    float sizeFilled = 0;
-    //    float itemSize = 0;
-
-    //    bool first = true;
-    //    while (sizeToFill > sizeFilled)
-    //    {
-    //        float size = 0;
-    //        bool addSuccess = reverseDirection ? AddItemAtStart(out size, !first, item, scrollContent) : AddItemAtEnd(out size, !first, item, scrollContent);
-    //        if (!addSuccess)
-    //            break;
-    //        first = false;
-    //        itemSize = size;
-    //        sizeFilled += size;
-    //    }
-    //    /* refill from start in case not full yet */
-    //    while (sizeToFill > sizeFilled)
-    //    {
-    //        float size = 0;
-    //        bool addSuccess = reverseDirection ? AddItemAtEnd(out size, !first, item, scrollContent) : AddItemAtStart(out size, !first, item, scrollContent);
-    //        if (!addSuccess)
-    //            break;
-    //        first = false;
-    //        sizeFilled += size;
-    //    }
-
-    //    if (fillViewRect && itemSize > 0 && sizeFilled < sizeToFill)
-    //    {
-    //        int itemsToAddCount = (int)((sizeToFill - sizeFilled) / itemSize);          //calculate how many items can be added above the offset, so it still is visible in the view
-    //        int newOffset = startItem - itemsToAddCount;
-    //        if (newOffset < 0) newOffset = 0;
-    //        if (newOffset != startItem) RefillItems(newOffset);                         //refill again, with the new offset value, and now with fillViewRect disabled.
-    //    }
-
-    //    Vector2 pos = scrollContentRect.anchoredPosition;
-    //    //if (direction == LoopScrollRectDirection.Vertical)
-    //    if (vertical)
-    //        pos.y = -contentOffset;
-    //    else
-    //        pos.x = contentOffset;
-    //    scrollContentRect.anchoredPosition = pos;
-    //    contentStartPos = pos;
-
-    //    ClearItemDespawnList();
-    //    //ClearTempPool();
-
-    //    /* force build bounds here so scrollbar can access newest bounds */
-    //    LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
-    //    CalculateContentBounds();
-    //    UpdateScrollbars(Vector2.zero);
-    //    StopMovement();
-    //    UpdatePrevData();             /* 该函数的用途暂时不明 */
-    //}
-
-
-    /* Original logic, zero reference */
-    //public void UpdateScrollItems()
-    //{
-    //    bool isChanged = false;
-
-    //    /* special case 1: handling move several page upward in one frame */
-    //    if (scrollViewBounds.max.y < scrollContentBounds.min.y && lastItemIdx > firstItemIdx)
-    //    {
-    //        int maxFirstItemIdx = -1;
-    //        if (itemCount >= 0)
-    //        {
-    //            maxFirstItemIdx = Mathf.Max(0, itemCount - (lastItemIdx - firstItemIdx));
-    //        }
-    //        float currentSize = scrollContentBounds.size.y;
-    //        float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
-    //        AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
-    //        //ReturnToTempPool(true, itemTypeEnd - itemTypeStart);
-
-    //        firstItemIdx = lastItemIdx;
-
-    //        int offsetCount = Mathf.FloorToInt((scrollContentBounds.min.y - scrollViewBounds.max.y) / (elementSize + itemSpacing));       /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
-    //        if (maxFirstItemIdx >= 0 && firstItemIdx + offsetCount * layoutConstrainCount > maxFirstItemIdx)
-    //        {
-    //            offsetCount = Mathf.FloorToInt((float)(maxFirstItemIdx - firstItemIdx) / layoutConstrainCount);                     /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
-    //        }
-    //        firstItemIdx += offsetCount * layoutConstrainCount;
-    //        if (itemCount >= 0)
-    //        {
-    //            firstItemIdx = Mathf.Max(firstItemIdx, 0);                                                                          /* In case the head index is smaller than 0 */
-    //        }
-    //        lastItemIdx = firstItemIdx;
-
-    //        float offset = offsetCount * (elementSize + itemSpacing);
-    //        scrollContentRect.anchoredPosition -= new Vector2(0, offset + (reverseDirection ? 0 : currentSize));
-    //        scrollContentBounds.center -= new Vector3(0, offset + currentSize / 2, 0);
-    //        scrollContentBounds.size = Vector3.zero;
-    //        isChanged = true;
-    //    }
-
-    //    /* special case 2: handling move several page downward in one frame */
-    //    if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemIdx > firstItemIdx)
-    //    {
-    //        float currentSize = scrollContentBounds.size.y;
-    //        float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
-    //        AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
-    //        //ReturnToTempPool(false, itemTypeEnd - itemTypeStart);
-
-    //        lastItemIdx = firstItemIdx;
-
-    //        int offsetCount = Mathf.FloorToInt((scrollViewBounds.min.y - scrollContentBounds.max.y) / (elementSize + itemSpacing));       /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
-    //        if (itemCount >= 0 && firstItemIdx - offsetCount * layoutConstrainCount < 0)
-    //        {
-    //            offsetCount = Mathf.FloorToInt((float)(firstItemIdx) / layoutConstrainCount);                                       /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
-    //        }
-    //        firstItemIdx -= offsetCount * layoutConstrainCount;
-    //        if (itemCount >= 0)
-    //        {
-    //            firstItemIdx = Mathf.Max(firstItemIdx, 0);
-    //        }
-    //        lastItemIdx = firstItemIdx;
-
-    //        float offset = offsetCount * (elementSize + itemSpacing);
-    //        scrollContentRect.anchoredPosition += new Vector2(0, offset + (reverseDirection ? currentSize : 0));
-    //        scrollContentBounds.center += new Vector3(0, offset + currentSize / 2, 0);
-    //        scrollContentBounds.size = Vector3.zero;
-    //        isChanged = true;
-    //    }
-
-    //    /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
-    //    /* Need to add new items at the bottom of the scrollContent */
-    //    if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
-    //    {
-    //        /* the last item needs to consider item spacing */
-    //        AddItemAtEnd(out float size, true, item, scrollContent);
-    //        float deltaSize = size;
-
-    //        /* equals to (bottom of scrollContent) - (new item height + upward spacing) + offset */
-    //        while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
-    //        {
-    //            if (AddItemAtEnd(out size, true, item, scrollContent))
-    //                deltaSize += size;
-    //            else
-    //                break;
-    //        }
-
-    //        if (deltaSize > 0)
-    //            isChanged = true;
-    //    }
-    //    //if (scrollViewBounds.min.y < scrollContentBounds.min.y + displayOffset)
-    //    //{
-    //    //    /* the last item needs to consider item spacing */
-    //    //    AddItemAtEnd(true, out float size);
-    //    //    float deltaSize = size;
-
-    //    //    /* equals to (bottom of scrollContent) - (new item height + upward spacing) + offset */
-    //    //    while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y - deltaSize + displayOffset)
-    //    //    {
-    //    //        if (AddItemAtEnd(true, out size))
-    //    //            deltaSize += size;
-    //    //        else
-    //    //            break;
-    //    //    }
-
-    //    //    if (deltaSize > 0)
-    //    //        isChanged = true;
-    //    //}
-
-    //    /* Case 2: the top of the last item is much lower than the bottom of the viewPort */
-    //    /* Need to remove old items at the bottom of the scrollContent */
-    //    if (scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding)
-    //    {
-    //        RemoveItemAtEnd(out float size, true);
-    //        float deltaSize = size;
-
-    //        /* equals to (the bottom of scrollContent) + (last item height + upward spacing) + (second last item height + upward spacing) + offset */
-    //        while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + threshold + contentDownPadding + deltaSize)
-    //        {
-    //            if (RemoveItemAtEnd(out size, true))
-    //                deltaSize += size;
-    //            else
-    //                break;
-    //        }
-
-    //        if (deltaSize > 0)
-    //            isChanged = true;
-    //    }
-    //    //if (scrollViewBounds.min.y > scrollContentBounds.min.y + (itemRect.rect.height + itemSpacing) + displayOffset)
-    //    //{
-    //    //    RemoveItemAtEnd(true, out float size);
-    //    //    float deltaSize = size;
-
-    //    //    /* equals to (the bottom of scrollContent) + (last item height + upward spacing) + (second last item height + upward spacing) + offset */
-    //    //    while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + deltaSize + (itemRect.rect.height + itemSpacing) + displayOffset)
-    //    //    {
-    //    //        if (RemoveItemAtEnd(true, out size))
-    //    //            deltaSize += size;
-    //    //        else
-    //    //            break;
-    //    //    }
-
-    //    //    if (deltaSize > 0)
-    //    //        isChanged = true;
-    //    //}
-
-    //    /* Case 3: the top of the first item is much lower than the top of the viewPort */
-    //    /* Need to add new items at the top of the scrollContent */
-    //    if (scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding)
-    //    {
-    //        /* need to consider downward item spacing for each item */
-    //        AddItemAtStart(out float size, true, item, scrollContent);
-    //        float deltaSize = size;
-
-    //        /* equals to (top of scrollContent) + (new item hight + downward spacing) - offset */
-    //        while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
-    //        {
-    //            if (AddItemAtStart(out size, true, item, scrollContent))
-    //                deltaSize += size;
-    //            else
-    //                break;
-    //        }
-
-    //        if (deltaSize > 0)
-    //            isChanged = true;
-    //    }
-    //    //if (scrollViewBounds.max.y > scrollContentBounds.max.y)
-    //    //{
-    //    //    /* need to consider downward item spacing for each item */
-    //    //    AddItemAtStart(true, out float size);
-    //    //    float deltaSize = size;
-
-    //    //    /* equals to (top of scrollContent) + (new item hight + downward spacing) - offset */
-    //    //    while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y + deltaSize - displayOffset)
-    //    //    {
-    //    //        if (AddItemAtStart(true, out size))
-    //    //            deltaSize += size;
-    //    //        else
-    //    //            break;
-    //    //    }
-
-    //    //    if (deltaSize > 0)
-    //    //        isChanged = true;
-    //    //}
-
-    //    /* Case 4: the bottom of the first item is much higher than the top of the viewPort */
-    //    /* Need to remove old items at the top of the scrollContent */
-    //    if (scrollViewBounds.max.y < scrollContentBounds.max.y - threshold - contentTopPadding)
-    //    {
-    //        /* need to consider downward item spacing for each item */
-    //        RemoveItemAtStart(out float size, true);
-    //        float deltaSize = size;
-
-    //        /* equals to (top of scrollContent) - (first item hight + downward spacing) - (next item hight + downward spacing) - offset */
-    //        while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - threshold - contentTopPadding - deltaSize)
-    //        {
-    //            if (RemoveItemAtStart(out size, true))
-    //                deltaSize += size;
-    //            else
-    //                break;
-    //        }
-
-    //        if (deltaSize > 0)
-    //            isChanged = true;
-    //    }
-    //    //if (scrollViewBounds.max.y < scrollContentBounds.max.y - (itemRect.rect.height + itemSpacing) - displayOffset)
-    //    //{
-    //    //    /* need to consider downward item spacing for each item */
-    //    //    RemoveItemAtStart(true, out float size);
-    //    //    float deltaSize = size;
-
-    //    //    /* equals to (top of scrollContent) - (first item hight + downward spacing) - (next item hight + downward spacing) - offset */
-    //    //    while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - deltaSize - (itemRect.rect.height + itemSpacing) - displayOffset)
-    //    //    {
-    //    //        if (RemoveItemAtStart(true, out size))
-    //    //            deltaSize += size;
-    //    //        else
-    //    //            break;
-    //    //    }
-
-    //    //    if (deltaSize > 0)
-    //    //        isChanged = true;
-    //    //}
-
-    //    if (isChanged)
-    //    {
-    //        ClearItemDespawnList();
-    //    }
-    //}
-
-
     public void UpdateScrollItemGroups()
     {
         ///* Used for testing, can be deleted */
         //PrintAllIGInformation();
-
-        //bool isChanged = false;
 
         scrollBoundMax = scrollViewBounds.max;
         scrollBoundMin = scrollViewBounds.min;
@@ -3082,45 +2174,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         ItemGroupConfig currItemGroup;
 
-        //// TO DO: original version 
-        ///* special case 1: handling move several page upward in one frame */
-        //if (scrollViewBounds.max.y < scrollContentBounds.min.y && lastItemIdx > firstItemIdx)
-        //{
-        //    int maxFirstItemIdx = -1;
-        //    if (itemCount >= 0)
-        //    {
-        //        maxFirstItemIdx = Mathf.Max(0, itemCount - (lastItemIdx - firstItemIdx));
-        //    }
-        //    float currentSize = scrollContentBounds.size.y;
-        //    float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
-        //    AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
-        //    //ReturnToTempPool(true, itemTypeEnd - itemTypeStart);
-
-        //    firstItemIdx = lastItemIdx;
-
-        //    int offsetCount = Mathf.FloorToInt((scrollContentBounds.min.y - scrollViewBounds.max.y) / (elementSize + itemSpacing));     /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
-        //    if (maxFirstItemIdx >= 0 && firstItemIdx + offsetCount * layoutConstrainCount > maxFirstItemIdx)
-        //    {
-        //        offsetCount = Mathf.FloorToInt((float)(maxFirstItemIdx - firstItemIdx) / layoutConstrainCount);                         /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
-        //    }
-        //    firstItemIdx += offsetCount * layoutConstrainCount;
-        //    if (itemCount >= 0)
-        //    {
-        //        firstItemIdx = Mathf.Max(firstItemIdx, 0);                                                                              /* In case the head index is smaller than 0 */
-        //    }
-        //    lastItemIdx = firstItemIdx;
-
-        //    float offset = offsetCount * (elementSize + itemSpacing);
-        //    scrollContentRect.anchoredPosition -= new Vector2(0, offset + (reverseDirection ? 0 : currentSize));
-        //    scrollContentBounds.center -= new Vector3(0, offset + currentSize / 2, 0);
-        //    scrollContentBounds.size = Vector3.zero;
-        //    isChanged = true;
-        //}
-
-
-
         //// TO DO: Fast version, unstable
-        ///* special case 1: handling move several page upward in one frame */
+        /* special case 1: handling move several page upward in one frame */
         if (scrollViewBounds.max.y < scrollContentBounds.min.y && lastItemGroupIdx > firstItemGroupIdx)
         {
             float contentSize = GetAbsDimension(scrollContentBounds.size);
@@ -3143,63 +2198,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (tailItemGroup.displayItemCount == 0 && tailItemGroup.displaySubItemCount == 0)          /* Remove all displaying items and subitems from head to tail */
                     break;
 
-                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-                //if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-                //    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
-                //{
-                //    PrintAllIGInformation("Special Case 1, Before case 1", currItemGroup);
-
-                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                //    removeSuccess = RemoveItemGroupAtStart();
-                //    currItemGroup = itemGroupList[firstItemGroupIdx];
-                //}
-                //else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-                //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                //         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
-                //{
-                //    PrintAllIGInformation("Special Case 1, Before case 2", currItemGroup);
-
-                //    removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
-                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                //    removeSuccess = RemoveItemGroupAtStart();
-                //    currItemGroup = itemGroupList[firstItemGroupIdx];
-                //}
-                //else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
-                //{
-                //    PrintAllIGInformation("Special Case 1, Before case 3", currItemGroup);
-
-                //    removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                //}
-                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
-                //{
-                //    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
-                //    {
-                //        PrintAllIGInformation("Special Case 1, Before case 4", currItemGroup);
-
-                //        removeSuccess = RemoveSubItemAtStart(out _, false, currItemGroup.displayItemList[0], currItemGroup);
-                //        removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                //    }
-                //    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
-                //    {
-                //        PrintAllIGInformation("Special Case 1, Before case 5", currItemGroup);
-
-                //        removeSuccess = RemoveSubItemAtStart(out _, true, currItemGroup.displayItemList[0], currItemGroup);
-
-                //        if (currItemGroup.displaySubItemCount == 0)
-                //        {
-                //            PrintAllIGInformation("Special Case 1, Before case 6", currItemGroup);
-
-                //            removeSuccess = RemoveItemAtStart(out _, true, currItemGroup);
-                //        }
-                //    }
-                //}
-
-
-
                 removeSuccess = RemoveElementAtStart(out _, currItemGroup);
                 currItemGroup = itemGroupList[firstItemGroupIdx];
-
-
 
                 if (!removeSuccess)
                     break;
@@ -3222,57 +2222,27 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if ((currItemGroup.lastItemIdx == currItemGroup.itemCount && currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) ||
                     (currItemGroup.lastItemIdx == currItemGroup.itemCount && currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 && currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
                 {
-                    size = 0;
                     if (lastItemGroupIdx >= itemGroupCount)
                         break;
-
-                    ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-                    //var newItemGroup = itemGroupList[lastItemGroupIdx];
-                    //if (newItemGroup.itemCount <= 0 || newItemGroup.lastItemIdx > newItemGroup.itemCount - layoutConstrainCount)
-                    //    break;
-
-                    ///* Virtually add item to the new item group at end */
-                    //int availableItems = newItemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
-                    //int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
-                    //for (int i = 0; i < count; i++)
-                    //{
-                    //    //lastItemIdx++;
-                    //    //firstItemIdx++;
-                    //    newItemGroup.lastItemIdx++;
-                    //    newItemGroup.firstItemIdx++;
-                    //    size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
-
-                    //    if (newItemGroup.lastItemIdx > newItemGroup.itemCount - layoutConstrainCount)
-                    //        break;
-                    //}
-                    //deltaSize += size;
-
-
 
                     var newItemGroup = itemGroupList[lastItemGroupIdx];
                     if (newItemGroup.itemCount <= 0 || newItemGroup.lastItemIdx >= newItemGroup.itemCount)
                         break;
 
                     /* Virtually add item to the new item group at end */
-                    //lastItemIdx++;
-                    //firstItemIdx++;
                     newItemGroup.lastItemIdx++;
                     newItemGroup.firstItemIdx++;
+                    size = 0;
                     size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
-
-
-
-
-
                     deltaSize += size;
 
                     /* If the new item we just add is a nested item, we need to virtually add subItem at end as well */
                     if (newItemGroup.lastItemIdx - 1 == newItemGroup.nestedItemIdx && newItemGroup.subItemCount > 0)
                     {
-                        size = 0;
                         if (newItemGroup.lastSubItemIdx >= newItemGroup.subItemCount)
                             break;
 
+                        size = 0;
                         int availableSubItems = newItemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
                         int count = newItemGroup.nestedConstrainCount - (availableSubItems % newItemGroup.nestedConstrainCount);
                         for (int i = 0; i < count; i++)
@@ -3294,10 +2264,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 /* Virtually add subItems at end */
                 else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
                 {
-                    size = 0;
                     if (currItemGroup.lastSubItemIdx >= currItemGroup.subItemCount)
                         break;
 
+                    size = 0;
                     int availableSubItems = currItemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
                     int count = currItemGroup.nestedConstrainCount - (availableSubItems % currItemGroup.nestedConstrainCount);
                     for (int i = 0; i < count; i++)
@@ -3314,42 +2284,17 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 /* Virtually add items at end */
                 else
                 {
-                    size = 0;
-
                     if (currItemGroup.lastItemIdx >= currItemGroup.itemCount)
                         break;
 
-                    ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-                    ///* Virtually add item to the new item group at end */
-                    //int availableItems = currItemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
-                    //int count = layoutConstrainCount - (availableItems % layoutConstrainCount);
-                    //for (int i = 0; i < count; i++)
-                    //{
-                    //    //lastItemIdx++;
-                    //    //firstItemIdx++;
-                    //    currItemGroup.lastItemIdx++;
-                    //    currItemGroup.firstItemIdx++;
-                    //    size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
-
-                    //    if (currItemGroup.lastItemIdx >= currItemGroup.itemCount)
-                    //        break;
-                    //}
-
-
-
-                    //lastItemIdx++;
-                    //firstItemIdx++;
                     currItemGroup.lastItemIdx++;
                     currItemGroup.firstItemIdx++;
+                    size = 0;
                     size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true), size);
-
-
-
-
                     deltaSize += size;
                 }
             }
-
+            
             deltaSize = 0f;
 
             /* Used for testing, can be deleted */
@@ -3370,143 +2315,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             scrollContentRect.anchoredPosition -= GetVector2(offsetSize);
             scrollContentBounds.center -= GetVector3(offsetSize + (contentSize + deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
-            //isChanged = true;
 
             /* Used for testing, can be deleted */
-            var temp4 = scrollViewRect.anchoredPosition;
-            var temp5 = scrollViewBounds;
             PrintAllIGInformation("Special case 1, After the whole process finish");
         }
-
-
-        //// TO DO: original version
-        ///* special case 2: handling move several page downward in one frame */
-        //if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemIdx > firstItemIdx)
-        //{
-        //    float currentSize = scrollContentBounds.size.y;
-        //    float elementSize = (currentSize - itemSpacing * (currentLines - 1)) / currentLines;
-        //    AddToItemDespawnList(true, lastItemIdx - firstItemIdx);
-        //    //ReturnToTempPool(false, itemTypeEnd - itemTypeStart);
-
-        //    lastItemIdx = firstItemIdx;
-
-        //    int offsetCount = Mathf.FloorToInt((scrollViewBounds.min.y - scrollContentBounds.max.y) / (elementSize + itemSpacing));         /* Calculate the number of lines for the gap between scrollViewBounds and scrollContentBounds */
-        //    if (itemCount >= 0 && firstItemIdx - offsetCount * layoutConstrainCount < 0)
-        //    {
-        //        offsetCount = Mathf.FloorToInt((float)(firstItemIdx) / layoutConstrainCount);                                               /* If the potential items in the gap is more than the actual items we can have, recalculate based on actual item number */
-        //    }
-        //    firstItemIdx -= offsetCount * layoutConstrainCount;
-        //    if (itemCount >= 0)
-        //    {
-        //        firstItemIdx = Mathf.Max(firstItemIdx, 0);
-        //    }
-        //    lastItemIdx = firstItemIdx;
-
-        //    float offset = offsetCount * (elementSize + itemSpacing);
-        //    scrollContentRect.anchoredPosition += new Vector2(0, offset + (reverseDirection ? currentSize : 0));
-        //    scrollContentBounds.center += new Vector3(0, offset + currentSize / 2, 0);
-        //    scrollContentBounds.size = Vector3.zero;
-        //    isChanged = true;
-        //}
-
-
-        //// TO DO: Slow version, Stable
-        ///* special case 2: handling move several page downward in one frame */
-        //currItemGroup = itemGroupList[firstItemGroupIdx];
-
-        //if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemGroupIdx > firstItemGroupIdx)
-        //{
-        //    float contentSize = GetAbsDimension(scrollContentBounds.size);
-        //    float offsetSize = GetAbsDimension(scrollViewBounds.min) - GetAbsDimension(scrollContentBounds.max);
-        //    float deltaSize = 0f;
-        //    float size = 0f;
-
-        //    while (deltaSize < offsetSize)
-        //    {
-        //        bool addSuccess = false;
-
-        //        if ((currItemGroup.firstItemIdx <= 0 &&
-        //             currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-        //            (currItemGroup.firstItemIdx <= 0 &&
-        //             currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-        //             currItemGroup.firstSubItemIdx <= 0))
-        //        {
-        //            Debug.LogFormat("Before Add Item Group, head Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-        //            addSuccess = AddItemGroupAtStart(out size, ScrollContent);
-        //            deltaSize += size;
-        //            currItemGroup = itemGroupList[firstItemGroupIdx];
-        //        }
-        //        else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx >= currItemGroup.nestedConstrainCount)
-        //        {
-        //            addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-        //            deltaSize += size;
-        //        }
-        //        else
-        //        {
-        //            addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-        //            deltaSize += size;
-        //        }
-
-        //        if (!addSuccess)
-        //            break;
-        //    }
-
-        //    ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
-        //    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-
-        //    while (true)
-        //    {
-        //        bool removeSuccess = false;
-
-        //        if ((headItemGroup.lastItemIdx != headItemGroup.nestedItemIdx + 1 &&            /* Case 1: remove all displaying items and subitems from tail to head */
-        //             headItemGroup.lastItemIdx == headItemGroup.firstItemIdx) ||
-        //            (headItemGroup.lastItemIdx == headItemGroup.nestedItemIdx + 1 &&            /* Case 2: if the head item in head item group is a nested item, and the head subItem is in the mid of the item, */
-        //             headItemGroup.lastSubItemIdx == headItemGroup.firstSubItemIdx))            /*         the item itself will recorded as displaying as the item is actually not fully removed (contains undisplay subItems) */
-        //            break;
-
-        //        if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-        //            currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
-        //        {
-        //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-        //            removeSuccess = RemoveItemGroupAtEnd();
-        //            currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
-        //        }
-        //        else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-        //                 currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-        //                 currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
-        //        {
-        //            removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-        //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-        //            removeSuccess = RemoveItemGroupAtEnd();
-        //            currItemGroup = itemGroupList[itemGroupCount > 0 ? itemGroupCount - 1 : 0];
-        //        }
-        //        else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
-        //        {
-        //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-        //        }
-        //        else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
-        //        {
-        //            if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-        //            {
-        //                removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-        //                removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-        //            }
-        //            else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
-        //            {
-        //                removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-        //            }
-        //        }
-
-        //        if (!removeSuccess)
-        //            break;
-        //    }
-
-        //    scrollContentRect.anchoredPosition += GetVector2(offsetSize + (reverseDirection ? contentSize : 0));
-        //    scrollContentBounds.center += GetVector3(offsetSize + contentSize / 2);
-        //    scrollContentBounds.size = Vector3.zero;
-        //    isChanged = true;
-        //}
-
 
 
         // TO DO: Fast version, unstable 
@@ -3534,63 +2346,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (headItemGroup.displayItemCount == 0 && headItemGroup.displaySubItemCount == 0)      /* Remove all displaying items and subitems from tail to head */
                     break;
 
-                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-                //if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-                //    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
-                //{
-                //    PrintAllIGInformation("Before case 1", currItemGroup);
-
-                //    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                //    removeSuccess = RemoveItemGroupAtEnd();
-                //    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-                //}
-                //else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                //         currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                //         currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
-                //{
-                //    PrintAllIGInformation("Before case 2", currItemGroup);
-
-                //    removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                //    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                //    removeSuccess = RemoveItemGroupAtEnd();
-                //    currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-                //}
-                //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
-                //{
-                //    PrintAllIGInformation("Before case 3", currItemGroup);
-
-                //    removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                //}
-                //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
-                //{
-                //    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                //    {
-                //        PrintAllIGInformation("Before case 4", currItemGroup);
-
-                //        removeSuccess = RemoveSubItemAtEnd(out _, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                //        removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                //    }
-                //    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
-                //    {
-                //        PrintAllIGInformation("Before case 5", currItemGroup);
-
-                //        removeSuccess = RemoveSubItemAtEnd(out _, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-
-                //        if (currItemGroup.displaySubItemCount == 0)
-                //        {
-                //            PrintAllIGInformation("Before case 6", currItemGroup);
-
-                //            removeSuccess = RemoveItemAtEnd(out _, true, currItemGroup);
-                //        }
-                //    }
-                //}
-
-
-
                 removeSuccess = RemoveElementAtEnd(out _, currItemGroup);
                 currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-
-
 
                 if (!removeSuccess)
                     break;
@@ -3610,48 +2367,24 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if ((currItemGroup.firstItemIdx <= 0 && currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
                     (currItemGroup.firstItemIdx <= 0 && currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.firstSubItemIdx <= 0))
                 {
-                    size = 0;
                     if (firstItemGroupIdx <= 0)
                         break;
-
-                    ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-                    //var newItemGroup = itemGroupList[firstItemGroupIdx - 1];
-                    //if (newItemGroup.itemCount <= 0 || newItemGroup.firstItemIdx < layoutConstrainCount)
-                    //    break;
-
-                    ///* Virtually add items to the new item group at start */
-                    //for (int i = 0; i < layoutConstrainCount; i++)
-                    //{
-                    //    //firstItemIdx--;
-                    //    //lastItemIdx--;
-                    //    newItemGroup.firstItemIdx--;
-                    //    newItemGroup.lastItemIdx--;
-                    //    size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
-                    //}
-
-
 
                     var newItemGroup = itemGroupList[firstItemGroupIdx - 1];
                     if (newItemGroup.itemCount <= 0 || newItemGroup.firstItemIdx <= 0)
                         break;
 
                     /* Virtually add items to the new item group at start */
-                    //firstItemIdx--;
-                    //lastItemIdx--;
                     newItemGroup.firstItemIdx--;
                     newItemGroup.lastItemIdx--;
+                    size = 0;
                     size = Mathf.Max(GetItemSize(newItemGroup.itemList[newItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
-
-
-
-
                     deltaSize += size;
 
                     /* If the new item we just add is a nested item, we need to virtually add subItem at start as well */
                     if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount > 0 && newItemGroup.firstSubItemIdx > 0)
                     {
                         size = 0;
-
                         int count = newItemGroup.nestedConstrainCount;
                         if (newItemGroup.firstSubItemIdx > newItemGroup.subItemCount - (newItemGroup.subItemCount % newItemGroup.nestedConstrainCount))
                             count = newItemGroup.subItemCount % newItemGroup.nestedConstrainCount;
@@ -3676,7 +2409,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
                 {
                     size = 0;
-
                     int count = currItemGroup.nestedConstrainCount;
                     if (currItemGroup.firstSubItemIdx > currItemGroup.subItemCount - (currItemGroup.subItemCount % currItemGroup.nestedConstrainCount))
                         count = currItemGroup.subItemCount % currItemGroup.nestedConstrainCount;
@@ -3695,34 +2427,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 /* Virtually add item at start */
                 else
                 {
-                    ///* Scroll Content is force cannot use GridLayoutGroup, which mean LayoutConstraintCount is always 1 */
-                    //size = 0;
-                    //if (currItemGroup.firstItemIdx < layoutConstrainCount)
-                    //    break;
-
-                    //for (int i = 0; i < layoutConstrainCount; i++)
-                    //{
-                    //    //firstItemIdx--;
-                    //    //lastItemIdx--;
-                    //    currItemGroup.firstItemIdx--;
-                    //    currItemGroup.lastItemIdx--;
-                    //    size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
-                    //}
-
-
-                    size = 0;
                     if (currItemGroup.firstItemIdx <= 0)
                         break;
 
-                    //firstItemIdx--;
-                    //lastItemIdx--;
                     currItemGroup.firstItemIdx--;
                     currItemGroup.lastItemIdx--;
+                    size = 0;
                     size = Mathf.Max(GetItemSize(currItemGroup.itemList[currItemGroup.firstItemIdx].GetComponent<RectTransform>(), true), size);
-
-
-
-
                     deltaSize += size;
                 }
             }
@@ -3744,19 +2455,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 deltaSize += size;
             }
 
-
             scrollContentRect.anchoredPosition += GetVector2(offsetSize + GetAbsDimension(scrollViewBounds.size) + (reverseDirection ? contentSize : 0));
             scrollContentBounds.center += GetVector3(offsetSize + GetAbsDimension(scrollViewBounds.size) + (contentSize - deltaSize) / 2);
             scrollContentBounds.size = GetVector3(deltaSize);
 
-            //isChanged = true;
-
             /* Used for testing, can be deleted */
             PrintAllIGInformation("After the whole process finish");
         }
-
-
-
 
 
         float itemSize = 0f;
@@ -3764,168 +2469,48 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
         /* Need to add new items at the bottom of the scrollContent */
         currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-
         if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
         {
             float size = 0f;
             float deltaSize = 0f;
 
-            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-            //if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
-            //     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) || 
-            //    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
-            //     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-            //     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
-            //{
-            //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
-            //    AddItemGroupAtEnd(out size, scrollContent);
-            //    deltaSize += size;
-            //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-            //}
-            //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)      /* Case 3: the current item is a nested item, and the nested item does not reach to the end */
-            //{
-            //    AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-            //    deltaSize += size;
-            //}
-            //else
-            //{
-            //    AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
-            //    deltaSize += size;
-            //}
-
-
             AddElementAtEnd(out size, currItemGroup);
             deltaSize += size;
             currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
 
-
-
             while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
             {
-                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-                //bool addSuccess = false;
-
-                //if ((currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 1: all items are displayed AND the last item is not a nested item */
-                //     currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1) ||
-                //    (currItemGroup.lastItemIdx == currItemGroup.itemCount &&                /* Case 2: all items are displayed AND the last item is a nested item AND all subitems are displayed */
-                //     currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                //     currItemGroup.lastSubItemIdx == currItemGroup.subItemCount))
-                //{
-                //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}, Display Item Group Count: {1}", currItemGroup.nestedItemIdx, displayItemGroupCount);
-                //    addSuccess = AddItemGroupAtEnd(out size, scrollContent);
-                //    deltaSize += size;
-                //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-                //}
-                //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.lastSubItemIdx < currItemGroup.subItemCount)
-                //{
-                //    addSuccess = AddSubItemAtEnd(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                //    deltaSize += size;
-                //}
-                //else
-                //{
-                //    addSuccess = AddItemAtEnd(out size, true, currItemGroup.itemList[currItemGroup.lastItemIdx], scrollContent, currItemGroup);
-                //    deltaSize += size;
-                //}
-
-
-
                 bool addSuccess = AddElementAtEnd(out size, currItemGroup);
                 deltaSize += size;
                 currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
 
-
                 if (!addSuccess)
                     break;
             }
-
-            //if (deltaSize > 0)
-            //    isChanged = true;
         }
-
 
         /* Case 2: the top of the first item is much lower than the top of the viewPort */
         /* Need to add new items at the top of the scrollContent */
         currItemGroup = displayItemGroupList[0];
-
         if (scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding)
         {
             float size = 0f;
             float deltaSize = 0f;
 
-            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-            //if ((currItemGroup.firstItemIdx <= 0 &&                                 /* Case 1: already reach the top of the item group AND the frist item is not a nested item */
-            //     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-            //    (currItemGroup.firstItemIdx <= 0 &&                                 /* Case 2: already reach the top of the item group AND the frist item is a nested item */
-            //     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-            //     currItemGroup.firstSubItemIdx <= 0))
-            //{
-            //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-            //    AddItemGroupAtStart(out size, ScrollContent);
-            //    deltaSize += size;
-            //    currItemGroup = displayItemGroupList[0];
-            //}
-            //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
-            //{
-            //    AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-            //    deltaSize += size;
-            //}
-            //else
-            //{
-            //    AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-            //    deltaSize += size;
-            //}
-
-
-
             AddElementAtStart(out size, currItemGroup);
             deltaSize += size;
             currItemGroup = displayItemGroupList[0];
 
-
-
             while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
             {
-                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-                //bool addSuccess = false;
-
-                //if ((currItemGroup.firstItemIdx <= 0 &&
-                //     currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx) ||
-                //    (currItemGroup.firstItemIdx <= 0 &&
-                //     currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                //     currItemGroup.firstSubItemIdx <= 0))
-                //{
-                //    Debug.LogFormat("Before Add Item Group, Current Item Group Nest Idx: {0}", currItemGroup.nestedItemIdx);
-                //    addSuccess = AddItemGroupAtStart(out size, ScrollContent);
-                //    deltaSize += size;
-                //    currItemGroup = displayItemGroupList[0];
-                //}
-                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.subItemCount > 0 && currItemGroup.firstSubItemIdx > 0)
-                //{
-                //    addSuccess = AddSubItemAtStart(out size, true, currItemGroup.subItem, currItemGroup.displayItemList[0], currItemGroup);
-                //    deltaSize += size;
-                //}
-                //else
-                //{
-                //    addSuccess = AddItemAtStart(out size, true, currItemGroup.itemList[currItemGroup.firstItemIdx - 1], scrollContent, currItemGroup);
-                //    deltaSize += size;
-                //}
-
-
-
                 bool addSuccess = AddElementAtStart(out size, currItemGroup);
                 deltaSize += size;
                 currItemGroup = displayItemGroupList[0];
 
-
-
                 if (!addSuccess)
                     break;
             }
-
-            //if (deltaSize > 0)
-            //    isChanged = true;
         }
-
 
         /* Case 3: the top of the last item is much lower than the bottom of the viewPort */
         /* Need to remove old items at the bottom of the scrollContent */
@@ -3941,121 +2526,20 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             float size = 0f;
             float deltaSize = 0f;
 
-            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-            //if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-            //    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
-            //{
-            //    /* Need to consider upward item spacing between another item group */
-            //    RemoveItemAtEnd(out size, true, currItemGroup);
-            //    deltaSize += size;
-            //    RemoveItemGroupAtEnd();
-            //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-            //}
-            //else if(currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-            //        currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-            //        currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
-            //{
-            //    RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-            //    deltaSize += size;
-            //    RemoveItemAtEnd(out size, true, currItemGroup);
-            //    deltaSize += size;
-            //    RemoveItemGroupAtEnd();
-            //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-            //}
-            //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
-            //{
-            //    RemoveItemAtEnd(out size, true, currItemGroup);
-            //    deltaSize += size;
-            //}
-            //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
-            //{
-            //    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-            //    {
-            //        RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-            //        deltaSize += size;
-            //        RemoveItemAtEnd(out size, true, currItemGroup);
-            //        deltaSize += size;
-            //    }
-            //    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
-            //    {
-            //        RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-            //        deltaSize += size;
-            //    }
-            //}
-
-
             RemoveElementAtEnd(out size, currItemGroup);
             deltaSize += size;
             currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
 
-
-
             while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize)
             {
-                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-                //bool removeSuccess = false;
-
-                //if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
-                //    currItemGroup.lastItemIdx != currItemGroup.nestedItemIdx + 1)
-                //{
-                //    /* Need to consider upward item spacing between another item group */
-                //    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                //    deltaSize += size;
-                //    removeSuccess = RemoveItemGroupAtEnd();
-                //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-                //}
-                //else if (currItemGroup.lastItemIdx <= layoutConstrainCount &&                            /* Case 2: the last item is the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                //        currItemGroup.lastItemIdx == currItemGroup.nestedItemIdx + 1 &&
-                //        currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)
-                //{
-                //    removeSuccess = RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                //    deltaSize += size;
-                //    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                //    deltaSize += size;
-                //    removeSuccess = RemoveItemGroupAtEnd();
-                //    currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-                //}
-                //else if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
-                //{
-                //    removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                //    deltaSize += size;
-                //}
-                //else if (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx)
-                //{
-                //    if (currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
-                //    {
-                //        removeSuccess = RemoveSubItemAtEnd(out size, false, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                //        deltaSize += size;
-                //        removeSuccess = RemoveItemAtEnd(out size, true, currItemGroup);
-                //        deltaSize += size;
-                //    }
-                //    else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
-                //    {
-                //        removeSuccess = RemoveSubItemAtEnd(out size, true, currItemGroup.displayItemList[currItemGroup.displayItemCount - 1], currItemGroup);
-                //        deltaSize += size;
-                //    }
-                //}
-
-
-
                 bool removeSuccess = RemoveElementAtEnd(out size, currItemGroup);
                 deltaSize += size;
                 currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
 
-
-
                 if (!removeSuccess)
                     break;
             }
-
-            //if (deltaSize > 0)
-            //{
-            //    isChanged = true;
-            //    ClearItemDespawnList(currItemGroup);
-            //    ClearSubItemDespawnList(currItemGroup);
-            //}
         }
-
 
         /* Case 4: the bottom of the first item is much higher than the top of the viewPort */
         /* Need to remove old items at the top of the scrollContent */
@@ -4071,128 +2555,20 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             float size = 0f;
             float deltaSize = 0f;
 
-            ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-            //if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-            //    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
-            //{
-            //    /* Need to consider upward item spacing between another item group */
-            //    RemoveItemAtStart(out size, true, currItemGroup);
-            //    deltaSize += size;
-            //    RemoveItemGroupAtStart();
-            //    currItemGroup = displayItemGroupList[0];
-            //}
-            //else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-            //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-            //         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
-            //{
-            //    RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-            //    deltaSize += size;
-            //    RemoveItemAtStart(out size, true, currItemGroup);
-            //    deltaSize += size;
-            //    RemoveItemGroupAtStart();
-            //    currItemGroup = displayItemGroupList[0];
-            //}
-            //else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
-            //{
-            //    RemoveItemAtStart(out size, true, currItemGroup);
-            //    deltaSize += size;
-            //}
-            //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
-            //{
-            //    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
-            //    {
-            //        RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-            //        deltaSize += size;
-            //        RemoveItemAtStart(out size, true, currItemGroup);
-            //        deltaSize += size;
-            //    }
-            //    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
-            //    {
-            //        RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
-            //        deltaSize += size;
-            //    }
-            //}
-
-
-
-
-
             RemoveElementAtStart(out size, currItemGroup);
             deltaSize += size;
             currItemGroup = displayItemGroupList[0];
 
-
-
             while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize)
             {
-                ///* Original logic, since it is too ugly to read, it is now encapsulated as a function */
-                //bool removeSuccess = false;
-
-                //if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&         /* Case 1: the first item is the last item and is not a nested item */
-                //    currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)
-                //{
-                //    /* Need to consider upward item spacing between another item group */
-                //    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                //    deltaSize += size;
-                //    removeSuccess = RemoveItemGroupAtStart();
-                //    currItemGroup = displayItemGroupList[0];
-                //}
-                //else if (currItemGroup.firstItemIdx >= currItemGroup.itemCount - layoutConstrainCount &&    /* Case 2: the first item is the last item and is a nested item; the first subitem is the last subitem */
-                //         currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx &&
-                //         currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)
-                //{
-                //    removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-                //    deltaSize += size;
-                //    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                //    deltaSize += size;
-                //    removeSuccess = RemoveItemGroupAtStart();
-                //    currItemGroup = displayItemGroupList[0];
-                //}
-                //else if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
-                //{
-                //    removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                //    deltaSize += size;
-                //}
-                //else if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
-                //{
-                //    if (currItemGroup.firstSubItemIdx >= currItemGroup.subItemCount - currItemGroup.nestedConstrainCount)   /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
-                //    {
-                //        removeSuccess = RemoveSubItemAtStart(out size, false, currItemGroup.displayItemList[0], currItemGroup);
-                //        deltaSize += size;
-                //        removeSuccess = RemoveItemAtStart(out size, true, currItemGroup);
-                //        deltaSize += size;
-                //    }
-                //    else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
-                //    {
-                //        removeSuccess = RemoveSubItemAtStart(out size, true, currItemGroup.displayItemList[0], currItemGroup);
-                //        deltaSize += size;
-                //    }
-                //}
-
-
-
-
                 bool removeSuccess = RemoveElementAtStart(out size, currItemGroup);
                 deltaSize += size;
                 currItemGroup = displayItemGroupList[0];
 
-
                 if (!removeSuccess)
                     break;
             }
-
-            //if (deltaSize > 0)
-            //{
-            //    isChanged = true;
-            //    ClearItemDespawnList(currItemGroup);
-            //    ClearSubItemDespawnList(currItemGroup);
-            //}
         }
-
-        //if (isChanged)
-        //{
-        //    ClearItemDespawnList();
-        //}
     }
 
     #endregion
@@ -4205,28 +2581,22 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
         CalculateContentBounds();
 
-        // Don't do this in Rebuild
-        //if (Application.isPlaying && updateItems && UpdateItems(m_ViewBounds, m_ContentBounds))
+        /* Don't do this in Rebuild */
         if (Application.isPlaying && updateItems)
         {
-            //Debug.LogFormat("On update bounds, initial scrollContent bounds center: {0}, bounds size: {1}, bound max: {2}", scrollContentBounds.center, scrollContentBounds.size, scrollContentBounds.max);
-
-            //UpdateScrollItems();
             UpdateScrollItemGroups();
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
             CalculateContentBounds();
-
-            //Debug.LogFormat("On update bounds, new scrollContent bounds center: {0}, bounds size: {1}, bound max: {2}", scrollContentBounds.center, scrollContentBounds.size, scrollContentBounds.max);
         }
 
-        // Make sure scrollContent bounds are at least as large as view by adding padding if not.
-        // One might think at first that if the scrollContent is smaller than the view, scrolling should be allowed.
-        // However, that's not how scroll views normally work.
-        // Scrolling is *only* possible when scrollContent is *larger* than view.
-        // We use the pivot of the scrollContent rect to decide in which directions the scrollContent bounds should be expanded.
-        // E.g. if pivot is at top, bounds are expanded downwards.
-        // This also works nicely when ContentSizeFitter is used on the scrollContent.
+        /* Make sure scrollContent bounds are at least as large as view by adding padding if not. */
+        /* One might think at first that if the scrollContent is smaller than the view, scrolling should be allowed. */
+        /* However, that's not how scroll views normally work. */
+        /* Scrolling is *only* possible when scrollContent is *larger* than view. */
+        /* We use the pivot of the scrollContent rect to decide in which directions the scrollContent bounds should be expanded. */
+        /* E.g. if pivot is at top, bounds are expanded downwards. */
+        /* This also works nicely when ContentSizeFitter is used on the scrollContent. */
         Vector3 contentSize = scrollContentBounds.size;
         Vector3 contentPos = scrollContentBounds.center;
         Vector3 excess = scrollViewBounds.size - contentSize;
@@ -4267,34 +2637,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         scrollContentBounds.Encapsulate(vMax);
     }
 
-    //private Bounds CalculateItemBounds(int index)
-    //{
-    //    if (scrollContentRect == null)
-    //        return new Bounds();
-
-    //    var vMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-    //    var vMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
-    //    var corners = new Vector3[4];
-    //    var localMatrix = scrollViewRect.worldToLocalMatrix;
-    //    int offset = index - firstItemIdx;
-    //    if (offset < 0 || offset >= displayItemList.Count)
-    //        return new Bounds();
-    //    var rt = displayItemList[offset].GetComponent<RectTransform>();
-    //    if (rt == null)
-    //        return new Bounds();
-    //    rt.GetWorldCorners(corners);
-    //    for (int j = 0; j < 4; j++)
-    //    {
-    //        Vector3 v = localMatrix.MultiplyPoint3x4(corners[j]);
-    //        vMin = Vector3.Min(v, vMin);
-    //        vMax = Vector3.Max(v, vMax);
-    //    }
-
-    //    var bounds = new Bounds(vMin, Vector3.zero);
-    //    bounds.Encapsulate(vMax);
-    //    return bounds;
-    //}
-
     #endregion
 
     #endregion
@@ -4326,8 +2668,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         cursorStartPos = Vector2.zero;
         contentStartPos = scrollContentRect.anchoredPosition;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(scrollViewRect, eventData.position, eventData.pressEventCamera, out cursorStartPos);
-
-        //Debug.LogFormat("On BeginDrag, cursor start Pos: {0}", cursorStartPos);
     }
 
     public virtual void OnDrag(PointerEventData eventData)
@@ -4359,8 +2699,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
 
         SetContentAnchoredPosition(position);
-
-        //Debug.LogFormat("On Drag, cursor Pos: {0}", cursorEndPos);
     }
 
     public virtual void OnEndDrag(PointerEventData eventData)
