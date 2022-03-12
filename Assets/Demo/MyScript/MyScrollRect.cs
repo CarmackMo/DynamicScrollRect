@@ -783,7 +783,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return false;
         }
 
-        // TO DO: the logic here is not safety, if the subitems cannot fully fill the nested item
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
             /* Add the item to the waiting list of despawn */
@@ -846,7 +845,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return false;
         }
 
-        // TO DO: the logic here is not safety, if subitems cannot fully fill the nested item
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
             /* Remove the gameObject of the item from the scrollContent */
@@ -2163,7 +2161,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public void UpdateScrollItemGroups()
     {
         ///* Used for testing, can be deleted */
-        //PrintAllIGInformation();
+        //PrintAllIGInformation();+
 
         scrollBoundMax = scrollViewBounds.max;
         scrollBoundMin = scrollViewBounds.min;
@@ -2176,7 +2174,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         //// TO DO: Fast version, unstable
         /* special case 1: handling move several page upward in one frame */
-        if (scrollViewBounds.max.y < scrollContentBounds.min.y && lastItemGroupIdx > firstItemGroupIdx)
+        if ((vertical && !horizontal && scrollViewBounds.max.y < scrollContentBounds.min.y) ||
+            (!vertical && horizontal && scrollViewBounds.min.x > scrollContentBounds.max.x) && 
+            lastItemGroupIdx > firstItemGroupIdx)
+        //if (scrollViewBounds.max.y < scrollContentBounds.min.y && lastItemGroupIdx > firstItemGroupIdx)
         {
             float contentSize = GetAbsDimension(scrollContentBounds.size);
             float offsetSize = GetAbsDimension(scrollContentBounds.min) - GetAbsDimension(scrollViewBounds.max);
@@ -2323,7 +2324,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         // TO DO: Fast version, unstable 
         /* special case 2: handling move several page downward in one frame */
-        if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemGroupIdx > firstItemGroupIdx)
+        if ((vertical && !horizontal && scrollViewBounds.min.y > scrollContentBounds.max.y) || 
+            (!vertical && horizontal && scrollViewBounds.max.x < scrollContentBounds.min.x) && 
+            lastItemGroupIdx > firstItemGroupIdx)
+        //if (scrollViewBounds.min.y > scrollContentBounds.max.y && lastItemGroupIdx > firstItemGroupIdx)
         {
             float contentSize = GetAbsDimension(scrollContentBounds.size);
             float offsetSize = GetAbsDimension(scrollViewBounds.min) - GetAbsDimension(scrollContentBounds.max);
@@ -2469,7 +2473,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
         /* Need to add new items at the bottom of the scrollContent */
         currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
-        if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
+        if ((vertical && !horizontal && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding) ||
+            (!vertical && horizontal && scrollViewBounds.max.x > scrollContentBounds.max.x - contentRightPadding))
+        //if (scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding)
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2478,7 +2484,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             deltaSize += size;
             currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
 
-            while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
+            while ((vertical && !horizontal && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize) ||
+                   (!vertical && horizontal && scrollViewBounds.max.x > scrollContentBounds.max.x - contentRightPadding + deltaSize) &&
+                   size > 0)
+            //while (size > 0 && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize)
             {
                 bool addSuccess = AddElementAtEnd(out size, currItemGroup);
                 deltaSize += size;
@@ -2492,7 +2501,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         /* Case 2: the top of the first item is much lower than the top of the viewPort */
         /* Need to add new items at the top of the scrollContent */
         currItemGroup = displayItemGroupList[0];
-        if (scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding)
+        if ((vertical && !horizontal && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding) || 
+            (!vertical && horizontal && scrollViewBounds.min.x < scrollContentBounds.min.x + contentLeftPadding))
+        //if (scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding)
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2501,7 +2512,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             deltaSize += size;
             currItemGroup = displayItemGroupList[0];
 
-            while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
+            while ((vertical && !horizontal && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize) ||
+                   (!vertical && horizontal && scrollViewBounds.min.x < scrollContentBounds.min.x + contentLeftPadding - deltaSize) &&
+                   size > 0)
+            //while (size > 0 && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize)
             {
                 bool addSuccess = AddElementAtStart(out size, currItemGroup);
                 deltaSize += size;
@@ -2521,7 +2535,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         else
             itemSize = GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
 
-        if (scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding)
+        if ((vertical && !horizontal && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding) ||
+            (!vertical && horizontal && scrollViewBounds.max.x < scrollContentBounds.max.x - itemSize - contentRightPadding))
+        //if (scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding)
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2530,7 +2546,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             deltaSize += size;
             currItemGroup = displayItemGroupList[displayItemGroupCount > 0 ? displayItemGroupCount - 1 : 0];
 
-            while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize)
+            while ((vertical && !horizontal && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize) ||
+                   (!vertical && horizontal && scrollViewBounds.max.x < scrollContentBounds.max.x - itemSize - contentRightPadding - deltaSize) &&
+                   size > 0)
+            //while (size > 0 && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize)
             {
                 bool removeSuccess = RemoveElementAtEnd(out size, currItemGroup);
                 deltaSize += size;
@@ -2550,7 +2569,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         else
             itemSize = GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
 
-        if (scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding)
+        if ((vertical && !horizontal && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding) ||
+            (!vertical && horizontal && scrollViewBounds.min.x > scrollContentBounds.min.x + itemSize + contentLeftPadding))
+        //if (scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding)
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2559,7 +2580,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             deltaSize += size;
             currItemGroup = displayItemGroupList[0];
 
-            while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize)
+            while ((vertical && !horizontal && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize) ||
+                   (!vertical && horizontal && scrollViewBounds.min.x > scrollContentBounds.min.x + itemSize + contentLeftPadding + deltaSize) &&
+                   size > 0)
+            //while (size > 0 && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize)
             {
                 bool removeSuccess = RemoveElementAtStart(out size, currItemGroup);
                 deltaSize += size;
