@@ -241,7 +241,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     protected override void Start()
     {
-        RefillItemGroup(out _, itemGroupList[0]);
+        //RefillItemGroup(out _, itemGroupList[0]);
+        RefillScrollContent();
     }
 
     protected virtual void LateUpdate()
@@ -383,8 +384,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             contentStartPos += offset;
         }
 
-        ///* Used for testing, can be deleted */
-        //PrintAllIGInformation("AddItemAtStart", itemGroup);
+        /* Used for testing, can be deleted */
+        PrintAllIGInformation("AddItemAtStart", itemGroup);
 
         return true;
     }
@@ -426,7 +427,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
 
         /* Used for testing, can be deleted */
-        //PrintAllIGInformation("AddItemAtEnd", itemGroup);
+        PrintAllIGInformation("AddItemAtEnd", itemGroup);
 
         return true;
     }
@@ -475,7 +476,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
 
         /* Used for testing, can be deleted */
-        //PrintAllIGInformation("AddSubItemAtStart", itemGroup);
+        PrintAllIGInformation("AddSubItemAtStart", itemGroup);
 
         return true;
     }
@@ -516,7 +517,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
 
         /* Used for testing, can be deleted */
-        //PrintAllIGInformation("AddSubItemAtEnd", itemGroup);
+        PrintAllIGInformation("AddSubItemAtEnd", itemGroup);
 
         return true;
     }
@@ -542,7 +543,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             firstItemGroupIdx--;
 
             /* Used for testing, can be deleted */
-            //PrintAllIGInformation("AddItemGroupAtStart", newItemGroup);
+            PrintAllIGInformation("AddItemGroupAtStart", newItemGroup);
 
             return true;
         }
@@ -570,7 +571,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             lastItemGroupIdx++;
 
             /* Used for testing, can be deleted */
-            //PrintAllIGInformation("AddItemGroupAtEnd", newItemGroup);
+            PrintAllIGInformation("AddItemGroupAtEnd", newItemGroup);
 
             return true;
         }
@@ -1393,6 +1394,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return new Vector3(-value, 0, 0);
     }
 
+    protected virtual Vector3 GetAbsVector3(float value)
+    {
+        if (vertical && !horizontal)
+            return new Vector3(0, value, 0);
+        else
+            return new Vector3(value, 0, 0);
+    }
+
     protected virtual float GetDimension(Vector2 vector)
     {
         if (vertical && !horizontal)
@@ -1850,20 +1859,20 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
         for (int i = 0; i < firstItemGroupIdx; i++)
         {
-            offset += GetItemGroupSize(itemGroupList[i]);
+            offset -= GetItemGroupSize(itemGroupList[i]);
         }
 
         /* Notice that head item group might not fully dispaly its items */
         for (int j = 0; j < headItemGroup.firstItemIdx; j++)
         {
             if (j != headItemGroup.nestedItemIdx)
-                offset += GetItemSize(headItemGroup.itemList[j].GetComponent<RectTransform>(), true);
+                offset -= GetItemSize(headItemGroup.itemList[j].GetComponent<RectTransform>(), true);
             else
             {
                 int hiddenSubItemLines = Mathf.CeilToInt((float)headItemGroup.subItemCount / (float)headItemGroup.nestedConstrainCount);
                 hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
-                offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
-                offset += (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>());
+                offset -= hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
+                offset -= (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>());
             }
         }
 
@@ -1872,7 +1881,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             int hiddenSubItemLines = Mathf.CeilToInt((float)(headItemGroup.firstSubItemIdx) / (float)headItemGroup.nestedConstrainCount);
             hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
-            offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+            offset -= hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
         }
     }
 
@@ -1993,6 +2002,78 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
 
     #region scrollitem相关
+
+    // TO DO: debug the "RefillItemGroup" logic
+    public void RefillScrollContent(int itemGroupBeginIdx = 0, float contentOffset = 0f)
+    {
+        float size = 0f;
+        float sizeFilled = 0f;
+        float sizeToFill = GetAbsDimension(scrollViewRect.rect.size) + Mathf.Abs(contentOffset);
+
+        if (!Application.isPlaying)
+            return;
+
+        /* Remove all existing on-display element of the scroll, from tail to head. */
+        /* After remove, the head pointer and tail pointer of item groups, items, and subItems should equal to each other respectively */
+        ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
+        ItemGroupConfig currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
+        while (true)
+        {
+            bool removeSuccess = false;
+
+            if (headItemGroup.displayItemCount == 0 && headItemGroup.displaySubItemCount == 0)      /* Remove all displaying items and subitems from tail to head */
+                break;
+
+            removeSuccess = RemoveElementAtEnd(out _, currItemGroup);
+            currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
+
+            if (!removeSuccess)
+                break;
+        }
+
+        firstItemGroupIdx = itemGroupBeginIdx;
+        lastItemGroupIdx = itemGroupBeginIdx;
+        AddItemGroupAtEnd(out sizeFilled, scrollContent);
+
+        currItemGroup = itemGroupList[firstItemGroupIdx];
+        while (sizeFilled < sizeToFill)
+        {
+            bool addSuccess = AddElementAtEnd(out size, currItemGroup);
+            sizeFilled += size;
+            currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
+
+            if (!addSuccess)
+                break;
+        }
+
+        /* refill from start in case not full yet */
+        currItemGroup = itemGroupList[firstItemGroupIdx];
+        while (sizeFilled < sizeToFill)
+        {
+            bool addSuccess = AddElementAtStart(out size, currItemGroup);
+            sizeFilled += size;
+            currItemGroup = itemGroupList[firstItemGroupIdx < itemGroupCount ? firstItemGroupIdx : firstItemGroupIdx - 1];
+
+            if (!addSuccess)
+                break;
+        }
+
+        Vector2 pos = scrollContentRect.anchoredPosition;
+        if (vertical)
+            pos.y = -contentOffset;
+        else
+            pos.x = contentOffset;
+        scrollContentRect.anchoredPosition = pos;
+        contentStartPos = pos;
+
+        /* force build bounds here so scrollbar can access newest bounds */
+        LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+        CalculateContentBounds();
+        UpdateScrollbars(Vector2.zero);
+        StopMovement();
+        UpdatePrevData();             /* 该函数的用途暂时不明 */
+    }
+
 
     public void RefillItemGroup(out float sizeFilled, ItemGroupConfig itemGroup, int startItem = 0, bool fillViewRect = false, float contentOffset = 0)
     {
@@ -2315,7 +2396,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
             scrollContentRect.anchoredPosition -= GetVector2(offsetSize);
             scrollContentBounds.center -= GetVector3(offsetSize + (contentSize + deltaSize) / 2);
-            scrollContentBounds.size = GetVector3(deltaSize);
+            scrollContentBounds.size = GetAbsVector3(deltaSize);
 
             /* Used for testing, can be deleted */
             PrintAllIGInformation("Special case 1, After the whole process finish");
@@ -2461,7 +2542,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
             scrollContentRect.anchoredPosition += GetVector2(offsetSize + GetAbsDimension(scrollViewBounds.size) + (reverseDirection ? contentSize : 0));
             scrollContentBounds.center += GetVector3(offsetSize + GetAbsDimension(scrollViewBounds.size) + (contentSize - deltaSize) / 2);
-            scrollContentBounds.size = GetVector3(deltaSize);
+            scrollContentBounds.size = GetAbsVector3(deltaSize);
+
 
             /* Used for testing, can be deleted */
             PrintAllIGInformation("After the whole process finish");
@@ -2890,15 +2972,18 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             switch (itemGroup.nestedItemIdx)
             {
                 case 3: IGIdx = 0; break;
-                case 0: IGIdx = 1; break;
-                case 2: IGIdx = 2; break;
+                case 1: IGIdx = 1; break;
+                case 0: IGIdx = 2; break;
+                case 2: IGIdx = 3; break;
                 default: IGIdx = 0; break;
             }
 
             if (operatIG != null && operatIG.nestedItemIdx == 3)
                 operatIGIdx = 0;
-            else if (operatIG != null && operatIG.nestedItemIdx == 0)
+            else if (operatIG != null && operatIG.nestedItemIdx == 1)
                 operatIGIdx = 1;
+            else if (operatIG != null && operatIG.nestedItemIdx == 0)
+                operatIGIdx = 2;
             else if (operatIG != null && operatIG.nestedItemIdx == 2)
                 operatIGIdx = 2;
 
