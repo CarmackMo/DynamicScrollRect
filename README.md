@@ -1,82 +1,45 @@
-# Loop Scroll Rect
-
-## v1.06
-
-These scripts help make your ScrollRect `Reusable`, because it will only build cells when needed. If you have a large number of cells in a scroll rect, you absolutely need it! It will save a lot of time loading and draw call, along with memory in use, while still working smoothly.
-
-中文说明请看[这里](http://qiankanglai.me/2015/08/15/LoopScrollRect/)。
-
-## Demo
-
-Demo for Loop Scroll Rect. Each cell knows its own index, and it is able to modify its content/size/color easily.
-
-Also ScrollBar is supported now! It supports both vertical & horizontal directions, back and forth.
-
-![Demo1](Images/demo1.gif)
-
-![Demo2](Images/demo2.gif)
-
-Demo without mask. As you can see, the cells are only instantiated when needed and recycled.
-
-![Demo3](Images/demo3.gif)
-
-**New**: Scroll to Index
-
-![ScrollToIndex](Images/ScrollToIndex.gif)
+# Dynamic Scroll Rect
 
 ## Introduction
 
-The original idea comes from @ivomarel's [InfinityScroll](https://github.com/ivomarel/InfinityScroll). After serveral refactorisations, I almost rewrite all the codes:
-- Avoid using `sizeDelta` directly since it doesn't always mean size
-- Support GridLayout
-- Avoid blocking when dragging back
-- Take advantage of pool rather than instantiate/destroy every time
-- Improve some other details for performance
-- Supports reverse direction
-- **Supports ScrollBar** (this doesn't work in Infinite mode, and may behavior strange for cells with different size)
+In many scenarios, there may exists a large numbers of elements in the `ScrollRect` (e.g. equipment inventory of a RPG game). Original `ScrollRect` implemented by Untiy builds all elements during gameplay, which costs a lot of time instantiating and drawing as well as memory for the elements that doesn't within the view port. 
 
-My scripts copies `ScrollRect` from [UGUI](https://bitbucket.org/Unity-Technologies/ui) rather than inherit `ScrollRect` like InfinityScroll. I need to modify some private variants to make dragging smooth. All my codes is wrapped with comments like `==========LoopScrollRect==========`, making maintaining a little easier.
+@ivomarel's [InfinityScroll](https://github.com/ivomarel/InfinityScroll) and @qiankanglai's [LoopScrollRect](https://github.com/qiankanglai/LoopScrollRect) provide a solution by making the `ScrollRect` reusable. The basic idea of the solution is only build the elements that will be shown in the view port and dynamically add or remove elements during gameplay. In both *InfinityScroll* and *LoopScrollRect*, all elements are organized within the `LayoutGroup` that attached to the ScrollRect. 
+
+In some cases however, elements might need to attach `LayoutGroup` as well. Take equipment inventory as an example, assume player has range weapon, melee weapon, and magic weapon. To put all weapons classified accroding to their type in the same scroll view, the best way is to put four elements into the `LayoutGroup` of ScrollRect, they will acts as the container of each type of weapons. Then put weapons into the `LayoutGroup` of their corresponding container elements. In this case, there are two layers of `LayoutGroup` structure.
+
+**DynamicScrollRect** supports double layers of `LayoutGroup` structure with all the advantages of single layer `LayoutGroup` structure remains. If you need to construct a scroll view to display plenty of elements and need to classify these elements at the same time, this is absolutely what you need!
+
+
+## Features
+
+The original idea comes from @ivomarel's [InfinityScroll](https://github.com/ivomarel/InfinityScroll). After serveral refactorisations, I almost rewrite all the codes:
+
+- Support double layers of `LayoutGroup` structure. 
+- DynamicScrollRect manages elements in unit of `itemGroup`. User can flexablely arrange the layout of elements by configuring itemGroup.
+- First layer only support `VerticalLayoutGroup` or `HorizontalLayoutGroup`, `GridLayoutGroup` is supported by second layer.
+- Using object pool to improve performance when adding or removing elements.
+- Support `ScrollBar`
+- Support reloacation scroll view to specific itemGroup
+- Reverse direction is not supported yet
+
 
 ## Example
 
-Please refer to `InitOnStart.cs` for quick example implmentation. It's high recommended for implmentating your own cache pool.
+Assume you are constructing a scroll view to display range weapon, melee weapon, magic weapon. For each weapon type, you want to have an element as a title to indicate the type of weapon for contents below and an element as a container to store single weapon elements.
 
-### Infinite Version
+In this case you will need three itemGroups, corresponding to three types of weapon. After that you need to provide two prefabs to the itemList of each itemGroup. One for the title element another for the containter element. Noted that the element container needs to attach `LayoutGroup` component. You also need to provide a prefab to the subItem of each itemGroup. It will act as the element that represent single weapon.
 
-If you need scroll infinitely, you can simply set `totalCount` to a negative number.
+The arrangment of the layout of DynamicScrollRect is base on the order of itemGroups. You can alter the arrangement by change itemGroup order.
+
+For more infromation and quick example implmentation, please refer to the DynamicScrolRect objects in the demo scene. 
 
 ### Quick Jump
 
-I've implemented a simple version with `Coroutine`. You can use the following API:
+User can jump to the starting location of specific itemGroup by calling:
 
-    public void SrollToCell(int index, float speed)
+        public void ScrollToItemGroup(int itemGroupIdx)
 
-Here is a corner case unsolved yet: You can't jump to the last cells which cannot be pulled to the start.
+Jumping to specific item or subItem in a itemGroup is still under development.
 
-## Example: Loop Vertical Scroll Rect
 
-These steps may be confusing, so you can just open the demo scene and copy & paste :D
-
-You can also remove EasyObjPool and use your pool instead.
-
-- Prepare cell prefabs
-    - The cell needs `Layout Element` attached and preferred width/height
-    - You should add a script receiving message `void ScrollCellIndex (int idx) `
-
-![ScrollCell](Images/ScrollCell.png)
-
-- Right click in Hierarchy and click **UI/Loop Horizontal Scroll Rect** or **UI/Loop Vertical Scroll Rect**. It is the same for these two in the Component Menu.
-    - Init in Start: call Refill cells automatically when Start
-    - Prefab Pool: the EasyObjPool gameObject
-    - Prefab Pool Name: the corresponding pool in step 1
-    - Total Count: How many cells are available (index: 0 ~ TotalCount-1)
-    - Threshold: How many additional pixels of content should be prepared before start or after end?
-    - ReverseDirection: If you want scroll from bottom or right, you should toggle this
-    - Clear Cells: remove existing cells and keep uninitialized
-    - Refill Cells: initialize and fill up cells
-
-![LoopVerticalScrollRect](Images/LoopVerticalScrollRect.png)
-
-If you need scroll from top or left, setting content's pivot to 1 and disable ReverseDirection. Otherwise, you should set 0 to pivot and enable ReverseDirection (I have made `VerticalScroll_Reverse` in the demo scene as reference).
-
-I highly suggests you trying these parameters by hand. More details can be found in the demo scene.
