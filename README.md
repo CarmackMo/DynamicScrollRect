@@ -34,7 +34,7 @@ The arrangment of the layout of DynamicScrollRect is base on the order of itemGr
 
 For more infromation and quick example implmentation, please refer to the DynamicScrolRect objects in the demo scene. 
 
-### Quick Jump
+## Quick Jump
 
 User can jump to the starting location of specific itemGroup by calling:
 
