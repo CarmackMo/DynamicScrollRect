@@ -380,6 +380,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Add the gameObject of the item to the scrollContent */
             GameObject newItem = SpawnItem(prefab);
             newItem.transform.parent = parent.transform;
+            newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsFirstSibling();
 
             /* Update the information for the items that are currently displaying */
@@ -387,9 +388,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             itemGroup.displayItemList.Add(newItem);
             itemGroup.displayItemList.Reverse();
             itemGroup.firstItemIdx--;
-
-            size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-            //size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
+            size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
 
             OnItemSpawnEvent(newItem);
 
@@ -430,18 +429,17 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Add the gameObject of the item to the scrollContent */
             GameObject newItem = SpawnItem(prefab);
             newItem.transform.parent = parent.transform;
+            newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsLastSibling();
 
             /* Update the information for the items that are currently displaying */
-
             OnItemSpawnEvent(newItem);
 
             newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
             newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
             itemGroup.displayItemList.Add(newItem);
             itemGroup.lastItemIdx++;
-            size = Mathf.Max(GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing), size);
-            //size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
+            size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
         }
 
         if (reverseDirection)
@@ -475,6 +473,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Add the gameObject of the item to the parent */
             GameObject newItem = SpawnItem(prefab);
             newItem.transform.parent = parent.transform;
+            newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsFirstSibling();
 
             /* Update the information for the items that are currently displaying */
@@ -482,18 +481,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             itemGroup.displaySubItemList.Add(newItem);
             itemGroup.displaySubItemList.Reverse();
             itemGroup.firstSubItemIdx--;
-            size = Mathf.Max(GetSubItemSize(newItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing), size);
-
-
 
             OnSubItemSpawnEvent(newItem);
 
 
-            //newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstSubItemIdx.ToString());
-            //newItem.gameObject.name = itemGroup.firstSubItemIdx.ToString();
+            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstSubItemIdx.ToString());
+            newItem.gameObject.name = itemGroup.firstSubItemIdx.ToString();
         }
-
-        //size = GetSubItemSize(prefab.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
+        size = GetSubItemSize(prefab.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
 
         /* Update the parameter of the scrollContent UI */
         if (!reverseDirection)
@@ -520,13 +515,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
             return false;
 
-
-
-        //int count = itemGroup.nestedConstrainCount - (itemGroup.lastSubItemIdx % itemGroup.nestedConstrainCount);
-        //if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount - (itemGroup.subItemCount % itemGroup.nestedConstrainCount))
-        //    count = itemGroup.subItemCount - itemGroup.lastSubItemIdx;
-
-
         int availableSubItems = itemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
         int count = itemGroup.nestedConstrainCount - (availableSubItems % itemGroup.nestedConstrainCount);
         for (int i = 0; i < count; i++)
@@ -534,23 +522,21 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Add the gameObject of the item to the scrollContent */
             GameObject newItem = SpawnItem(prefab);
             newItem.transform.parent = parent.transform;
+            newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsLastSibling();
 
             /* Update the information for the items that are currently displaying */
-
             OnSubItemSpawnEvent(newItem);
 
             //newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastSubItemIdx.ToString());
             //newItem.gameObject.name = itemGroup.lastSubItemIdx.ToString();
             itemGroup.displaySubItemList.Add(newItem);
             itemGroup.lastSubItemIdx++;
-            size = Mathf.Max(GetSubItemSize(newItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing), size);
 
             if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
                 break;
         }
-
-        //size = GetSubItemSize(prefab.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
+        size = GetSubItemSize(prefab.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
 
         if (reverseDirection)
         {
@@ -721,8 +707,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             AddToItemDespawnList(true);
 
             /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            //size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
+            size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.firstItemIdx++;
         }
 
@@ -783,8 +768,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             AddToItemDespawnList(false);
 
             /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing), size);
-            //size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
+            size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.lastItemIdx--;
         }
 
@@ -838,15 +822,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             AddToSubItemDespawnList(true);
 
             /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetSubItemSize(oldItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing), size);
             availableSubItems--;
             itemGroup.firstSubItemIdx++;
 
             if (availableSubItems == 0)
                 break;
         }
-
-        //size = GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
+        size = GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
 
         /* Update the parameter of the scrollContent UI */
         if (!reverseDirection)
@@ -902,15 +884,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             AddToSubItemDespawnList(false);
 
             /* Update the information for the items that are currently displaying */
-            size = Mathf.Max(GetSubItemSize(oldItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing), size);
             availableSubItems--;
             itemGroup.lastSubItemIdx--;
 
             if (itemGroup.lastSubItemIdx % itemGroup.nestedConstrainCount == 0 || availableSubItems == 0)
                 break;
         }
-
-        //size = GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
+        size = GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
 
         /* Update the parameter of the scrollContent UI */
         if (reverseDirection)
