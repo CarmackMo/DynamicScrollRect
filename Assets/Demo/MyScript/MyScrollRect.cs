@@ -2798,6 +2798,24 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         itemGroupList.Add(newItemGroup);
     }
 
+    public void AlterItemGroup(int itemGroupIdx, int? nestItemIdx, int? subItemCount, List<GameObject> itemList = null, GameObject subItem = null)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (nestItemIdx.HasValue)
+            itemGroup.nestedItemIdx = nestItemIdx.Value;
+        if (subItemCount.HasValue)
+            itemGroup.subItemCount = subItemCount.Value;
+        if (itemList != null)
+            itemGroup.itemList = itemList;
+        if (subItem != null)
+            itemGroup.subItem = subItem;
+    }
+
+    public void RemoveItemGroup(int itemGroupIdx)
+    {
+        itemGroupList.RemoveAt(itemGroupIdx);
+    }
+
     public void AddItemAt(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
     {
         if (this.IsActive())
