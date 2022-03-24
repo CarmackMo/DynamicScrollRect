@@ -15,6 +15,9 @@ public class DelegateTester : MonoBehaviour
     public MyScrollRect scrollRect;
 
 
+    public int itemGroupIdx;
+    public int itemIdx;
+
     private void Awake()
     {
         scrollRect.OnSubItemSpawnEvent += SetSubItemText;
@@ -22,9 +25,11 @@ public class DelegateTester : MonoBehaviour
         List<GameObject> list1 = new List<GameObject>();
         list1.Add(item1);
         list1.Add(item2);
+        list1.Add(item1);
         list1.Add(item3);
+        list1.Add(item2);
         list1.Add(item6);
-        scrollRect.AddItemGroup(3, 21, list1, item1);
+        scrollRect.AddItemGroup(5, 21, list1, item1);
 
         List<GameObject> list2 = new List<GameObject>();
         list2.Add(item1);
@@ -40,7 +45,13 @@ public class DelegateTester : MonoBehaviour
         //scrollRect.gameObject.SetActive(true);
     }
 
-    void Update() { }
+    private void OnGUI()
+    {
+        if (GUI.Button(new Rect(0, 0, 100, 50), "item remove test"))
+        {
+            scrollRect.RemoveItemDynamic(itemGroupIdx, itemIdx);
+        }
+    }
 
     private void SetSubItemText(GameObject subItem)
     {

@@ -1803,16 +1803,16 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     }
 
 
-    /* Testing, can be deleted */
-    public int scrollIdx = 0;
-    private void OnGUI()
-    {
-        if (GUILayout.Button("Scroll Test"))
-        {
-            ScrollToItemGroup(scrollIdx);
-        }
+    ///* Testing, can be deleted */
+    //public int scrollIdx = 0;
+    //private void OnGUI()
+    //{
+    //    if (GUILayout.Button("Scroll Test"))
+    //    {
+    //        ScrollToItemGroup(scrollIdx);
+    //    }
         
-    }
+    //}
 
 
     #endregion
@@ -2816,14 +2816,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         itemGroupList.RemoveAt(itemGroupIdx);
     }
 
-    public void AddItemAt(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
+    public void AddItemStatic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
     {
-        if (this.IsActive())
-        {
-            Debug.LogAssertion("DynamicScrollRect: Cannot add item when scroll rect is displaying!");
-            return;
-        }
-
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
 
         if (itemIdx != itemGroup.nestedItemIdx)
@@ -2837,26 +2831,79 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
     }
 
-    public void RemoveItemAt(int itemGroupIdx, int itemIdx, int nestItemIdx = 0)
-    {
-        if (this.IsActive())
-        {
-            Debug.LogAssertion("DynamicScrollRect: Cannot remove item when scroll rect is displaying!");
-            return;
-        }
 
+    public void AddItemDynamic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
+    {
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
 
-        if (itemIdx != itemGroup.nestedItemIdx)
+        if (itemGroupIdx < firstItemGroupIdx ||
+            (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
         {
-            itemGroup.itemList.RemoveAt(itemIdx);
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
+            itemGroup.firstItemIdx++;
+            itemGroup.lastItemIdx++;
         }
-        else
+        else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
+                 (itemGroupIdx == lastItemGroupIdx && itemIdx < itemGroup.lastItemIdx) ||
+                 (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx))
         {
-            itemGroup.itemList.RemoveAt(itemIdx);
-            itemGroup.nestedItemIdx = nestItemIdx;
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
+            GameObject newItem = SpawnItem(itemPrefab);
+            newItem.transform.parent = scrollContentRect;
         }
     }
+
+
+
+    public void RemoveItemStatic(int itemGroupIdx, int itemIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+
+        if (itemIdx < itemGroup.nestedItemIdx)
+        {
+            itemGroup.itemList.RemoveAt(itemIdx);
+            itemGroup.nestedItemIdx--;
+        }
+        else if (itemIdx > itemGroup.nestedItemIdx)
+            itemGroup.itemList.RemoveAt(itemIdx);
+        else
+            Debug.LogError("DynamicScrollRect: Cannot directly remove a nested item!");
+    }
+
+    public void RemoveItemDynamic(int itemGroupIdx, int itemIdx, int nestItemIdx = 0)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemGroupIdx < 0 || itemGroupIdx > itemGroupCount || itemIdx < 0 || itemIdx > itemGroup.itemCount)
+            return;
+
+        if (itemGroupIdx < firstItemGroupIdx ||
+            (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
+        {
+            RemoveItemStatic(itemGroupIdx, itemIdx);
+            itemGroup.firstItemIdx--;
+            itemGroup.lastItemIdx--;
+        }
+        else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
+                 (itemGroupIdx == lastItemGroupIdx && itemIdx < itemGroup.lastItemIdx) ||
+                 (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx))
+        {
+            RemoveItemStatic(itemGroupIdx, itemIdx);
+            GameObject item = itemGroup.displayItemList[itemIdx - itemGroup.firstItemIdx];
+            itemGroup.displayItemList.RemoveAt(itemIdx - itemGroup.firstItemIdx);
+            DespawnItem(item);
+            itemGroup.lastItemIdx--;
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            UpdateBounds(true);
+        }
+        else if (itemGroupIdx > lastItemGroupIdx ||
+                (itemGroupIdx == lastItemGroupIdx && itemIdx >= itemGroup.lastItemIdx))
+        {
+            RemoveItemStatic(itemGroupIdx, itemIdx);
+        }
+    }
+
 
     public void OnSubItemSpawn(GameObject subItem) { }
 

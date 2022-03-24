@@ -1839,7 +1839,6 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   itemCount: 60
-  scrollIdx: 1
 --- !u!114 &1154094259
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2849,7 +2848,6 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   itemCount: 60
-  scrollIdx: 1
 --- !u!114 &1575341641
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3223,6 +3221,8 @@ MonoBehaviour:
   item6: {fileID: 2004655463}
   item7: {fileID: 889825526}
   scrollRect: {fileID: 1154094258}
+  itemGroupIdx: 0
+  itemIdx: 1
 --- !u!4 &1747614054
 Transform:
   m_ObjectHideFlags: 0
@@ -3682,7 +3682,6 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   itemCount: 60
-  scrollIdx: 1
 --- !u!114 &1921117361
 MonoBehaviour:
   m_ObjectHideFlags: 0
