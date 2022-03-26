@@ -21,7 +21,10 @@ public class DelegateTester : MonoBehaviour
 
     private void Awake()
     {
-        scrollRect.OnSubItemSpawnEvent += SetSubItemText;
+        scrollRect.OnSpawnItemAtStartEvent += OnSpawnItemAtStart;
+        scrollRect.OnSpawnItemAtEndEvent += OnSpawnItemAtEnd;
+        scrollRect.OnSpawnSubItemAtStartEvent += OnSpawnSubItemAtStart;
+        scrollRect.OnSpawnSubItemAtEndEvent += OnSpawnSubItemAtEnd;
 
         List<GameObject> list1 = new List<GameObject>();
         list1.Add(item1);
@@ -33,11 +36,13 @@ public class DelegateTester : MonoBehaviour
         scrollRect.AddItemGroup(5, 25, list1, item1);
 
         List<GameObject> list2 = new List<GameObject>();
+        list2.Add(item2);
         list2.Add(item1);
         list2.Add(item7);
         list2.Add(item2);
         list2.Add(item3);
-        scrollRect.AddItemGroup(1, 7, list2, item1);
+        list2.Add(item1);
+        scrollRect.AddItemGroup(2, 7, list2, item1);
     }
 
     void Start() 
@@ -59,8 +64,28 @@ public class DelegateTester : MonoBehaviour
         }
     }
 
-    private void SetSubItemText(GameObject subItem)
+
+    private void OnSpawnItemAtStart(MyScrollRect.ItemGroupConfig itemGroup, GameObject item)
     {
-        subItem.GetComponent<MyItem>().SetText("???");
+        item.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.firstItemIdx}");
+        item.gameObject.name = $"Group{itemGroup.itemGroupIdx} Item{itemGroup.firstItemIdx}";
+    }
+
+    private void OnSpawnItemAtEnd(MyScrollRect.ItemGroupConfig itemGroup, GameObject item)
+    {
+        item.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.lastItemIdx - 1}");
+        item.gameObject.name = $"Group {itemGroup.itemGroupIdx} Item{itemGroup.lastItemIdx - 1}";
+    }
+
+    private void OnSpawnSubItemAtStart(MyScrollRect.ItemGroupConfig itemGroup, GameObject subItem)
+    {
+        subItem.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.nestedItemIdx}.{itemGroup.firstSubItemIdx}");
+        subItem.gameObject.name = $"Group {itemGroup.itemGroupIdx} SubItem{itemGroup.firstSubItemIdx}";
+    }
+
+    private void OnSpawnSubItemAtEnd(MyScrollRect.ItemGroupConfig itemGroup, GameObject subItem)
+    {
+        subItem.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.nestedItemIdx}.{itemGroup.lastSubItemIdx - 1}");
+        subItem.gameObject.name = $"Group {itemGroup.itemGroupIdx} SubItem{itemGroup.lastSubItemIdx - 1}";
     }
 }

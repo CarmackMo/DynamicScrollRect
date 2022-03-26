@@ -228,7 +228,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0.2, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -538,7 +538,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0.2, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -2291,7 +2291,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 250}
+  m_SizeDelta: {x: -627.2388, y: 250}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1354824194
 MonoBehaviour:
@@ -2618,7 +2618,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0.2, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -2758,7 +2758,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1575341639
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2801,7 +2801,8 @@ MonoBehaviour:
   scrollView: {fileID: 1575341638}
   scrollContent: {fileID: 1354824192}
   itemGroupList:
-  - nestedItemIdx: 3
+  - itemGroupIdx: -1
+    nestedItemIdx: 3
     subItemCount: 15
     itemList:
     - {fileID: 297131030}
@@ -2809,7 +2810,8 @@ MonoBehaviour:
     - {fileID: 1865640846}
     - {fileID: 2004655463}
     subItem: {fileID: 297131030}
-  - nestedItemIdx: 1
+  - itemGroupIdx: -1
+    nestedItemIdx: 1
     subItemCount: 10
     itemList:
     - {fileID: 297131030}
@@ -2817,12 +2819,14 @@ MonoBehaviour:
     - {fileID: 1817159088}
     - {fileID: 1865640846}
     subItem: {fileID: 297131030}
-  - nestedItemIdx: 0
+  - itemGroupIdx: -1
+    nestedItemIdx: 0
     subItemCount: 11
     itemList:
     - {fileID: 2004655463}
     subItem: {fileID: 297131030}
-  - nestedItemIdx: 2
+  - itemGroupIdx: -1
+    nestedItemIdx: 2
     subItemCount: 26
     itemList:
     - {fileID: 297131030}
@@ -3487,7 +3491,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0.2, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -3548,7 +3552,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1921117357
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3629,7 +3633,8 @@ MonoBehaviour:
   scrollView: {fileID: 1921117356}
   scrollContent: {fileID: 1209627759}
   itemGroupList:
-  - nestedItemIdx: 3
+  - itemGroupIdx: -1
+    nestedItemIdx: 3
     subItemCount: 51
     itemList:
     - {fileID: 297131030}
@@ -3637,7 +3642,8 @@ MonoBehaviour:
     - {fileID: 1865640846}
     - {fileID: 867609428}
     subItem: {fileID: 297131030}
-  - nestedItemIdx: 0
+  - itemGroupIdx: -1
+    nestedItemIdx: 0
     subItemCount: 10
     itemList:
     - {fileID: 968809842}
@@ -3645,12 +3651,14 @@ MonoBehaviour:
     - {fileID: 1817159088}
     - {fileID: 1865640846}
     subItem: {fileID: 297131030}
-  - nestedItemIdx: 0
+  - itemGroupIdx: -1
+    nestedItemIdx: 0
     subItemCount: 18
     itemList:
     - {fileID: 867609428}
     subItem: {fileID: 297131030}
-  - nestedItemIdx: 2
+  - itemGroupIdx: -1
+    nestedItemIdx: 2
     subItemCount: 70
     itemList:
     - {fileID: 297131030}

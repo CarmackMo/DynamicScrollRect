@@ -29,6 +29,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     [Serializable]
     public class ItemGroupConfig
     {
+        public int itemGroupIdx = -1;
         public int nestedItemIdx = -1;      /* value that smaller than 0 means there is no nested item in the item group */
         public int subItemCount = 0;
         private int constrainCount = int.MinValue;
@@ -246,9 +247,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         scrollContentRect = scrollContent.GetComponent<RectTransform>();
         rect = GetComponent<RectTransform>();
 
-        OnSubItemSpawnEvent += OnSubItemSpawn;
-        OnItemSpawnEvent += OnItemSpawn;
-
+        OnSpawnItemAtStartEvent += OnSpawnItemAtStart;
+        OnSpawnItemAtEndEvent += OnSpawnItemAtEnd;
+        OnSpawnSubItemAtStartEvent += OnSpawnSubItemAtStart;
+        OnSpawnSubItemAtEndEvent += OnSpawnSubItemAtEnd;
     }
 
     protected override void Start()
@@ -354,6 +356,15 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         base.OnDisable();
     }
 
+    protected override void OnDestroy()
+    {
+        OnSpawnItemAtStartEvent -= OnSpawnItemAtStart;
+        OnSpawnItemAtEndEvent -= OnSpawnItemAtEnd;
+        OnSpawnSubItemAtStartEvent -= OnSpawnSubItemAtStart;
+        OnSpawnSubItemAtEndEvent -= OnSpawnSubItemAtEnd;
+        base.OnDestroy();
+    }
+
     #endregion
 
 
@@ -382,17 +393,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsFirstSibling();
 
-            /* Update the information for the items that are currently displaying */
             itemGroup.displayItemList.Reverse();
             itemGroup.displayItemList.Add(newItem);
             itemGroup.displayItemList.Reverse();
             itemGroup.firstItemIdx--;
             size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
 
-            OnItemSpawnEvent(itemGroup, newItem);
-
-            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstItemIdx.ToString());
-            newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
+            OnSpawnItemAtStartEvent(itemGroup, newItem);
         }
 
         /* Update the parameter of the scrollContent UI */
@@ -431,14 +438,11 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsLastSibling();
 
-            /* Update the information for the items that are currently displaying */
-            OnItemSpawnEvent(newItem);
-
-            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
-            newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
             itemGroup.displayItemList.Add(newItem);
             itemGroup.lastItemIdx++;
             size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
+
+            OnSpawnItemAtEndEvent(itemGroup, newItem);
         }
 
         if (reverseDirection)
@@ -475,17 +479,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsFirstSibling();
 
-            /* Update the information for the items that are currently displaying */
             itemGroup.displaySubItemList.Reverse();
             itemGroup.displaySubItemList.Add(newItem);
             itemGroup.displaySubItemList.Reverse();
             itemGroup.firstSubItemIdx--;
 
-            OnSubItemSpawnEvent(newItem);
-
-
-            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstSubItemIdx.ToString());
-            newItem.gameObject.name = itemGroup.firstSubItemIdx.ToString();
+            OnSpawnSubItemAtStartEvent(itemGroup, newItem);
         }
         size = GetSubItemSize(prefab.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
 
@@ -524,13 +523,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             newItem.transform.localScale = parent.transform.localScale;
             newItem.transform.SetAsLastSibling();
 
-            /* Update the information for the items that are currently displaying */
-            OnSubItemSpawnEvent(newItem);
-
-            //newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastSubItemIdx.ToString());
-            //newItem.gameObject.name = itemGroup.lastSubItemIdx.ToString();
             itemGroup.displaySubItemList.Add(newItem);
             itemGroup.lastSubItemIdx++;
+
+            OnSpawnSubItemAtEndEvent(itemGroup, newItem);
 
             if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
                 break;
@@ -2785,16 +2781,20 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
 
     #region ItemGroup, Item, SubItem外部接口
-
-    public delegate void OnSubItemSpawnDelegate(ItemGroupConfig itemGroup, GameObject subItem);
-    public event OnSubItemSpawnDelegate OnSubItemSpawnEvent;
-    public delegate void OnItemSpawnDelegate(ItemGroupConfig itemGroup, GameObject item);
-    public event OnItemSpawnDelegate OnItemSpawnEvent;
+    public delegate void OnSpawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem);
+    public event OnSpawnItemAtStartDelegate OnSpawnItemAtStartEvent;
+    public delegate void OnSpawnItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject item);
+    public event OnSpawnItemAtEndDelegate OnSpawnItemAtEndEvent;
+    public delegate void OnSpawnSubItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem);
+    public event OnSpawnSubItemAtStartDelegate OnSpawnSubItemAtStartEvent;
+    public delegate void OnSpawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem);
+    public event OnSpawnSubItemAtEndDelegate OnSpawnSubItemAtEndEvent;
 
     public void AddItemGroup(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem)
     {
         ItemGroupConfig newItemGroup = new ItemGroupConfig(nestItemIdx, subItemCount, itemList, subItem);
         itemGroupList.Add(newItemGroup);
+        newItemGroup.itemGroupIdx = itemGroupList.IndexOf(newItemGroup);
     }
 
     public void AlterItemGroup(int itemGroupIdx, int? nestItemIdx, int? subItemCount, List<GameObject> itemList = null, GameObject subItem = null)
@@ -2922,7 +2922,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
 
 
-
+    /// <summary>
+    /// Applicable for removing subItem when not in gameplay
+    /// </summary>
     private void RemoveSubItemStatic (int itemGroupIdx)
     {
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
@@ -2932,8 +2934,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return;
     }
 
-
-
+    /// <summary>
+    /// Applicable for removing subItem during gameplay
+    /// </summary>
     public void RemoveSubItemDynamic(int itemGroupIdx, int subItemIdx)
     {
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
@@ -2974,7 +2977,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 GameObject parent = itemGroup.displayItemList[itemGroup.nestedItemIdx - itemGroup.firstItemIdx];
                 newSubItem.transform.parent =  parent.transform;
                 newSubItem.transform.localScale = parent.transform.localScale;
-                newSubItem.transform.SetAsFirstSibling();
+                newSubItem.transform.SetAsLastSibling();
 
                 itemGroup.displaySubItemList.RemoveAt(index);
                 itemGroup.displaySubItemList.Add(newSubItem);
@@ -2996,15 +2999,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     }
 
 
-
-
-
-
-
-
-    public void OnSubItemSpawn(ItemGroupConfig itemGroup, GameObject subItem) { }
-
-    public void OnItemSpawn(ItemGroupConfig itemGroup, GameObject item) { }
+    public void OnSpawnItemAtStart(ItemGroupConfig itemGroup, GameObject item) { }
+    public void OnSpawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item) { }
+    public void OnSpawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem) { }
+    public void OnSpawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem) { }
 
     #endregion
 
