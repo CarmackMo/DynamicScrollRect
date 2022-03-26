@@ -17,6 +17,7 @@ public class DelegateTester : MonoBehaviour
 
     public int itemGroupIdx;
     public int itemIdx;
+    public int subItemIdx;
 
     private void Awake()
     {
@@ -29,7 +30,7 @@ public class DelegateTester : MonoBehaviour
         list1.Add(item3);
         list1.Add(item2);
         list1.Add(item6);
-        scrollRect.AddItemGroup(5, 21, list1, item1);
+        scrollRect.AddItemGroup(5, 25, list1, item1);
 
         List<GameObject> list2 = new List<GameObject>();
         list2.Add(item1);
@@ -50,6 +51,11 @@ public class DelegateTester : MonoBehaviour
         if (GUI.Button(new Rect(0, 0, 100, 50), "item remove test"))
         {
             scrollRect.RemoveItemDynamic(itemGroupIdx, itemIdx);
+        }
+
+        if (GUI.Button(new Rect(0, 100, 100, 50), "subItem remove test"))
+        {
+            scrollRect.RemoveSubItemDynamic(itemGroupIdx, subItemIdx);
         }
     }
 

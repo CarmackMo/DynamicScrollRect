@@ -3223,6 +3223,7 @@ MonoBehaviour:
   scrollRect: {fileID: 1154094258}
   itemGroupIdx: 0
   itemIdx: 1
+  subItemIdx: 1
 --- !u!4 &1747614054
 Transform:
   m_ObjectHideFlags: 0

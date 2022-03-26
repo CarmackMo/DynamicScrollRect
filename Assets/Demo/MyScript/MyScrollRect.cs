@@ -58,7 +58,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             this.itemList = itemList;
             this.subItem = subItem;
             this.displayItemList = new List<GameObject>();
-            this.displaySubItemList = new List<GameObject>();
+            this.displaySubItemList = new List<GameObject>(); 
         }
     }
 
@@ -259,7 +259,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         SetScrollBar(SetVerticalNormalizedPosition, ref verticalScrollbar, ref verticalScrollbarRect);
         GetItemSpacing();
 
-        //RefillItemGroup(out _, itemGroupList[0]);
         RefillScrollContent();
     }
 
@@ -390,7 +389,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             itemGroup.firstItemIdx--;
             size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
 
-            OnItemSpawnEvent(newItem);
+            OnItemSpawnEvent(itemGroup, newItem);
 
             newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstItemIdx.ToString());
             newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
@@ -2787,9 +2786,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region ItemGroup, Item, SubItem外部接口
 
-    public delegate void OnSubItemSpawnDelegate(GameObject subItem);
+    public delegate void OnSubItemSpawnDelegate(ItemGroupConfig itemGroup, GameObject subItem);
     public event OnSubItemSpawnDelegate OnSubItemSpawnEvent;
-    public delegate void OnItemSpawnDelegate(GameObject item);
+    public delegate void OnItemSpawnDelegate(ItemGroupConfig itemGroup, GameObject item);
     public event OnItemSpawnDelegate OnItemSpawnEvent;
 
     public void AddItemGroup(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem)
@@ -2854,10 +2853,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     }
 
 
-
+    /// <summary>
+    /// Applicable for removing item when not in gameplay
+    /// </summary>
     public void RemoveItemStatic(int itemGroupIdx, int itemIdx)
     {
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemIdx < 0 || itemIdx >= itemGroup.itemCount)
+            return;
 
         if (itemIdx < itemGroup.nestedItemIdx)
         {
@@ -2867,31 +2870,42 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         else if (itemIdx > itemGroup.nestedItemIdx)
             itemGroup.itemList.RemoveAt(itemIdx);
         else
-            Debug.LogError("DynamicScrollRect: Cannot directly remove a nested item!");
+            Debug.LogError("DynamicScrollRect: RemoveItemStatic(): Cannot directly remove a nested item!");
     }
 
-    public void RemoveItemDynamic(int itemGroupIdx, int itemIdx, int nestItemIdx = 0)
+    /// <summary>
+    /// Applicable for removing item during gameplay
+    /// </summary>
+    public void RemoveItemDynamic(int itemGroupIdx, int itemIdx)
     {
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
-        if (itemGroupIdx < 0 || itemGroupIdx > itemGroupCount || itemIdx < 0 || itemIdx > itemGroup.itemCount)
+        if (itemIdx < 0 || itemIdx >= itemGroup.itemCount)
+        {
+            Debug.LogError("DynamicScrollRect: RemoveItemDynamic(): using invalid item index!"); 
             return;
+        }
+        if (itemIdx == itemGroup.nestedItemIdx)
+        {
+            Debug.LogError("DynamicScrollRect: RemoveItemDynamic(): Cannot directly remove a nested item!"); 
+            return;
+        }
 
         if (itemGroupIdx < firstItemGroupIdx ||
-            (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
+           (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
         {
-            RemoveItemStatic(itemGroupIdx, itemIdx);
             itemGroup.firstItemIdx--;
             itemGroup.lastItemIdx--;
+            RemoveItemStatic(itemGroupIdx, itemIdx);
         }
         else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
                  (itemGroupIdx == lastItemGroupIdx && itemIdx < itemGroup.lastItemIdx) ||
                  (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx))
         {
-            RemoveItemStatic(itemGroupIdx, itemIdx);
             GameObject item = itemGroup.displayItemList[itemIdx - itemGroup.firstItemIdx];
             itemGroup.displayItemList.RemoveAt(itemIdx - itemGroup.firstItemIdx);
-            DespawnItem(item);
             itemGroup.lastItemIdx--;
+            DespawnItem(item);
+            RemoveItemStatic(itemGroupIdx, itemIdx);
 
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
@@ -2905,9 +2919,92 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     }
 
 
-    public void OnSubItemSpawn(GameObject subItem) { }
 
-    public void OnItemSpawn(GameObject item) { }
+
+
+
+    private void RemoveSubItemStatic (int itemGroupIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemGroup.subItemCount > 0)
+            itemGroup.subItemCount--;
+        else
+            return;
+    }
+
+
+
+    public void RemoveSubItemDynamic(int itemGroupIdx, int subItemIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (subItemIdx < 0 || subItemIdx >= itemGroup.subItemCount)
+        {
+            Debug.LogError("DynamicScrollRect: RemoveSubItemDynamic(): using invalid subItem index!");
+            return;
+        }
+
+        /* Case 1: if all subItems are not displaying and they are before the displaying area */
+        if (itemGroup.firstSubItemIdx >= itemGroup.subItemCount)
+        {
+            itemGroup.firstSubItemIdx--;
+            itemGroup.lastSubItemIdx--;
+            RemoveSubItemStatic(itemGroupIdx);
+        }
+        /* Case 2: some subItems are displaying and the subItem we need to remove is before the last
+         *         displaying subItem (it might be displaying or not displaying) */
+        else if (itemGroup.firstSubItemIdx < itemGroup.subItemCount &&
+                 itemGroup.lastSubItemIdx > 0 &&
+                 itemGroup.lastSubItemIdx > subItemIdx)
+        {
+            /* Case 2.1: if the last displaying subItem is the last subItem of all */
+            if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
+            {
+                int index = subItemIdx - itemGroup.firstSubItemIdx > 0 ? subItemIdx - itemGroup.firstSubItemIdx : 0;
+                GameObject subItem = itemGroup.displaySubItemList[index];
+                itemGroup.displaySubItemList.RemoveAt(index);
+                itemGroup.lastSubItemIdx--;
+                DespawnItem(subItem);
+            }
+            /* Case 2.2: if there are subItems after the last displaying subItem (they are not displaying)  */
+            else
+            {
+                int index = subItemIdx - itemGroup.firstSubItemIdx > 0 ? subItemIdx - itemGroup.firstSubItemIdx : 0;
+                GameObject subItem = itemGroup.displaySubItemList[index];
+                GameObject newSubItem = SpawnItem(itemGroup.subItem);
+                GameObject parent = itemGroup.displayItemList[itemGroup.nestedItemIdx - itemGroup.firstItemIdx];
+                newSubItem.transform.parent =  parent.transform;
+                newSubItem.transform.localScale = parent.transform.localScale;
+                newSubItem.transform.SetAsFirstSibling();
+
+                itemGroup.displaySubItemList.RemoveAt(index);
+                itemGroup.displaySubItemList.Add(newSubItem);
+                DespawnItem(subItem);
+            }
+
+            RemoveSubItemStatic(itemGroupIdx);
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            UpdateBounds(true);
+        }
+        /* Case 3: some subItems are displaying and the subitem we need to remove is after the last
+         *         displaying subItem. Or all subItems are not displaying and they are after the 
+         *         displaying area */
+        else if (itemGroup.lastSubItemIdx <= subItemIdx)
+        {
+            RemoveSubItemStatic(itemGroupIdx);
+        }
+    }
+
+
+
+
+
+
+
+
+    public void OnSubItemSpawn(ItemGroupConfig itemGroup, GameObject subItem) { }
+
+    public void OnItemSpawn(ItemGroupConfig itemGroup, GameObject item) { }
 
     #endregion
 
