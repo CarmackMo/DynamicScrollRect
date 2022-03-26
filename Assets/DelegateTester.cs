@@ -33,7 +33,7 @@ public class DelegateTester : MonoBehaviour
         list1.Add(item3);
         list1.Add(item2);
         list1.Add(item6);
-        scrollRect.AddItemGroup(5, 25, list1, item1);
+        scrollRect.AddItemGroupStatic(5, 25, list1, item1);
 
         List<GameObject> list2 = new List<GameObject>();
         list2.Add(item2);
@@ -42,7 +42,7 @@ public class DelegateTester : MonoBehaviour
         list2.Add(item2);
         list2.Add(item3);
         list2.Add(item1);
-        scrollRect.AddItemGroup(2, 7, list2, item1);
+        scrollRect.AddItemGroupStatic(2, 7, list2, item1);
     }
 
     void Start() 
