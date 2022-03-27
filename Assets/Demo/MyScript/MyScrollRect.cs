@@ -237,6 +237,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     #endregion
 
 
+
     #region Monobehaviourœ‡πÿ
 
     protected override void Awake()
@@ -251,6 +252,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         OnSpawnItemAtEndEvent += OnSpawnItemAtEnd;
         OnSpawnSubItemAtStartEvent += OnSpawnSubItemAtStart;
         OnSpawnSubItemAtEndEvent += OnSpawnSubItemAtEnd;
+        OnAddItemDynamicEvent += OnAddItemDynamic;
         OnRemoveItemDynamicEvent += OnRemoveItemDynamic;
         OnRemoveSubItemDynamicEvent += OnRemoveSubItemDynamic;
     }
@@ -364,6 +366,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         OnSpawnItemAtEndEvent -= OnSpawnItemAtEnd;
         OnSpawnSubItemAtStartEvent -= OnSpawnSubItemAtStart;
         OnSpawnSubItemAtEndEvent -= OnSpawnSubItemAtEnd;
+        OnAddItemDynamicEvent -= OnAddItemDynamic;
         OnRemoveItemDynamicEvent -= OnRemoveItemDynamic;
         OnRemoveSubItemDynamicEvent -= OnRemoveSubItemDynamic;
         base.OnDestroy();
@@ -2797,6 +2800,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public event OnSpawnSubItemAtStartDelegate OnSpawnSubItemAtStartEvent;
     public delegate void OnSpawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
     public event OnSpawnSubItemAtEndDelegate OnSpawnSubItemAtEndEvent;
+    public delegate void OnAddItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnAddItemDynamicDelegate OnAddItemDynamicEvent;
     public delegate void OnRemoveItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item = null);
     public event OnRemoveItemDynamicDelegate OnRemoveItemDynamicEvent;
     public delegate void OnRemoveSubItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject newSubItem = null);
@@ -2827,42 +2832,66 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         itemGroupList.RemoveAt(itemGroupIdx);
     }
 
+    /// <summary>
+    /// Applicable for adding item when not in gameplay. Noted that adding nested item is not supported
+    /// </summary>
     public void AddItemStatic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
     {
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
 
-        if (itemIdx != itemGroup.nestedItemIdx)
-        {
-            itemGroup.itemList.Insert(itemIdx, itemPrefab);
-        }
-        else
+        if (itemIdx <= itemGroup.nestedItemIdx)
         {
             itemGroup.itemList.Insert(itemIdx, itemPrefab);
             itemGroup.nestedItemIdx++;
         }
+        else
+            itemGroup.itemList.Insert(itemIdx, itemPrefab);
     }
 
+    /// <summary>
+    /// Applicable for adding item during gameplay. Noted that adding nested item is not supported
+    /// </summary>
+    public void AddItemDynamic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemIdx < 0 || itemIdx > itemGroup.itemCount)
+        {
+            Debug.LogError("DynamicScrollRect: AddItemDynamic(): using invalid item index!");
+            return;
+        }
 
-    //public void AddItemDynamic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
-    //{
-    //    ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemGroupIdx < firstItemGroupIdx ||
+           (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
+        {
+            itemGroup.firstItemIdx++;
+            itemGroup.lastItemIdx++;
+            OnAddItemDynamicEvent(itemGroup);
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
+        }
+        else if (itemGroupIdx >= lastItemGroupIdx ||
+                (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx >= itemGroup.lastItemIdx))
+        {
+            OnAddItemDynamicEvent(itemGroup);
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
+        }
+        else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
+                 (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx < itemGroup.lastItemIdx) ||
+                 (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx - 1))
+        {
+            GameObject newItem = Instantiate(itemPrefab) as GameObject;
+            GameObject headItem = itemGroup.displayItemList[0];
+            GameObject parent = scrollContent;
+            newItem.transform.parent = parent.transform;
+            newItem.transform.localScale = parent.transform.localScale;
+            newItem.transform.SetSiblingIndex(headItem.transform.GetSiblingIndex() + itemIdx - itemGroup.firstItemIdx);
+            itemGroup.displayItemList.Insert(itemIdx - itemGroup.firstItemIdx, newItem);
+            itemGroup.lastItemIdx++;
 
-    //    if (itemGroupIdx < firstItemGroupIdx ||
-    //        (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
-    //    {
-    //        AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
-    //        itemGroup.firstItemIdx++;
-    //        itemGroup.lastItemIdx++;
-    //    }
-    //    else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
-    //             (itemGroupIdx == lastItemGroupIdx && itemIdx < itemGroup.lastItemIdx) ||
-    //             (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx))
-    //    {
-    //        AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
-    //        GameObject newItem = SpawnItem(itemPrefab);
-    //        newItem.transform.parent = scrollContentRect;
-    //    }
-    //}
+            OnAddItemDynamicEvent(itemGroup, newItem);
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
+        }
+    }
+
 
 
     /// <summary>
@@ -2915,8 +2944,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         /* Case 2: if the item we need to remove is within the displaying area, despawn the item object and 
          *         update tail pointer of displaying items */
         else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
-                 (itemGroupIdx == lastItemGroupIdx && itemIdx < itemGroup.lastItemIdx) ||
-                 (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx))
+                 (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx < itemGroup.lastItemIdx) ||
+                 (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx - 1))
         {
             GameObject item = itemGroup.displayItemList[itemIdx - itemGroup.firstItemIdx];
             itemGroup.displayItemList.RemoveAt(itemIdx - itemGroup.firstItemIdx);
@@ -2930,8 +2959,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             UpdateBounds(true);
         }
         /* Case 3: if the item we need to remove is after the displaying area */
-        else if (itemGroupIdx > lastItemGroupIdx ||
-                (itemGroupIdx == lastItemGroupIdx && itemIdx >= itemGroup.lastItemIdx))
+        else if (itemGroupIdx >= lastItemGroupIdx ||
+                (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx >= itemGroup.lastItemIdx))
         {
             OnRemoveItemDynamicEvent(itemGroup);
             RemoveItemStatic(itemGroupIdx, itemIdx);
@@ -2998,7 +3027,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 newSubItem.transform.parent =  parent.transform;
                 newSubItem.transform.localScale = parent.transform.localScale;
                 newSubItem.transform.SetAsLastSibling();
-
                 itemGroup.displaySubItemList.RemoveAt(index);
                 itemGroup.displaySubItemList.Add(newSubItem);
                 OnRemoveSubItemDynamicEvent(itemGroup, subItem, newSubItem);
@@ -3025,6 +3053,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public void OnSpawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item = null) { }
     public void OnSpawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem = null) { }
     public void OnSpawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnAddItemDynamic(ItemGroupConfig itemGroup, GameObject item = null) { }
     public void OnRemoveItemDynamic(ItemGroupConfig itemGroup, GameObject item = null) { }
     public void OnRemoveSubItemDynamic(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject newSubItem = null) { }
 
