@@ -65,25 +65,25 @@ public class DelegateTester : MonoBehaviour
     }
 
 
-    private void OnSpawnItemAtStart(MyScrollRect.ItemGroupConfig itemGroup, GameObject item)
+    private void OnSpawnItemAtStart(MyScrollRect.ItemGroupConfig itemGroup, GameObject item = null)
     {
         item.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.firstItemIdx}");
         item.gameObject.name = $"Group{itemGroup.itemGroupIdx} Item{itemGroup.firstItemIdx}";
     }
 
-    private void OnSpawnItemAtEnd(MyScrollRect.ItemGroupConfig itemGroup, GameObject item)
+    private void OnSpawnItemAtEnd(MyScrollRect.ItemGroupConfig itemGroup, GameObject item = null)
     {
         item.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.lastItemIdx - 1}");
         item.gameObject.name = $"Group {itemGroup.itemGroupIdx} Item{itemGroup.lastItemIdx - 1}";
     }
 
-    private void OnSpawnSubItemAtStart(MyScrollRect.ItemGroupConfig itemGroup, GameObject subItem)
+    private void OnSpawnSubItemAtStart(MyScrollRect.ItemGroupConfig itemGroup, GameObject subItem = null)
     {
         subItem.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.nestedItemIdx}.{itemGroup.firstSubItemIdx}");
         subItem.gameObject.name = $"Group {itemGroup.itemGroupIdx} SubItem{itemGroup.firstSubItemIdx}";
     }
 
-    private void OnSpawnSubItemAtEnd(MyScrollRect.ItemGroupConfig itemGroup, GameObject subItem)
+    private void OnSpawnSubItemAtEnd(MyScrollRect.ItemGroupConfig itemGroup, GameObject subItem = null)
     {
         subItem.GetComponent<MyItem>().SetText($"{itemGroup.itemGroupIdx}.{itemGroup.nestedItemIdx}.{itemGroup.lastSubItemIdx - 1}");
         subItem.gameObject.name = $"Group {itemGroup.itemGroupIdx} SubItem{itemGroup.lastSubItemIdx - 1}";

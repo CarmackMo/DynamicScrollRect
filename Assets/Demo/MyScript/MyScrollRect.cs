@@ -388,6 +388,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             itemGroup.displayItemList.Add(prefab);
             itemGroup.displayItemList.Reverse();
             itemGroup.firstItemIdx--;
+
+            OnSpawnItemAtStartEvent(itemGroup);
         }
         else
         {
@@ -433,6 +435,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.displayItemList.Add(prefab);
             itemGroup.lastItemIdx++;
+
+            OnSpawnItemAtEndEvent(itemGroup);
         }
         else
         {
@@ -2785,17 +2789,17 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
 
     #region ItemGroup, Item, SubItem外部接口
-    public delegate void OnSpawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem);
+    public delegate void OnSpawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject item = null);
     public event OnSpawnItemAtStartDelegate OnSpawnItemAtStartEvent;
-    public delegate void OnSpawnItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject item);
+    public delegate void OnSpawnItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject item = null);
     public event OnSpawnItemAtEndDelegate OnSpawnItemAtEndEvent;
-    public delegate void OnSpawnSubItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem);
+    public delegate void OnSpawnSubItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
     public event OnSpawnSubItemAtStartDelegate OnSpawnSubItemAtStartEvent;
-    public delegate void OnSpawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem);
+    public delegate void OnSpawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
     public event OnSpawnSubItemAtEndDelegate OnSpawnSubItemAtEndEvent;
-    public delegate void OnRemoveItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item);
+    public delegate void OnRemoveItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item = null);
     public event OnRemoveItemDynamicDelegate OnRemoveItemDynamicEvent;
-    public delegate void OnRemoveSubItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject subItem, GameObject newSubItem = null);
+    public delegate void OnRemoveSubItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject newSubItem = null);
     public event OnRemoveSubItemDynamicDelegate OnRemoveSubItemDynamicEvent;
 
     public void AddItemGroupStatic(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem)
@@ -2905,6 +2909,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.firstItemIdx--;
             itemGroup.lastItemIdx--;
+            OnRemoveItemDynamicEvent(itemGroup);
             RemoveItemStatic(itemGroupIdx, itemIdx);
         }
         /* Case 2: if the item we need to remove is within the displaying area, despawn the item object and 
@@ -2928,6 +2933,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         else if (itemGroupIdx > lastItemGroupIdx ||
                 (itemGroupIdx == lastItemGroupIdx && itemIdx >= itemGroup.lastItemIdx))
         {
+            OnRemoveItemDynamicEvent(itemGroup);
             RemoveItemStatic(itemGroupIdx, itemIdx);
         }
     }
@@ -2962,6 +2968,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.firstSubItemIdx--;
             itemGroup.lastSubItemIdx--;
+            OnRemoveSubItemDynamicEvent(itemGroup);
             RemoveSubItemStatic(itemGroupIdx);
         }
         /* Case 2: some subItems are displaying and the subItem we need to remove is before the last
@@ -3008,17 +3015,18 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
          *         displaying area */
         else if (itemGroup.lastSubItemIdx <= subItemIdx)
         {
+            OnRemoveSubItemDynamicEvent(itemGroup);
             RemoveSubItemStatic(itemGroupIdx);
         }
     }
 
 
-    public void OnSpawnItemAtStart(ItemGroupConfig itemGroup, GameObject item) { }
-    public void OnSpawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item) { }
-    public void OnSpawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem) { }
-    public void OnSpawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem) { }
-    public void OnRemoveItemDynamic(ItemGroupConfig itemGroup, GameObject item) { }
-    public void OnRemoveSubItemDynamic(ItemGroupConfig itemGroup, GameObject subItem, GameObject newSubItem) { }
+    public void OnSpawnItemAtStart(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnSpawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnSpawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnSpawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnRemoveItemDynamic(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnRemoveSubItemDynamic(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject newSubItem = null) { }
 
     #endregion
 
