@@ -49,11 +49,7 @@ public class DelegateTester : MonoBehaviour
 
     void Start() 
     {
-        /* test code */
-        List<int> temp = new List<int> { 1, 2, 3, };
-        temp.Insert(2, 4);
-        temp.Insert(4, 5);
-        var temp2 = 0;
+
     }
 
     private void OnGUI()
