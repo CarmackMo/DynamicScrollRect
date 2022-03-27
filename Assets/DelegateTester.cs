@@ -72,6 +72,11 @@ public class DelegateTester : MonoBehaviour
         {
             scrollRect.AddItemDynamic(itemGroupIdx, itemIdx, newItem);
         }
+
+        if (GUI.Button(new Rect(0, 150, 100, 50), "subItem add test"))
+        {
+            scrollRect.AddSubItemDynamic(itemGroupIdx, subItemIdx);
+        }
     }
 
 
