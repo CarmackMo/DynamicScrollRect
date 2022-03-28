@@ -259,6 +259,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         OnSpawnItemAtEndEvent += OnSpawnItemAtEnd;
         OnSpawnSubItemAtStartEvent += OnSpawnSubItemAtStart;
         OnSpawnSubItemAtEndEvent += OnSpawnSubItemAtEnd;
+        OnDespawnItemAtStartEvent += OnDespawnItemAtStart;
+        OnDespawnItemAtEndEvent += OnDespawnItemAtEnd;
+        OnDespawnSubItemAtStartEvent += OnDespawnSubItemAtStart;
+        OnDespawnSubItemAtEndEvent += OnDespawnSubItemAtEnd;
         OnAddItemDynamicEvent += OnAddItemDynamic;
         OnRemoveItemDynamicEvent += OnRemoveItemDynamic;
         OnAddSubItemDynamicEvent += OnAddSubItemDynamic;
@@ -374,6 +378,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         OnSpawnItemAtEndEvent -= OnSpawnItemAtEnd;
         OnSpawnSubItemAtStartEvent -= OnSpawnSubItemAtStart;
         OnSpawnSubItemAtEndEvent -= OnSpawnSubItemAtEnd;
+        OnDespawnItemAtStartEvent -= OnDespawnItemAtStart;
+        OnDespawnItemAtEndEvent -= OnDespawnItemAtEnd;
+        OnDespawnSubItemAtStartEvent -= OnDespawnSubItemAtStart;
+        OnDespawnSubItemAtEndEvent -= OnDespawnSubItemAtEnd;
         OnAddItemDynamicEvent -= OnAddItemDynamic;
         OnRemoveItemDynamicEvent -= OnRemoveItemDynamic;
         OnAddSubItemDynamicEvent -= OnAddSubItemDynamic;
@@ -692,6 +700,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.displayItemList.RemoveAt(0);
             itemGroup.firstItemIdx++;
+            OnDespawnItemAtStartEvent(itemGroup);
         }
         else
         {
@@ -701,6 +710,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
             size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.firstItemIdx++;
+            OnDespawnItemAtStartEvent(itemGroup, oldItem);
         }
 
         if (size != 0)
@@ -752,6 +762,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
             itemGroup.lastItemIdx--;
+            OnDespawnItemAtEndEvent(itemGroup);
         }
         else
         {
@@ -761,6 +772,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
             size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.lastItemIdx--;
+            OnDespawnItemAtEndEvent(itemGroup, oldItem);
         }
 
         if (size != 0)
@@ -809,12 +821,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
             /* Add the item to the waiting list of despawn */
-            GameObject oldItem = itemGroup.displaySubItemList[despawnSubItemCountStart];
+            GameObject oldSubItem = itemGroup.displaySubItemList[despawnSubItemCountStart];
             AddToSubItemDespawnList(true);
 
-            /* Update the information for the items that are currently displaying */
             availableSubItems--;
             itemGroup.firstSubItemIdx++;
+            OnDespawnSubItemAtStartEvent(itemGroup, oldSubItem);
 
             if (availableSubItems == 0)
                 break;
@@ -871,12 +883,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
             /* Remove the gameObject of the item from the scrollContent */
-            GameObject oldItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1 - despawnSubItemCountEnd];
+            GameObject oldSubItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1 - despawnSubItemCountEnd];
             AddToSubItemDespawnList(false);
 
-            /* Update the information for the items that are currently displaying */
             availableSubItems--;
             itemGroup.lastSubItemIdx--;
+            OnDespawnSubItemAtEndEvent(itemGroup, oldSubItem);
 
             if (itemGroup.lastSubItemIdx % itemGroup.nestedConstrainCount == 0 || availableSubItems == 0)
                 break;
@@ -2623,6 +2635,14 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public event OnSpawnSubItemAtStartDelegate OnSpawnSubItemAtStartEvent;
     public delegate void OnSpawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
     public event OnSpawnSubItemAtEndDelegate OnSpawnSubItemAtEndEvent;
+    public delegate void OnDespawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnDespawnItemAtStartDelegate OnDespawnItemAtStartEvent;
+    public delegate void OnDespawnItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnDespawnItemAtEndDelegate OnDespawnItemAtEndEvent;
+    public delegate void OnDespawnSubItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
+    public event OnDespawnSubItemAtStartDelegate OnDespawnSubItemAtStartEvent;
+    public delegate void OnDespawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
+    public event OnDespawnSubItemAtEndDelegate OnDespawnSubItemAtEndEvent;
     public delegate void OnAddItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item = null);
     public event OnAddItemDynamicDelegate OnAddItemDynamicEvent;
     public delegate void OnRemoveItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item = null);
@@ -2636,6 +2656,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     public void OnSpawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item = null) { }
     public void OnSpawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem = null) { }
     public void OnSpawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnDespawnItemAtStart(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnDespawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnDespawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnDespawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem = null) { }
     public void OnAddItemDynamic(ItemGroupConfig itemGroup, GameObject item = null) { }
     public void OnRemoveItemDynamic(ItemGroupConfig itemGroup, GameObject item = null) { }
     public void OnAddSubItemDynamic(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject oldSubItem = null) { }
