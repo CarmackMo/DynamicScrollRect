@@ -49,7 +49,11 @@ public class DelegateTester : MonoBehaviour
 
     void Start() 
     {
+        var temp3 = Mathf.CeilToInt((float)24 / 4);
 
+        int temp = Mathf.CeilToInt((float)6 / 4);
+
+        int temp2 = 0;
     }
 
     private void OnGUI()
@@ -72,6 +76,16 @@ public class DelegateTester : MonoBehaviour
         if (GUI.Button(new Rect(0, 150, 100, 50), "subItem add test"))
         {
             scrollRect.AddSubItemDynamic(itemGroupIdx, subItemIdx);
+        }
+
+        if (GUI.Button(new Rect(0, 200, 100, 50), "scroll to item group test"))
+        {
+            scrollRect.ScrollToItemGroup(itemGroupIdx);
+        }
+
+        if (GUI.Button(new Rect(0, 250, 100, 50), "scroll to item test"))
+        {
+            scrollRect.ScrollToItem(itemGroupIdx, itemIdx);
         }
     }
 
