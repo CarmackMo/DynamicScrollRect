@@ -29,6 +29,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     [Serializable]
     public class ItemGroupConfig
     {
+        public int itemGroupIdx = -1;
         public int nestedItemIdx = -1;      /* value that smaller than 0 means there is no nested item in the item group */
         public int subItemCount = 0;
         private int constrainCount = int.MinValue;
@@ -37,6 +38,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         public int displayItemCount { get { return displayItemList.Count; } }
         public int displaySubItemCount { get { return displaySubItemList.Count; } }
         public int nestedConstrainCount { get { if (constrainCount == int.MinValue) { constrainCount = (nestedItemIdx >= 0 && itemList[nestedItemIdx].TryGetComponent<GridLayoutGroup>(out var layout) && (layout.constraint != GridLayoutGroup.Constraint.Flexible)) ? layout.constraintCount : 1; } return constrainCount; } }
+        public RectTransform subItemRect { get { return subItem.GetComponent<RectTransform>(); } }
+
 
         [NonSerialized] public int firstItemIdx = 0;
         [NonSerialized] public int lastItemIdx = 0;
@@ -58,7 +61,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             this.itemList = itemList;
             this.subItem = subItem;
             this.displayItemList = new List<GameObject>();
-            this.displaySubItemList = new List<GameObject>();
+            this.displaySubItemList = new List<GameObject>(); 
+        }
+
+        public RectTransform GetItemRect(int itemIdx)
+        {
+            return itemList[itemIdx].GetComponent<RectTransform>();
         }
     }
 
@@ -236,6 +244,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     #endregion
 
 
+
     #region Monobehaviour相关
 
     protected override void Awake()
@@ -246,9 +255,18 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         scrollContentRect = scrollContent.GetComponent<RectTransform>();
         rect = GetComponent<RectTransform>();
 
-        OnSubItemSpawnEvent += OnSubItemSpawn;
-        OnItemSpawnEvent += OnItemSpawn;
-
+        OnSpawnItemAtStartEvent += OnSpawnItemAtStart;
+        OnSpawnItemAtEndEvent += OnSpawnItemAtEnd;
+        OnSpawnSubItemAtStartEvent += OnSpawnSubItemAtStart;
+        OnSpawnSubItemAtEndEvent += OnSpawnSubItemAtEnd;
+        OnDespawnItemAtStartEvent += OnDespawnItemAtStart;
+        OnDespawnItemAtEndEvent += OnDespawnItemAtEnd;
+        OnDespawnSubItemAtStartEvent += OnDespawnSubItemAtStart;
+        OnDespawnSubItemAtEndEvent += OnDespawnSubItemAtEnd;
+        OnAddItemDynamicEvent += OnAddItemDynamic;
+        OnRemoveItemDynamicEvent += OnRemoveItemDynamic;
+        OnAddSubItemDynamicEvent += OnAddSubItemDynamic;
+        OnRemoveSubItemDynamicEvent += OnRemoveSubItemDynamic;
     }
 
     protected override void Start()
@@ -259,7 +277,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         SetScrollBar(SetVerticalNormalizedPosition, ref verticalScrollbar, ref verticalScrollbarRect);
         GetItemSpacing();
 
-        //RefillItemGroup(out _, itemGroupList[0]);
         RefillScrollContent();
     }
 
@@ -355,6 +372,23 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         base.OnDisable();
     }
 
+    protected override void OnDestroy()
+    {
+        OnSpawnItemAtStartEvent -= OnSpawnItemAtStart;
+        OnSpawnItemAtEndEvent -= OnSpawnItemAtEnd;
+        OnSpawnSubItemAtStartEvent -= OnSpawnSubItemAtStart;
+        OnSpawnSubItemAtEndEvent -= OnSpawnSubItemAtEnd;
+        OnDespawnItemAtStartEvent -= OnDespawnItemAtStart;
+        OnDespawnItemAtEndEvent -= OnDespawnItemAtEnd;
+        OnDespawnSubItemAtStartEvent -= OnDespawnSubItemAtStart;
+        OnDespawnSubItemAtEndEvent -= OnDespawnSubItemAtEnd;
+        OnAddItemDynamicEvent -= OnAddItemDynamic;
+        OnRemoveItemDynamicEvent -= OnRemoveItemDynamic;
+        OnAddSubItemDynamicEvent -= OnAddSubItemDynamic;
+        OnRemoveSubItemDynamicEvent -= OnRemoveSubItemDynamic;
+        base.OnDestroy();
+    }
+
     #endregion
 
 
@@ -370,30 +404,20 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         /* Special case: we will not spawn the nested item if there is not subItem inside, but we will record the data of the nested item still */
         if (itemGroup.firstItemIdx - 1 == itemGroup.nestedItemIdx && itemGroup.subItemCount <= 0)
         {
-            itemGroup.displayItemList.Reverse();
-            itemGroup.displayItemList.Add(prefab);
-            itemGroup.displayItemList.Reverse();
+            itemGroup.displayItemList.Insert(0, prefab);
             itemGroup.firstItemIdx--;
+            OnSpawnItemAtStartEvent(itemGroup);
         }
         else
         {
             /* Add the gameObject of the item to the scrollContent */
             GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.localScale = parent.transform.localScale;
+            newItem.transform.SetParent(parent.transform, false);
             newItem.transform.SetAsFirstSibling();
-
-            /* Update the information for the items that are currently displaying */
-            itemGroup.displayItemList.Reverse();
-            itemGroup.displayItemList.Add(newItem);
-            itemGroup.displayItemList.Reverse();
+            itemGroup.displayItemList.Insert(0, newItem);
             itemGroup.firstItemIdx--;
             size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
-
-            OnItemSpawnEvent(newItem);
-
-            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstItemIdx.ToString());
-            newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.firstItemIdx.ToString();
+            OnSpawnItemAtStartEvent(itemGroup, newItem);
         }
 
         /* Update the parameter of the scrollContent UI */
@@ -423,23 +447,18 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.displayItemList.Add(prefab);
             itemGroup.lastItemIdx++;
+            OnSpawnItemAtEndEvent(itemGroup);
         }
         else
         {
             /* Add the gameObject of the item to the scrollContent */
             GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.localScale = parent.transform.localScale;
+            newItem.transform.SetParent(parent.transform, false);
             newItem.transform.SetAsLastSibling();
-
-            /* Update the information for the items that are currently displaying */
-            OnItemSpawnEvent(newItem);
-
-            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastItemIdx.ToString());
-            newItem.gameObject.name = "Group" + itemGroupList.IndexOf(itemGroup) + " Item" + itemGroup.lastItemIdx.ToString();
             itemGroup.displayItemList.Add(newItem);
             itemGroup.lastItemIdx++;
             size = GetItemSize(newItem.GetComponent<RectTransform>(), considerSpacing);
+            OnSpawnItemAtEndEvent(itemGroup, newItem);
         }
 
         if (reverseDirection)
@@ -471,22 +490,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int i = 0; i < count; i++)
         {
             /* Add the gameObject of the item to the parent */
-            GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.localScale = parent.transform.localScale;
-            newItem.transform.SetAsFirstSibling();
-
-            /* Update the information for the items that are currently displaying */
-            itemGroup.displaySubItemList.Reverse();
-            itemGroup.displaySubItemList.Add(newItem);
-            itemGroup.displaySubItemList.Reverse();
+            GameObject newSubItem = SpawnItem(prefab);
+            newSubItem.transform.SetParent(parent.transform, false);
+            newSubItem.transform.SetAsFirstSibling();
+            itemGroup.displaySubItemList.Insert(0, newSubItem);
             itemGroup.firstSubItemIdx--;
-
-            OnSubItemSpawnEvent(newItem);
-
-
-            newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.firstSubItemIdx.ToString());
-            newItem.gameObject.name = itemGroup.firstSubItemIdx.ToString();
+            OnSpawnSubItemAtStartEvent(itemGroup, newSubItem);
         }
         size = GetSubItemSize(prefab.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
 
@@ -520,18 +529,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int i = 0; i < count; i++)
         {
             /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
-            newItem.transform.parent = parent.transform;
-            newItem.transform.localScale = parent.transform.localScale;
-            newItem.transform.SetAsLastSibling();
-
-            /* Update the information for the items that are currently displaying */
-            OnSubItemSpawnEvent(newItem);
-
-            //newItem.GetComponent<MyItem>().SetText(ItemGroupList.IndexOf(itemGroup).ToString() + "." + itemGroup.lastSubItemIdx.ToString());
-            //newItem.gameObject.name = itemGroup.lastSubItemIdx.ToString();
-            itemGroup.displaySubItemList.Add(newItem);
+            GameObject newSubItem = SpawnItem(prefab);
+            newSubItem.transform.SetParent(parent.transform, false);
+            newSubItem.transform.SetAsLastSibling();
+            itemGroup.displaySubItemList.Add(newSubItem);
             itemGroup.lastSubItemIdx++;
+            OnSpawnSubItemAtEndEvent(itemGroup, newSubItem);
 
             if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
                 break;
@@ -568,9 +571,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             if (newItemGroup.firstItemIdx == newItemGroup.nestedItemIdx && newItemGroup.subItemCount > 0 && newItemGroup.firstSubItemIdx > 0)
                 AddSubItemAtStart(out size, false, newItemGroup.subItem, newItemGroup.displayItemList[0], newItemGroup);
 
-            displayItemGroupList.Reverse();
-            displayItemGroupList.Add(newItemGroup);
-            displayItemGroupList.Reverse();
+            displayItemGroupList.Insert(0, newItemGroup);
             firstItemGroupIdx--;
 
             /* Used for testing, can be deleted */
@@ -699,6 +700,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.displayItemList.RemoveAt(0);
             itemGroup.firstItemIdx++;
+            OnDespawnItemAtStartEvent(itemGroup);
         }
         else
         {
@@ -706,9 +708,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             GameObject oldItem = itemGroup.displayItemList[despawnItemCountStart];
             AddToItemDespawnList(true);
 
-            /* Update the information for the items that are currently displaying */
             size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.firstItemIdx++;
+            OnDespawnItemAtStartEvent(itemGroup, oldItem);
         }
 
         if (size != 0)
@@ -760,6 +762,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
             itemGroup.lastItemIdx--;
+            OnDespawnItemAtEndEvent(itemGroup);
         }
         else
         {
@@ -767,9 +770,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             GameObject oldItem = itemGroup.displayItemList[itemGroup.displayItemCount - 1 - despawnItemCountEnd];
             AddToItemDespawnList(false);
 
-            /* Update the information for the items that are currently displaying */
             size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.lastItemIdx--;
+            OnDespawnItemAtEndEvent(itemGroup, oldItem);
         }
 
         if (size != 0)
@@ -818,12 +821,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
             /* Add the item to the waiting list of despawn */
-            GameObject oldItem = itemGroup.displaySubItemList[despawnSubItemCountStart];
+            GameObject oldSubItem = itemGroup.displaySubItemList[despawnSubItemCountStart];
             AddToSubItemDespawnList(true);
 
-            /* Update the information for the items that are currently displaying */
             availableSubItems--;
             itemGroup.firstSubItemIdx++;
+            OnDespawnSubItemAtStartEvent(itemGroup, oldSubItem);
 
             if (availableSubItems == 0)
                 break;
@@ -880,12 +883,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
             /* Remove the gameObject of the item from the scrollContent */
-            GameObject oldItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1 - despawnSubItemCountEnd];
+            GameObject oldSubItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1 - despawnSubItemCountEnd];
             AddToSubItemDespawnList(false);
 
-            /* Update the information for the items that are currently displaying */
             availableSubItems--;
             itemGroup.lastSubItemIdx--;
+            OnDespawnSubItemAtEndEvent(itemGroup, oldSubItem);
 
             if (itemGroup.lastSubItemIdx % itemGroup.nestedConstrainCount == 0 || availableSubItems == 0)
                 break;
@@ -1540,282 +1543,117 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region scrollview跳转相关
 
-    #region 旧版跳转逻辑
-
-    //public int GetFirstItem(out float offset)
-    //{
-    //    //if (direction == LoopScrollRectDirection.Vertical)
-    //    if (vertical)
-    //        offset = scrollViewBounds.max.y - scrollContentBounds.max.y;
-    //    else
-    //        offset = scrollContentBounds.min.x - scrollViewBounds.min.x;
-    //    int idx = 0;
-    //    if (lastItemIdx > firstItemIdx)
-    //    {
-    //        float size = GetItemSize(displayItemList[0].GetComponent<RectTransform>(), false);
-    //        while (size + offset <= 0 && firstItemIdx + idx + layoutConstrainCount < lastItemIdx)
-    //        {
-    //            offset += size;
-    //            idx += layoutConstrainCount;
-    //            size = GetItemSize(displayItemList[idx].GetComponent<RectTransform>(), true);
-    //        }
-    //    }
-    //    return idx + firstItemIdx;
-    //}
-
-    //public int GetLastItem(out float offset)
-    //{
-    //    //if (direction == LoopScrollRectDirection.Vertical)
-    //    if (vertical)
-    //        offset = scrollContentBounds.min.y - scrollViewBounds.min.y;
-    //    else
-    //        offset = scrollViewBounds.max.x - scrollContentBounds.max.x;
-    //    int idx = 0;
-    //    if (lastItemIdx > firstItemIdx)
-    //    {
-    //        int currItemCount = displayItemCount;
-    //        float size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), false);
-    //        while (size + offset <= 0 && firstItemIdx < lastItemIdx - idx - layoutConstrainCount)
-    //        {
-    //            offset += size;
-    //            idx += layoutConstrainCount;
-    //            size = GetItemSize(displayItemList[currItemCount - 1 - idx].GetComponent<RectTransform>(), true);
-    //        }
-    //    }
-    //    offset = -offset;
-    //    return lastItemIdx - idx - 1;
-    //}
-
-    /* Zero reference */
-    //public void SrollToCell(int index, float speed)
-    //{
-    //    if (itemCount >= 0 && (index < 0 || index >= itemCount))
-    //    {
-    //        Debug.LogErrorFormat("invalid index {0}", index);
-    //        return;
-    //    }
-    //    StopAllCoroutines();
-    //    if (speed <= 0)
-    //    {
-    //        //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
-    //        return;
-    //    }
-    //    StartCoroutine(ScrollToCellCoroutine(index, speed));
-    //}
-
-    /* Zero reference */
-    //public void SrollToCellWithinTime(int index, float time)
-    //{
-    //    if (itemCount >= 0 && (index < 0 || index >= itemCount))
-    //    {
-    //        Debug.LogErrorFormat("invalid index {0}", index);
-    //        return;
-    //    }
-    //    StopAllCoroutines();
-    //    if (time <= 0)
-    //    {
-    //        //RefillItems(index);           /* Comment this line since need to decouple the logic of RefillItems() */
-    //        return;
-    //    }
-    //    float dist = 0;
-    //    float offset = 0;
-    //    int currentFirst = reverseDirection ? GetLastItem(out offset) : GetFirstItem(out offset);
-
-    //    int targetLine = (index / layoutConstrainCount);
-    //    int currentLine = (currentFirst / layoutConstrainCount);
-
-    //    if (targetLine == currentLine)
-    //    {
-    //        dist = offset;
-    //    }
-    //    else
-    //    {
-    //        //if (sizeHelper != null)
-    //        //{
-    //        //    dist = GetDimension(sizeHelper.GetItemsSize(currentFirst) - sizeHelper.GetItemsSize(index));
-    //        //    dist += offset;
-    //        //}
-    //        //else
-    //        float elementSize = (GetAbsDimension(scrollContentBounds.size) - itemSpacing * (currentLine - 1)) / currentLine;
-    //        dist = elementSize * (currentLine - targetLine) + itemSpacing * (currentLine - targetLine - 1);
-    //        dist -= offset;
-    //    }
-    //    StartCoroutine(ScrollToCellCoroutine(index, Mathf.Abs(dist) / time));
-    //}
-
-    //IEnumerator ScrollToCellCoroutine(int index, float speed)
-    //{
-    //    bool needMoving = true;
-    //    while (needMoving)
-    //    {
-    //        yield return null;
-    //        if (!isDragging)
-    //        {
-    //            float move = 0;
-    //            if (index < firstItemIdx)
-    //                move = -Time.deltaTime * speed;
-    //            else if (index >= lastItemIdx)
-    //                move = Time.deltaTime * speed;
-    //            else
-    //            {
-    //                scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
-    //                var itemBounds = CalculateItemBounds(index);
-    //                var offset = 0.0f;
-    //                //if (direction == LoopScrollRectDirection.Vertical)
-    //                if (vertical)
-    //                    offset = reverseDirection ? (scrollViewBounds.min.y - itemBounds.min.y) : (scrollViewBounds.max.y - itemBounds.max.y);
-    //                else
-    //                    offset = reverseDirection ? (itemBounds.max.x - scrollViewBounds.max.x) : (itemBounds.min.x - scrollViewBounds.min.x);
-    //                /* check if we cannot move on */
-    //                if (itemCount >= 0)
-    //                {
-    //                    if (offset > 0 && lastItemIdx == itemCount && !reverseDirection)
-    //                    {
-    //                        itemBounds = CalculateItemBounds(itemCount - 1);
-    //                        /* reach bottom */
-    //                        //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.min.y > scrollViewBounds.min.y) ||
-    //                        //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.max.x < scrollViewBounds.max.x))
-    //                        if ((vertical && itemBounds.min.y > scrollViewBounds.min.y) ||
-    //                            (horizontal && itemBounds.max.x < scrollViewBounds.max.x))
-    //                        {
-    //                            needMoving = false;
-    //                            break;
-    //                        }
-    //                    }
-    //                    else if (offset < 0 && firstItemIdx == 0 && reverseDirection)
-    //                    {
-    //                        itemBounds = CalculateItemBounds(0);
-    //                        //if ((direction == LoopScrollRectDirection.Vertical && m_ItemBounds.max.y < scrollViewBounds.max.y) ||
-    //                        //    (direction == LoopScrollRectDirection.Horizontal && m_ItemBounds.min.x > scrollViewBounds.min.x))
-    //                        if ((vertical && itemBounds.max.y < scrollViewBounds.max.y) ||
-    //                            (horizontal && itemBounds.min.x > scrollViewBounds.min.x))
-    //                        {
-    //                            needMoving = false;
-    //                            break;
-    //                        }
-    //                    }
-    //                }
-
-    //                float maxMove = Time.deltaTime * speed;
-    //                if (Mathf.Abs(offset) < maxMove)
-    //                {
-    //                    needMoving = false;
-    //                    move = offset;
-    //                }
-    //                else
-    //                    move = Mathf.Sign(offset) * maxMove;
-    //            }
-    //            if (move != 0)
-    //            {
-    //                Vector2 offset = GetVector2(move);
-    //                scrollContentRect.anchoredPosition += offset;
-    //                prevPos += offset;
-    //                contentStartPos += offset;
-    //                UpdateBounds(true);
-    //            }
-    //        }
-    //    }
-    //    StopMovement();
-    //    UpdatePrevData();
-    //}
-
-    #endregion
-
-
-    #region 新版跳转逻辑
-
     public void ScrollToItemGroup(int itemGroupIdx)
     {
         if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
+        {
+            Debug.LogError("DynamicScrollRect: ScrollToItemGroup(): using invalid item group index!");
             return;
-
-        float offsetSize = 0f;
-        ItemGroupConfig currItemGroup;
-        
-        if (itemGroupIdx <= firstItemGroupIdx)                                      /* Case 1: the item group we need to scroll to is above the head item group */
-        {
-            for (int i = firstItemGroupIdx; i >= itemGroupIdx; i--)
-            {
-                currItemGroup = itemGroupList[i];
-                for (int j = currItemGroup.firstItemIdx - (i == firstItemGroupIdx ? 0 : 1); j >= 0; j--)
-                {
-                    if (j == currItemGroup.nestedItemIdx)
-                    {
-                        int k = currItemGroup.firstSubItemIdx - (i == firstItemGroupIdx ? 0 : 1);
-                        while (k >= 0)
-                        {
-                            offsetSize -= GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), k != 0);
-
-                            if (k > currItemGroup.subItemCount - (currItemGroup.subItemCount % currItemGroup.nestedConstrainCount))
-                                k -= currItemGroup.subItemCount % currItemGroup.nestedConstrainCount;
-                            else
-                                k -= currItemGroup.nestedConstrainCount;
-                        }
-                    }
-                    else
-                    {
-                        offsetSize -= GetItemSize(currItemGroup.itemList[j].GetComponent<RectTransform>(), j != 0);
-                    }
-                }
-            }
-        }
-        else                                                                        /* Case 2: the item group we need to scroll to is underneath the head item group */
-        {
-            for (int i = firstItemGroupIdx; i <= itemGroupIdx; i++)
-            {
-                /* Only need to add the size of the first item/subItem of the destinate item group */
-                currItemGroup = itemGroupList[i];
-                if (i == itemGroupIdx)
-                {
-                    if (currItemGroup.nestedItemIdx != 0)
-                        offsetSize += GetItemSize(currItemGroup.itemList[0].GetComponent<RectTransform>(), false);
-                    else
-                        offsetSize += GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
-
-                    break;
-                }
-
-                for (int j = currItemGroup.firstItemIdx; j < currItemGroup.itemCount; j++)
-                {
-                    if (j == currItemGroup.nestedItemIdx)
-                    {
-                        int k = currItemGroup.firstSubItemIdx;
-                        while (k < currItemGroup.subItemCount)
-                        {
-                            offsetSize += GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), k != currItemGroup.subItemCount - 1);
-                            k += currItemGroup.nestedConstrainCount;
-                        }
-                    }
-                    else
-                    {
-                        offsetSize += GetItemSize(currItemGroup.itemList[j].GetComponent<RectTransform>(), j != currItemGroup.itemCount - 1);
-                    }
-                }
-            }
         }
 
-        Vector2 offset = GetVector2(offsetSize);
-        scrollContentRect.anchoredPosition += offset;
-        prevPos += offset;
-        contentStartPos += offset;
-        UpdateBounds(true);
-        UpdatePrevData();
+        ScrollToItem(itemGroupIdx, 0);
     }
 
 
-    /* Testing, can be deleted */
-    public int scrollIdx = 0;
-    private void OnGUI()
+    public void ScrollToItem(int itemGroupIdx, int itemIdx)
     {
-        if (GUILayout.Button("Scroll Test"))
+        if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
         {
-            ScrollToItemGroup(scrollIdx);
+            Debug.LogError("DynamicScrollRect: ScrollToItem(): using invalid item group index!");
+            return;
         }
-        
+        if (itemIdx < 0 || itemIdx >= itemGroupList[itemGroupIdx].itemCount)
+        {
+            Debug.LogError("DynamicScrollRect: ScrollToItem(): using invalid item index!");
+            return;
+        }
+
+        bool upward;
+        float offsetSize = 0f;
+        ItemGroupConfig currItemGroup = itemGroupList[firstItemGroupIdx];
+
+        /* Case 1: If the new location is before the head item of the head item group */
+        if (itemGroupIdx < firstItemGroupIdx ||
+           (itemGroupIdx == firstItemGroupIdx && itemIdx <= currItemGroup.firstItemIdx))
+        {
+            upward = false;
+            if (vertical && !horizontal)
+                offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
+            else if (horizontal && !vertical)
+                offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
+
+            for (int IGIdx = firstItemGroupIdx; IGIdx >= itemGroupIdx; IGIdx--)
+            {
+                currItemGroup = itemGroupList[IGIdx];
+                int bound = IGIdx == itemGroupIdx ? itemIdx : 0;
+
+                for (int IIdx = currItemGroup.firstItemIdx - 1; IIdx >= bound; IIdx--)
+                {
+                    if (IIdx == currItemGroup.nestedItemIdx)
+                    {
+                        int subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
+                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
+                        offsetSize -= subItemSize * subItemLines + subItemSpacing * (subItemLines - 1);
+                    }
+
+                    offsetSize -= GetItemSize(currItemGroup.GetItemRect(IIdx), true);
+                }
+            }
+        }
+        /* Case 2: If the new location is after the head item of the head item group */
+        else
+        {
+            upward = true;
+            if (vertical && !horizontal)
+                offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
+            else if (horizontal && !vertical)
+                offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
+
+            for (int IGIdx = firstItemGroupIdx; IGIdx <= itemGroupIdx; IGIdx++)
+            {
+                currItemGroup = itemGroupList[IGIdx];
+                int bound = IGIdx == itemGroupIdx ? itemIdx : currItemGroup.itemCount; 
+
+                for ( int IIdx = currItemGroup.firstItemIdx; IIdx < bound; IIdx++)
+                {
+                    if (IIdx == currItemGroup.nestedItemIdx)
+                    {
+                        int subItemLines = Mathf.CeilToInt((float)(currItemGroup.subItemCount - currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
+                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
+                        offsetSize += subItemSize * subItemLines + subItemSpacing * (subItemLines - 1);
+                    }
+
+                    bool considerSpacing = !(IGIdx == itemGroupCount - 1 && IIdx == itemGroupList[itemGroupCount - 1].itemCount - 1);
+                    offsetSize += GetItemSize(currItemGroup.GetItemRect(IIdx), considerSpacing);
+                }
+            }
+        }
+
+        StartCoroutine(ScrollTo(offsetSize, 0.5f, upward));
     }
 
+    public IEnumerator ScrollTo(float offsetSize, float time, bool upward)
+    {
+        Vector2 velocity = Vector2.zero;
+        Vector2 prevPos = GetVector2(offsetSize);
+        Vector2 currPos = GetVector2(offsetSize);
 
-    #endregion
+        while (Vector2.Distance(currPos, Vector2.zero) >= 1f)
+        {
+            currPos = Vector2.SmoothDamp(currPos, Vector2.zero, ref velocity, time);
+            scrollContentRect.anchoredPosition += prevPos - currPos;
+            UpdateBounds(true);
+            prevPos = currPos;
+            yield return null;
+        }
+
+        if (upward)
+            RemoveElementAtStart(out _, itemGroupList[firstItemGroupIdx]);
+
+        yield break;
+    }
 
     #endregion
 
@@ -2602,6 +2440,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (!IsActive())
             return;
 
+        StopAllCoroutines();
         UpdateBounds(false);
 
         isDragging = true;
@@ -2655,6 +2494,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             return;
 
         EnsureLayoutHasRebuilt();
+        StopAllCoroutines();
         UpdateBounds(false);
 
         /* Down is positive for scroll events, while in UI system up is positive. */
@@ -2787,18 +2627,53 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region ItemGroup, Item, SubItem外部接口
 
-    public delegate void OnSubItemSpawnDelegate(GameObject subItem);
-    public event OnSubItemSpawnDelegate OnSubItemSpawnEvent;
-    public delegate void OnItemSpawnDelegate(GameObject item);
-    public event OnItemSpawnDelegate OnItemSpawnEvent;
+    public delegate void OnSpawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnSpawnItemAtStartDelegate OnSpawnItemAtStartEvent;
+    public delegate void OnSpawnItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnSpawnItemAtEndDelegate OnSpawnItemAtEndEvent;
+    public delegate void OnSpawnSubItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
+    public event OnSpawnSubItemAtStartDelegate OnSpawnSubItemAtStartEvent;
+    public delegate void OnSpawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
+    public event OnSpawnSubItemAtEndDelegate OnSpawnSubItemAtEndEvent;
+    public delegate void OnDespawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnDespawnItemAtStartDelegate OnDespawnItemAtStartEvent;
+    public delegate void OnDespawnItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnDespawnItemAtEndDelegate OnDespawnItemAtEndEvent;
+    public delegate void OnDespawnSubItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
+    public event OnDespawnSubItemAtStartDelegate OnDespawnSubItemAtStartEvent;
+    public delegate void OnDespawnSubItemAtEndDelegate(ItemGroupConfig itemGroup, GameObject subItem = null);
+    public event OnDespawnSubItemAtEndDelegate OnDespawnSubItemAtEndEvent;
+    public delegate void OnAddItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnAddItemDynamicDelegate OnAddItemDynamicEvent;
+    public delegate void OnRemoveItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject item = null);
+    public event OnRemoveItemDynamicDelegate OnRemoveItemDynamicEvent;
+    public delegate void OnAddSubItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject oldSubItem = null);
+    public event OnAddSubItemDynamicDelegate OnAddSubItemDynamicEvent;
+    public delegate void OnRemoveSubItemDynamicDelegate(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject newSubItem = null);
+    public event OnRemoveSubItemDynamicDelegate OnRemoveSubItemDynamicEvent;
 
-    public void AddItemGroup(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem)
+    public void OnSpawnItemAtStart(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnSpawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnSpawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnSpawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnDespawnItemAtStart(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnDespawnItemAtEnd(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnDespawnSubItemAtStart(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnDespawnSubItemAtEnd(ItemGroupConfig itemGroup, GameObject subItem = null) { }
+    public void OnAddItemDynamic(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnRemoveItemDynamic(ItemGroupConfig itemGroup, GameObject item = null) { }
+    public void OnAddSubItemDynamic(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject oldSubItem = null) { }
+    public void OnRemoveSubItemDynamic(ItemGroupConfig itemGroup, GameObject subItem = null, GameObject newSubItem = null) { }
+
+
+    public void AddItemGroupStatic(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem)
     {
         ItemGroupConfig newItemGroup = new ItemGroupConfig(nestItemIdx, subItemCount, itemList, subItem);
         itemGroupList.Add(newItemGroup);
+        newItemGroup.itemGroupIdx = itemGroupList.IndexOf(newItemGroup);
     }
 
-    public void AlterItemGroup(int itemGroupIdx, int? nestItemIdx, int? subItemCount, List<GameObject> itemList = null, GameObject subItem = null)
+    public void AlterItemGroupStatic(int itemGroupIdx, int? nestItemIdx, int? subItemCount, List<GameObject> itemList = null, GameObject subItem = null)
     {
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
         if (nestItemIdx.HasValue)
@@ -2811,56 +2686,300 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             itemGroup.subItem = subItem;
     }
 
-    public void RemoveItemGroup(int itemGroupIdx)
+    public void RemoveItemGroupStatic(int itemGroupIdx)
     {
         itemGroupList.RemoveAt(itemGroupIdx);
     }
 
-    public void AddItemAt(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
+    /// <summary>
+    /// Applicable for adding item when not in gameplay. Noted that adding nested item is not supported
+    /// </summary>
+    public void AddItemStatic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
     {
-        if (this.IsActive())
-        {
-            Debug.LogAssertion("DynamicScrollRect: Cannot add item when scroll rect is displaying!");
-            return;
-        }
-
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
 
-        if (itemIdx != itemGroup.nestedItemIdx)
-        {
-            itemGroup.itemList.Insert(itemIdx, itemPrefab);
-        }
-        else
+        if (itemIdx <= itemGroup.nestedItemIdx)
         {
             itemGroup.itemList.Insert(itemIdx, itemPrefab);
             itemGroup.nestedItemIdx++;
         }
+        else
+            itemGroup.itemList.Insert(itemIdx, itemPrefab);
     }
 
-    public void RemoveItemAt(int itemGroupIdx, int itemIdx, int nestItemIdx = 0)
+    /// <summary>
+    /// Applicable for adding item during gameplay. Noted that adding nested item is not supported
+    /// </summary>
+    public void AddItemDynamic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
     {
-        if (this.IsActive())
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemIdx < 0 || itemIdx > itemGroup.itemCount)
         {
-            Debug.LogAssertion("DynamicScrollRect: Cannot remove item when scroll rect is displaying!");
+            Debug.LogError("DynamicScrollRect: AddItemDynamic(): using invalid item index!");
             return;
         }
 
-        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
-
-        if (itemIdx != itemGroup.nestedItemIdx)
+        /* Case 1: if the item we need to add is before the displaying area, update both head pointer and 
+         *         tail pointer of displaying items */
+        if (itemGroupIdx < firstItemGroupIdx ||
+           (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
         {
-            itemGroup.itemList.RemoveAt(itemIdx);
+            itemGroup.firstItemIdx++;
+            itemGroup.lastItemIdx++;
+            OnAddItemDynamicEvent(itemGroup);
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
         }
-        else
+        /* Case 2: if the item we need to add is after the displaying area */
+        else if (itemGroupIdx >= lastItemGroupIdx ||
+                (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx >= itemGroup.lastItemIdx))
         {
-            itemGroup.itemList.RemoveAt(itemIdx);
-            itemGroup.nestedItemIdx = nestItemIdx;
+            OnAddItemDynamicEvent(itemGroup);
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
+        }
+        /* Case 3: if the item we need to add is within the displaying area, spawn the item object and 
+         *         update tail pointer of displaying items */
+        else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
+                 (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx < itemGroup.lastItemIdx) ||
+                 (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx - 1))
+        {
+            GameObject newItem = Instantiate(itemPrefab) as GameObject;
+            newItem.transform.SetParent(scrollContentRect, false);
+            newItem.transform.SetSiblingIndex(itemGroup.displayItemList[0].transform.GetSiblingIndex() + itemIdx - itemGroup.firstItemIdx);
+            itemGroup.displayItemList.Insert(itemIdx - itemGroup.firstItemIdx, newItem);
+            itemGroup.lastItemIdx++;
+
+            OnAddItemDynamicEvent(itemGroup, newItem);
+            AddItemStatic(itemGroupIdx, itemIdx, itemPrefab);
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            UpdateBounds(true);
         }
     }
 
-    public void OnSubItemSpawn(GameObject subItem) { }
+    /// <summary>
+    /// Applicable for removing item when not in gameplay
+    /// </summary>
+    public void RemoveItemStatic(int itemGroupIdx, int itemIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemIdx < 0 || itemIdx >= itemGroup.itemCount)
+            return;
 
-    public void OnItemSpawn(GameObject item) { }
+        if (itemIdx < itemGroup.nestedItemIdx)
+        {
+            itemGroup.itemList.RemoveAt(itemIdx);
+            itemGroup.nestedItemIdx--;
+        }
+        else if (itemIdx > itemGroup.nestedItemIdx)
+            itemGroup.itemList.RemoveAt(itemIdx);
+        else
+            Debug.LogError("DynamicScrollRect: RemoveItemStatic(): Cannot directly remove a nested item!");
+    }
+
+    /// <summary>
+    /// Applicable for removing item during gameplay
+    /// </summary>
+    public void RemoveItemDynamic(int itemGroupIdx, int itemIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemIdx < 0 || itemIdx >= itemGroup.itemCount)
+        {
+            Debug.LogError("DynamicScrollRect: RemoveItemDynamic(): using invalid item index!"); 
+            return;
+        }
+        if (itemIdx == itemGroup.nestedItemIdx)
+        {
+            Debug.LogError("DynamicScrollRect: RemoveItemDynamic(): Cannot directly remove a nested item!"); 
+            return;
+        }
+
+        /* Case 1: if the item we need to remove is before the displaying area, update both head pointer and 
+         *         tail pointer of displaying items */
+        if (itemGroupIdx < firstItemGroupIdx ||
+           (itemGroupIdx == firstItemGroupIdx && itemIdx < itemGroup.firstItemIdx))
+        {
+            itemGroup.firstItemIdx--;
+            itemGroup.lastItemIdx--;
+            OnRemoveItemDynamicEvent(itemGroup);
+            RemoveItemStatic(itemGroupIdx, itemIdx);
+        }
+        /* Case 2: if the item we need to remove is after the displaying area */
+        else if (itemGroupIdx >= lastItemGroupIdx ||
+                (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx >= itemGroup.lastItemIdx))
+        {
+            OnRemoveItemDynamicEvent(itemGroup);
+            RemoveItemStatic(itemGroupIdx, itemIdx);
+        }
+        /* Case 3: if the item we need to remove is within the displaying area, despawn the item object and 
+         *         update tail pointer of displaying items */
+        else if ((itemGroupIdx == firstItemGroupIdx && itemIdx >= itemGroup.firstItemIdx) ||
+                 (itemGroupIdx == lastItemGroupIdx - 1 && itemIdx < itemGroup.lastItemIdx) ||
+                 (itemGroupIdx > firstItemGroupIdx && itemGroupIdx < lastItemGroupIdx - 1))
+        {
+            GameObject item = itemGroup.displayItemList[itemIdx - itemGroup.firstItemIdx];
+            itemGroup.displayItemList.RemoveAt(itemIdx - itemGroup.firstItemIdx);
+            itemGroup.lastItemIdx--;
+            OnRemoveItemDynamicEvent(itemGroup, item);
+            DespawnItem(item);
+            RemoveItemStatic(itemGroupIdx, itemIdx);
+
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            UpdateBounds(true);
+        }
+    }
+
+    /// <summary>
+    /// Applicable for adding subItem when not in gameplay
+    /// </summary>
+    public void AddSubItemStatic(int itemGroupIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        itemGroup.subItemCount++;
+    }
+
+    /// <summary>
+    /// Applicable for adding subItem during gameplay
+    /// </summary>
+    public void AddSubItemDynamic(int itemGroupIdx, int subItemIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (subItemIdx < 0 || subItemIdx > itemGroup.subItemCount)
+        {
+            Debug.LogError("DynamicScrollRect: AddSubItemDynamic(): using invalid subItem index!");
+            return;
+        }
+
+        /* Case 1: if all subItems are not displaying and they are before the displaying area, update both
+         *         head pointer and tail pointer of displaying subItems */
+        if (itemGroup.firstSubItemIdx >= itemGroup.subItemCount)
+        {
+            itemGroup.firstSubItemIdx++;
+            itemGroup.lastSubItemIdx++;
+            OnAddSubItemDynamicEvent(itemGroup);
+            AddSubItemStatic(itemGroupIdx);
+        }
+        /* Case 2: some subItems are displaying and the subItem we need to add is before the last
+         *         displaying subItem (it might be displaying or not displaying), spawn the subItem object
+         *         and update tail pointer if needed */
+        else if (itemGroup.firstSubItemIdx < itemGroup.subItemCount &&
+                 itemGroup.lastSubItemIdx > 0 &&
+                 itemGroup.lastSubItemIdx > subItemIdx)
+        {
+            int index = subItemIdx - itemGroup.firstSubItemIdx > 0 ? subItemIdx - itemGroup.firstSubItemIdx : 0;
+            GameObject newSubItem = Instantiate(itemGroup.subItem) as GameObject;
+            GameObject parent = itemGroup.displayItemList[itemGroup.nestedItemIdx - itemGroup.firstItemIdx];
+            newSubItem.transform.SetParent(parent.transform, false);
+            newSubItem.transform.SetSiblingIndex(itemGroup.displaySubItemList[0].transform.GetSiblingIndex() + index);
+            itemGroup.displaySubItemList.Insert(index, newSubItem);
+
+            /* Case 2.1: if the last displaying subItem is the last subItem of all */
+            if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
+            {
+                OnAddSubItemDynamicEvent(itemGroup, newSubItem);
+                itemGroup.lastSubItemIdx++;
+            }
+            /* Case 2.2: if there are subItems after the last displaying subItem (they are not displaying)  */
+            else
+            {
+                GameObject oldSubItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1];
+                itemGroup.displaySubItemList.RemoveAt(itemGroup.displaySubItemCount - 1);
+                OnAddSubItemDynamicEvent(itemGroup, newSubItem, oldSubItem);
+                DespawnItem(oldSubItem);
+            }
+
+            AddSubItemStatic(itemGroupIdx);
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            UpdateBounds(true);
+        }
+        /* Case 3: some subItems are displaying and the subitem we need to add is after the last
+         *         displaying subItem. Or all subItems are not displaying and they are after the 
+         *         displaying area */
+        else if (itemGroup.lastSubItemIdx <= subItemIdx)
+        {
+            OnAddSubItemDynamicEvent(itemGroup);
+            AddSubItemStatic(itemGroupIdx);
+        }
+    }
+
+    /// <summary>
+    /// Applicable for removing subItem when not in gameplay
+    /// </summary>
+    public void RemoveSubItemStatic (int itemGroupIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (itemGroup.subItemCount > 0)
+            itemGroup.subItemCount--;
+        else
+            return;
+    }
+
+    /// <summary>
+    /// Applicable for removing subItem during gameplay
+    /// </summary>
+    public void RemoveSubItemDynamic(int itemGroupIdx, int subItemIdx)
+    {
+        ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
+        if (subItemIdx < 0 || subItemIdx >= itemGroup.subItemCount)
+        {
+            Debug.LogError("DynamicScrollRect: RemoveSubItemDynamic(): using invalid subItem index!");
+            return;
+        }
+
+        /* Case 1: if all subItems are not displaying and they are before the displaying area, update both
+         *         head pointer and tail pointer of displaying subItems */
+        if (itemGroup.firstSubItemIdx >= itemGroup.subItemCount)
+        {
+            itemGroup.firstSubItemIdx--;
+            itemGroup.lastSubItemIdx--;
+            OnRemoveSubItemDynamicEvent(itemGroup);
+            RemoveSubItemStatic(itemGroupIdx);
+        }
+        /* Case 2: some subItems are displaying and the subItem we need to remove is before the last
+         *         displaying subItem (it might be displaying or not displaying), despawn the subItem object
+         *         and update tail pointer if needed */
+        else if (itemGroup.firstSubItemIdx < itemGroup.subItemCount &&
+                 itemGroup.lastSubItemIdx > 0 &&
+                 itemGroup.lastSubItemIdx > subItemIdx)
+        {
+            int index = subItemIdx - itemGroup.firstSubItemIdx > 0 ? subItemIdx - itemGroup.firstSubItemIdx : 0;
+            GameObject subItem = itemGroup.displaySubItemList[index];
+            itemGroup.displaySubItemList.RemoveAt(index);
+
+            /* Case 2.1: if the last displaying subItem is the last subItem of all */
+            if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
+            {
+                itemGroup.lastSubItemIdx--;
+                OnRemoveSubItemDynamicEvent(itemGroup, subItem);
+            }
+            /* Case 2.2: if there are subItems after the last displaying subItem (they are not displaying)  */
+            else
+            {
+                GameObject newSubItem = SpawnItem(itemGroup.subItem);
+                GameObject parent = itemGroup.displayItemList[itemGroup.nestedItemIdx - itemGroup.firstItemIdx];
+                newSubItem.transform.SetParent(parent.transform, false);
+                newSubItem.transform.SetAsLastSibling();
+                itemGroup.displaySubItemList.Add(newSubItem);
+                OnRemoveSubItemDynamicEvent(itemGroup, subItem, newSubItem);
+            }
+
+            DespawnItem(subItem);
+            RemoveSubItemStatic(itemGroupIdx);
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
+            UpdateBounds(true);
+        }
+        /* Case 3: some subItems are displaying and the subitem we need to remove is after the last
+         *         displaying subItem. Or all subItems are not displaying and they are after the 
+         *         displaying area */
+        else if (itemGroup.lastSubItemIdx <= subItemIdx)
+        {
+            OnRemoveSubItemDynamicEvent(itemGroup);
+            RemoveSubItemStatic(itemGroupIdx);
+        }
+    }
 
     #endregion
 
