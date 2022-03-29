@@ -1582,10 +1582,19 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             else if (horizontal && !vertical)
                 offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
 
+            if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
+            {
+                int subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
+                float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
+                offsetSize -= subItemSize * subItemLines + subItemSpacing * subItemLines;
+            }
+
             for (int IGIdx = firstItemGroupIdx; IGIdx >= itemGroupIdx; IGIdx--)
             {
                 currItemGroup = itemGroupList[IGIdx];
                 int bound = IGIdx == itemGroupIdx ? itemIdx : 0;
+
 
                 for (int IIdx = currItemGroup.firstItemIdx - 1; IIdx >= bound; IIdx--)
                 {
@@ -1626,6 +1635,105 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     }
 
                     bool considerSpacing = !(IGIdx == itemGroupCount - 1 && IIdx == itemGroupList[itemGroupCount - 1].itemCount - 1);
+                    offsetSize += GetItemSize(currItemGroup.GetItemRect(IIdx), considerSpacing);
+                }
+            }
+        }
+
+        StartCoroutine(ScrollTo(offsetSize, 0.5f, upward));
+    }
+
+
+    public void ScrollToSubItem(int itemGroupIdx, int subItemIdx)
+    {
+        if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
+        {
+            Debug.LogError("DynamicScrollRect: ScrollToSubItem(): using invalid item group index!");
+            return;
+        }
+        if (subItemIdx < 0 || subItemIdx >= itemGroupList[itemGroupIdx].subItemCount)
+        {
+            Debug.LogError("DynamicScrollRect: ScrollToSubItem(): using invalid subItem index!");
+            return;
+        }
+
+        bool upward;
+        float offsetSize = 0f;
+        ItemGroupConfig currItemGroup = itemGroupList[firstItemGroupIdx];
+
+        /* Case 1: If the new location is before the head item of the head item group */
+        if (itemGroupIdx < firstItemGroupIdx ||
+           (itemGroupIdx == firstItemGroupIdx && subItemIdx <= currItemGroup.firstSubItemIdx))
+        {
+            upward = false;
+            if (vertical && !horizontal)
+                offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
+            else if (horizontal && !vertical)
+                offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
+
+            for (int IGIdx = firstItemGroupIdx; IGIdx >= itemGroupIdx; IGIdx--)
+            {
+                currItemGroup = itemGroupList[IGIdx];
+                int bound = IGIdx == itemGroupIdx ? currItemGroup.nestedItemIdx : 0;
+
+                if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
+                {
+                    int subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
+                    float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                    float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
+                    offsetSize -= subItemSize * subItemLines + subItemSpacing * subItemLines;
+                }
+
+                for (int IIdx = currItemGroup.firstItemIdx - 1; IIdx >= bound; IIdx--)
+                {
+                    if (IIdx == currItemGroup.nestedItemIdx)
+                    {
+                        int subItemLines;
+                        if (IGIdx == itemGroupIdx)
+                            subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount) - 
+                                           Mathf.FloorToInt((float)(subItemIdx + 1) / currItemGroup.nestedConstrainCount);
+                        else
+                            subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
+
+                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
+                        offsetSize -= subItemSize * subItemLines + subItemSpacing * (subItemLines - 1);
+                    }
+
+                    bool considerSpacing = !(IGIdx == itemGroupIdx && IIdx == currItemGroup.nestedItemIdx);
+                    offsetSize -= GetItemSize(currItemGroup.GetItemRect(IIdx), considerSpacing);
+                }
+            }
+        }
+        else
+        {
+            upward = true;
+            if (vertical && !horizontal)
+                offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
+            else if (horizontal && !vertical)
+                offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
+
+            for (int IGIdx = firstItemGroupIdx; IGIdx <= itemGroupIdx; IGIdx++)
+            {
+                currItemGroup = itemGroupList[IGIdx];
+                int bound = IGIdx == itemGroupIdx ? currItemGroup.nestedItemIdx : currItemGroup.itemCount - 1;
+
+                for (int IIdx = currItemGroup.firstItemIdx; IIdx <= bound; IIdx++)
+                {
+                    if (IIdx == currItemGroup.nestedItemIdx)
+                    {
+                        int subItemLines;
+                        if (IGIdx == itemGroupIdx)
+                            subItemLines = Mathf.FloorToInt((float)(subItemIdx - currItemGroup.firstItemIdx) / currItemGroup.nestedConstrainCount);
+                        else
+                            subItemLines = Mathf.CeilToInt((float)(currItemGroup.subItemCount - currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
+
+                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
+                        offsetSize += subItemSize * subItemLines + subItemSpacing * (subItemLines - (IGIdx == itemGroupIdx ? 0 : 1));
+                    }
+
+                    bool considerSpacing = !(IGIdx == itemGroupIdx && IIdx == currItemGroup.nestedItemIdx);
                     offsetSize += GetItemSize(currItemGroup.GetItemRect(IIdx), considerSpacing);
                 }
             }

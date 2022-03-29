@@ -44,6 +44,8 @@ public class DelegateTester : MonoBehaviour
         list2.Add(item2);
         list2.Add(item3);
         list2.Add(item1);
+        list2.Add(item2);
+        list2.Add(item2);
         scrollRect.AddItemGroupStatic(2, 7, list2, item1);
     }
 
@@ -78,15 +80,16 @@ public class DelegateTester : MonoBehaviour
             scrollRect.AddSubItemDynamic(itemGroupIdx, subItemIdx);
         }
 
-        if (GUI.Button(new Rect(0, 200, 100, 50), "scroll to item group test"))
-        {
-            scrollRect.ScrollToItemGroup(itemGroupIdx);
-        }
-
-        if (GUI.Button(new Rect(0, 250, 100, 50), "scroll to item test"))
+        if (GUI.Button(new Rect(0, 200, 100, 50), "scroll to item test"))
         {
             scrollRect.ScrollToItem(itemGroupIdx, itemIdx);
         }
+
+        if (GUI.Button(new Rect(0, 250, 100, 50), "scroll to subItem test"))
+        {
+            scrollRect.ScrollToSubItem(itemGroupIdx, subItemIdx);
+        }
+
     }
 
 
