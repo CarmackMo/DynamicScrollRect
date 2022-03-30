@@ -38,7 +38,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         public int displayItemCount { get { return displayItemList.Count; } }
         public int displaySubItemCount { get { return displaySubItemList.Count; } }
         public int nestedConstrainCount { get { if (constrainCount == int.MinValue) { constrainCount = (nestedItemIdx >= 0 && itemList[nestedItemIdx].TryGetComponent<GridLayoutGroup>(out var layout) && (layout.constraint != GridLayoutGroup.Constraint.Flexible)) ? layout.constraintCount : 1; } return constrainCount; } }
-        public RectTransform subItemRect { get { return subItem.GetComponent<RectTransform>(); } }
 
 
         [NonSerialized] public int firstItemIdx = 0;
@@ -68,6 +67,18 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             return itemList[itemIdx].GetComponent<RectTransform>();
         }
+
+        public RectTransform GetDisplayItemRect(int itemIdx)
+        {
+            return displayItemList[itemIdx].GetComponent<RectTransform>();
+        }
+
+        public RectTransform GetSubItemRect()
+        {
+            return subItem.GetComponent<RectTransform>();
+        }
+
+
     }
 
 
@@ -831,7 +842,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             if (availableSubItems == 0)
                 break;
         }
-        size = GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
+        size = GetSubItemSize(itemGroup.GetSubItemRect(), parent.GetComponent<RectTransform>(), considerSpacing);
 
         /* Update the parameter of the scrollContent UI */
         if (!reverseDirection)
@@ -893,7 +904,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             if (itemGroup.lastSubItemIdx % itemGroup.nestedConstrainCount == 0 || availableSubItems == 0)
                 break;
         }
-        size = GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), parent.GetComponent<RectTransform>(), considerSpacing);
+        size = GetSubItemSize(itemGroup.GetSubItemRect(), parent.GetComponent<RectTransform>(), considerSpacing);
 
         /* Update the parameter of the scrollContent UI */
         if (reverseDirection)
@@ -1426,8 +1437,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         int totalSubItemLines = Mathf.CeilToInt((float)itemGroup.subItemCount / (float)itemGroup.nestedConstrainCount);
         totalSubItemLines = totalSubItemLines > 0 ? totalSubItemLines : 0;
-        totalSubItemSize += totalSubItemLines * GetSubItemSize(itemGroup.subItem.GetComponent<RectTransform>(), itemGroup.itemList[itemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
-        totalSubItemSize += (totalSubItemLines - 1) * GetSubItemSpacing(itemGroup.itemList[itemGroup.nestedItemIdx].GetComponent<RectTransform>());
+        totalSubItemSize += totalSubItemLines * GetSubItemSize(itemGroup.GetSubItemRect(), itemGroup.GetItemRect(itemGroup.nestedItemIdx), false);
+        totalSubItemSize += (totalSubItemLines - 1) * GetSubItemSpacing(itemGroup.GetItemRect(itemGroup.nestedItemIdx));
 
         return totalItemSize + totalSubItemSize;
     }
@@ -1585,7 +1596,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
             {
                 int subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
-                float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                float subItemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
                 float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
                 offsetSize -= subItemSize * subItemLines + subItemSpacing * subItemLines;
             }
@@ -1601,7 +1612,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     if (IIdx == currItemGroup.nestedItemIdx)
                     {
                         int subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
-                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
                         float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
                         offsetSize -= subItemSize * subItemLines + subItemSpacing * (subItemLines - 1);
                     }
@@ -1629,7 +1640,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     if (IIdx == currItemGroup.nestedItemIdx)
                     {
                         int subItemLines = Mathf.CeilToInt((float)(currItemGroup.subItemCount - currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
-                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
                         float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
                         offsetSize += subItemSize * subItemLines + subItemSpacing * (subItemLines - 1);
                     }
@@ -1679,7 +1690,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
                 {
                     int subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
-                    float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                    float subItemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
                     float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
                     offsetSize -= subItemSize * subItemLines + subItemSpacing * subItemLines;
                 }
@@ -1695,7 +1706,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                         else
                             subItemLines = Mathf.CeilToInt((float)(currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
 
-                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
                         float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
                         offsetSize -= subItemSize * subItemLines + subItemSpacing * (subItemLines - 1);
                     }
@@ -1728,7 +1739,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                         else
                             subItemLines = Mathf.CeilToInt((float)(currItemGroup.subItemCount - currItemGroup.firstSubItemIdx) / currItemGroup.nestedConstrainCount);
 
-                        float subItemSize = GetSubItemSize(currItemGroup.subItemRect, currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
+                        float subItemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), false);
                         float subItemSpacing = GetSubItemSpacing(currItemGroup.GetItemRect(currItemGroup.nestedItemIdx));
                         offsetSize += subItemSize * subItemLines + subItemSpacing * (subItemLines - (IGIdx == itemGroupIdx ? 0 : 1));
                     }
@@ -1864,13 +1875,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int j = 0; j < headItemGroup.firstItemIdx; j++)
         {
             if (j != headItemGroup.nestedItemIdx)
-                offset -= GetItemSize(headItemGroup.itemList[j].GetComponent<RectTransform>(), true);
+                offset -= GetItemSize(headItemGroup.GetItemRect(j), true);
             else
             {
                 int hiddenSubItemLines = Mathf.CeilToInt((float)headItemGroup.subItemCount / (float)headItemGroup.nestedConstrainCount);
                 hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
-                offset -= hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
-                offset -= (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>());
+                offset -= hiddenSubItemLines * GetSubItemSize(headItemGroup.GetSubItemRect(), headItemGroup.GetItemRect(headItemGroup.nestedItemIdx), false);
+                offset -= (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.GetItemRect(headItemGroup.nestedItemIdx));
             }
         }
 
@@ -1879,7 +1890,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             int hiddenSubItemLines = Mathf.CeilToInt((float)(headItemGroup.firstSubItemIdx) / (float)headItemGroup.nestedConstrainCount);
             hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
-            offset -= hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+            offset -= hiddenSubItemLines * GetSubItemSize(headItemGroup.GetSubItemRect(), headItemGroup.GetItemRect(headItemGroup.nestedItemIdx), true);
         }
     }
 
@@ -1903,13 +1914,13 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         for (int j = 0; j < headItemGroup.firstItemIdx; j++)
         {
             if (j != headItemGroup.nestedItemIdx)
-                offset += GetItemSize(headItemGroup.itemList[j].GetComponent<RectTransform>(), true);
+                offset += GetItemSize(headItemGroup.GetItemRect(j), true);
             else
             {
                 int hiddenSubItemLines = Mathf.CeilToInt((float)headItemGroup.subItemCount / (float)headItemGroup.nestedConstrainCount);
                 hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
-                offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), false);
-                offset += (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>());
+                offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.GetSubItemRect(), headItemGroup.GetItemRect(headItemGroup.nestedItemIdx), false);
+                offset += (hiddenSubItemLines - 1) * GetSubItemSpacing(headItemGroup.GetItemRect(headItemGroup.nestedItemIdx));
             }
         }
 
@@ -1918,7 +1929,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         {
             int hiddenSubItemLines = Mathf.CeilToInt((float)(headItemGroup.firstSubItemIdx) / (float)headItemGroup.nestedConstrainCount);
             hiddenSubItemLines = hiddenSubItemLines > 0 ? hiddenSubItemLines : 0;
-            offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.subItem.GetComponent<RectTransform>(), headItemGroup.itemList[headItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+            offset += hiddenSubItemLines * GetSubItemSize(headItemGroup.GetSubItemRect(), headItemGroup.GetItemRect(headItemGroup.nestedItemIdx), true);
         }
     }
 
@@ -2166,7 +2177,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     currItemGroup.lastSubItemIdx += count;
                     currItemGroup.firstSubItemIdx += count;
                     size = 0;
-                    size = GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+                    size = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), true) ;
                     deltaSize += size;
                 }
                 /* Virtually add items at end */
@@ -2178,7 +2189,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     currItemGroup.lastItemIdx++;
                     currItemGroup.firstItemIdx++;
                     size = 0;
-                    size = GetItemSize(currItemGroup.itemList[currItemGroup.lastItemIdx - 1].GetComponent<RectTransform>(), true);
+                    size = GetItemSize(currItemGroup.GetItemRect(currItemGroup.lastItemIdx - 1), true);
                     deltaSize += size;
                 }
             }
@@ -2292,7 +2303,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     currItemGroup.firstSubItemIdx -= count;
                     currItemGroup.lastSubItemIdx -= count;
                     size = 0;
-                    size = GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+                    size = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), true);
                     deltaSize += size;
                 }
                 /* Virtually add item at start */
@@ -2304,7 +2315,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                     currItemGroup.firstItemIdx--;
                     currItemGroup.lastItemIdx--;
                     size = 0;
-                    size = GetItemSize(currItemGroup.itemList[currItemGroup.firstItemIdx].GetComponent<RectTransform>(), true);
+                    size = GetItemSize(currItemGroup.GetItemRect(currItemGroup.firstItemIdx), true);
                     deltaSize += size;
                 }
             }
@@ -2397,9 +2408,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         currItemGroup = ItemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
         if (currItemGroup.lastItemIdx - 1 != currItemGroup.nestedItemIdx ||
             (currItemGroup.lastItemIdx - 1 == currItemGroup.nestedItemIdx && currItemGroup.lastSubItemIdx <= currItemGroup.nestedConstrainCount))       /* special case: the last item is a nested item and it only have the first row of subitem, we consider it as a non-nested item */
-            itemSize = GetItemSize(currItemGroup.displayItemList[currItemGroup.displayItemCount - 1].GetComponent<RectTransform>(), true);
+            itemSize = GetItemSize(currItemGroup.GetDisplayItemRect(currItemGroup.displayItemCount - 1), true);
         else
-            itemSize = GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+            itemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), true);
 
         if ((vertical && !horizontal && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding) ||
             (!vertical && horizontal && scrollViewBounds.max.x < scrollContentBounds.max.x - itemSize - contentRightPadding))
@@ -2429,9 +2440,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         currItemGroup = itemGroupList[firstItemGroupIdx < itemGroupCount ? firstItemGroupIdx : itemGroupCount - 1];
         if (currItemGroup.firstItemIdx != currItemGroup.nestedItemIdx ||
             (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx && currItemGroup.firstSubItemIdx + currItemGroup.nestedConstrainCount >= currItemGroup.subItemCount))            /* special case: the first item is a nested item and it only have the last row of subitem, we consider it as a non-nested item */
-            itemSize = GetItemSize(currItemGroup.displayItemList[0].GetComponent<RectTransform>(), true);
+            itemSize = GetItemSize(currItemGroup.GetDisplayItemRect(0), true);
         else
-            itemSize = GetSubItemSize(currItemGroup.subItem.GetComponent<RectTransform>(), currItemGroup.itemList[currItemGroup.nestedItemIdx].GetComponent<RectTransform>(), true);
+            itemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), true);
 
         if ((vertical && !horizontal && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding) ||
             (!vertical && horizontal && scrollViewBounds.min.x > scrollContentBounds.min.x + itemSize + contentLeftPadding))
