@@ -232,11 +232,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region 对象池相关
 
-    private int despawnItemCountStart = 0;
-    private int despawnItemCountEnd = 0;
-    private int despawnSubItemCountStart = 0;
-    private int despawnSubItemCountEnd = 0;
-
     private class ItemPoolMember : MonoBehaviour { public GameObject prefab = null; }    /* Added to freshly instantiated objects, so we can link back to the correct pool on despawn. */
 
     protected Dictionary<GameObject, Stack<GameObject>> itemPoolDict = new Dictionary<GameObject, Stack<GameObject>>();
@@ -421,8 +416,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
         else
         {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
+            GameObject newItem = Spawn(prefab);
             newItem.transform.SetParent(parent.transform, false);
             newItem.transform.SetAsFirstSibling();
             itemGroup.displayItemList.Insert(0, newItem);
@@ -462,8 +456,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
         else
         {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newItem = SpawnItem(prefab);
+            GameObject newItem = Spawn(prefab);
             newItem.transform.SetParent(parent.transform, false);
             newItem.transform.SetAsLastSibling();
             itemGroup.displayItemList.Add(newItem);
@@ -500,8 +493,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         for (int i = 0; i < count; i++)
         {
-            /* Add the gameObject of the item to the parent */
-            GameObject newSubItem = SpawnItem(prefab);
+            GameObject newSubItem = Spawn(prefab);
             newSubItem.transform.SetParent(parent.transform, false);
             newSubItem.transform.SetAsFirstSibling();
             itemGroup.displaySubItemList.Insert(0, newSubItem);
@@ -535,12 +527,10 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         if (itemGroup.lastSubItemIdx >= itemGroup.subItemCount)
             return false;
 
-        int availableSubItems = itemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
-        int count = itemGroup.nestedConstrainCount - (availableSubItems % itemGroup.nestedConstrainCount);
+        int count = itemGroup.nestedConstrainCount - (itemGroup.displaySubItemCount % itemGroup.nestedConstrainCount);
         for (int i = 0; i < count; i++)
         {
-            /* Add the gameObject of the item to the scrollContent */
-            GameObject newSubItem = SpawnItem(prefab);
+            GameObject newSubItem = Spawn(prefab);
             newSubItem.transform.SetParent(parent.transform, false);
             newSubItem.transform.SetAsLastSibling();
             itemGroup.displaySubItemList.Add(newSubItem);
@@ -684,13 +674,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private bool RemoveItemAtStart(out float size, bool considerSpacing, ItemGroupConfig itemGroup)
     {
         size = 0;
-        int availableItems = itemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
-
-        if (availableItems <= 0)
-        {
-            Debug.LogFormat("RemoveItemAtStart fail, displayItemCount: {0}, despawnItemCountStart: {1}, despawnItemCountEnd: {2}", itemGroup.displayItemCount, despawnItemCountStart, despawnItemCountEnd);
+        if (itemGroup.displayItemCount == 0)
             return false;
-        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at start when we've reached the end of the whole scroll content */
         /* we reach the end of the whole scroll content when: the item group at end is the last item group AND the item at end inside the item group is
@@ -715,17 +700,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
         else
         {
-            /* Add the item to the waiting list of despawn */
-            GameObject oldItem = itemGroup.displayItemList[despawnItemCountStart];
-            AddToItemDespawnList(true);
-
+            GameObject oldItem = itemGroup.displayItemList[0];
             size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.firstItemIdx++;
             OnDespawnItemAtStartEvent(itemGroup, oldItem);
+            DespawnItem(itemGroup, true);
         }
-
-        if (size != 0)
-            ClearItemDespawnList(itemGroup);
 
         /* Update the parameter of the scrollContent UI */
         if (!reverseDirection)
@@ -746,13 +726,8 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private bool RemoveItemAtEnd(out float size, bool considerSpacing, ItemGroupConfig itemGroup)
     {
         size = 0;
-        int availableItems = itemGroup.displayItemCount - (despawnItemCountStart + despawnItemCountEnd);
-
-        if (availableItems <= 0)
-        {
-            Debug.LogFormat("RemoveItemAtEnd fail, displayItemCount: {0}, despawnItemCountStart: {1}, despawnItemCountEnd: {2}", itemGroup.displayItemCount, despawnItemCountStart, despawnItemCountEnd);
+        if (itemGroup.displayItemCount == 0)
             return false;
-        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at end when we've reached the start of the whole scroll content */
         /* we reach the start of the whole scroll content when: the item group at start is the first item group AND the item at first inside the item group is
@@ -777,17 +752,12 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
         else
         {
-            /* Remove the gameObject of the item from the scrollContent */
-            GameObject oldItem = itemGroup.displayItemList[itemGroup.displayItemCount - 1 - despawnItemCountEnd];
-            AddToItemDespawnList(false);
-
+            GameObject oldItem = itemGroup.displayItemList[itemGroup.displayItemCount - 1];
             size = GetItemSize(oldItem.GetComponent<RectTransform>(), considerSpacing);
             itemGroup.lastItemIdx--;
             OnDespawnItemAtEndEvent(itemGroup, oldItem);
+            DespawnItem(itemGroup, false);
         }
-
-        if (size != 0)
-            ClearItemDespawnList(itemGroup);
 
         /* Update the parameter of the scrollContent UI */
         if (reverseDirection)
@@ -807,13 +777,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private bool RemoveSubItemAtStart(out float size, bool considerSpacing, GameObject parent, ItemGroupConfig itemGroup)
     {
         size = 0;
-        int availableSubItems = itemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
-
-        if (availableSubItems <= 0)
-        {
-            Debug.LogFormat("RemoveSubItemAtStart fail, displaySubItemCount: {0}, despawnSubItemCountStart: {1}, despawnSubItemCountEnd: {2}", itemGroup.displaySubItemCount, despawnSubItemCountStart, despawnSubItemCountEnd);
+        int availableSubItems = itemGroup.displaySubItemCount;
+        if (availableSubItems == 0)
             return false;
-        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at start when we've reached the end of the whole scroll content */
         /* we reach the end of the whole scroll content when: the item group at end is the last item group AND the item at end inside the item group is
@@ -831,13 +797,11 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
-            /* Add the item to the waiting list of despawn */
-            GameObject oldSubItem = itemGroup.displaySubItemList[despawnSubItemCountStart];
-            AddToSubItemDespawnList(true);
-
+            GameObject oldSubItem = itemGroup.displaySubItemList[0];
             availableSubItems--;
             itemGroup.firstSubItemIdx++;
             OnDespawnSubItemAtStartEvent(itemGroup, oldSubItem);
+            DespawnSubItem(itemGroup, true);
 
             if (availableSubItems == 0)
                 break;
@@ -855,7 +819,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         if (size != 0)
         {
-            ClearSubItemDespawnList(itemGroup);
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
         }
@@ -869,13 +832,9 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
     private bool RemoveSubItemAtEnd(out float size, bool considerSpacing, GameObject parent, ItemGroupConfig itemGroup)
     {
         size = 0;
-        int availableSubItems = itemGroup.displaySubItemCount - (despawnSubItemCountStart + despawnSubItemCountEnd);
-
+        int availableSubItems = itemGroup.displaySubItemCount;
         if (availableSubItems <= 0)
-        {
-            Debug.LogFormat("RemoveSubItemAtEnd fail, displaySubItemCount: {0}, despawnItemCountStart: {1}, despawnItemCountEnd: {2}", itemGroup.displaySubItemCount, despawnSubItemCountStart, despawnSubItemCountEnd);
             return false;
-        }
 
         /* special case: when moving or dragging, we cannot continue delete subitems at end when we've reached the start of the whole scroll content */
         /* we reach the start of the whole scroll content when: the item group at start is the first item group AND the item at first inside the item group is
@@ -893,13 +852,11 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         for (int i = 0; i < itemGroup.nestedConstrainCount; i++)
         {
-            /* Remove the gameObject of the item from the scrollContent */
-            GameObject oldSubItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1 - despawnSubItemCountEnd];
-            AddToSubItemDespawnList(false);
-
+            GameObject oldSubItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1];
             availableSubItems--;
             itemGroup.lastSubItemIdx--;
             OnDespawnSubItemAtEndEvent(itemGroup, oldSubItem);
+            DespawnSubItem(itemGroup, false);
 
             if (itemGroup.lastSubItemIdx % itemGroup.nestedConstrainCount == 0 || availableSubItems == 0)
                 break;
@@ -917,7 +874,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
         if (size != 0)
         {
-            ClearSubItemDespawnList(itemGroup);
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
         }
@@ -1100,24 +1056,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
     #region 对象池操作
 
-    protected void DespawnItem(GameObject obj)
-    {
-        ItemPoolMember pm = obj.GetComponent<ItemPoolMember>();
-        if (pm == null || itemPoolDict.ContainsKey(pm.prefab) == false)
-        {
-            Debug.LogFormat(" Object '{0}' wasn't spawned from a pool. Destroying it instead. ", obj.name);
-            Destroy(obj);
-        }
-        else
-        {
-            obj.gameObject.SetActive(false);
-
-            if (!itemPoolDict[pm.prefab].Contains(obj))
-                itemPoolDict[pm.prefab].Push(obj);
-        }
-    }
-
-    public GameObject SpawnItem(GameObject prefab)
+    protected GameObject Spawn(GameObject prefab)
     {
         GameObject obj = null;
 
@@ -1138,14 +1077,75 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             obj = itemPoolDict[prefab].Pop();
 
             if (obj == null)
-                obj = SpawnItem(prefab);
+                obj = Spawn(prefab);
         }
 
         obj.gameObject.SetActive(true);
         return obj;
     }
 
-    public void ClearPool()
+    protected void Despawn(GameObject obj)
+    {
+        ItemPoolMember pm = obj.GetComponent<ItemPoolMember>();
+        if (pm == null || itemPoolDict.ContainsKey(pm.prefab) == false)
+        {
+            Debug.LogFormat(" Object '{0}' wasn't spawned from a pool. Destroying it instead. ", obj.name);
+            Destroy(obj);
+        }
+        else
+        {
+            obj.gameObject.SetActive(false);
+
+            if (!itemPoolDict[pm.prefab].Contains(obj))
+                itemPoolDict[pm.prefab].Push(obj);
+        }
+    }
+
+    protected void DespawnItem(ItemGroupConfig itemGroup, bool fromStart)
+    {
+        if (itemGroup.displayItemCount == 0)
+        {
+            Debug.LogError("DynamicScrollRect: DespawnItem(): no item on display now but still trying to remove one!");
+            return;
+        }
+
+        if (fromStart)
+        {
+            GameObject item = itemGroup.displayItemList[0];
+            itemGroup.displayItemList.RemoveAt(0);
+            Despawn(item);
+        }
+        else
+        {
+            GameObject item = itemGroup.displayItemList[itemGroup.displayItemCount - 1];
+            itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
+            Despawn(item);
+        }
+    }
+
+    protected void DespawnSubItem(ItemGroupConfig itemGroup, bool fromStart)
+    {
+        if (itemGroup.displaySubItemCount== 0)
+        {
+            Debug.LogError("DynamicScrollRect: DespawnSubItem(): no subItem on display now but still trying to remove one!");
+            return;
+        }
+
+        if (fromStart)
+        {
+            GameObject subItem = itemGroup.displaySubItemList[0];
+            itemGroup.displaySubItemList.RemoveAt(0);
+            Despawn(subItem);
+        }
+        else
+        {
+            GameObject subItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1];
+            itemGroup.displaySubItemList.RemoveAt(itemGroup.displaySubItemCount - 1);
+            Despawn(subItem);
+        }
+    }
+
+    protected void ClearPool()
     {
         foreach (Stack<GameObject> pool in itemPoolDict.Values)
         {
@@ -1153,72 +1153,6 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
 
         itemPoolDict.Clear();
-    }
-
-    public void AddToItemDespawnList(bool fromStart, int count = 1)
-    {
-        if (fromStart)
-            despawnItemCountStart += count;
-        else
-            despawnItemCountEnd += count;
-    }
-
-    public void ClearItemDespawnList(ItemGroupConfig itemGroup)
-    {
-        Debug.Assert(itemGroup.displayItemCount >= despawnItemCountStart + despawnItemCountEnd);
-        if (despawnItemCountStart > 0)
-        {
-            for (int i = 1; i <= despawnItemCountStart; i++)
-            {
-                GameObject item = itemGroup.displayItemList[0];
-                itemGroup.displayItemList.RemoveAt(0);
-                DespawnItem(item);
-            }
-            despawnItemCountStart = 0;
-        }
-        if (despawnItemCountEnd > 0)
-        {
-            for (int i = 1; i <= despawnItemCountEnd; i++)
-            {
-                GameObject item = itemGroup.displayItemList[itemGroup.displayItemCount - 1];
-                itemGroup.displayItemList.RemoveAt(itemGroup.displayItemCount - 1);
-                DespawnItem(item);
-            }
-            despawnItemCountEnd = 0;
-        }
-    }
-
-    public void AddToSubItemDespawnList(bool fromStart, int count = 1)
-    {
-        if (fromStart)
-            despawnSubItemCountStart += count;
-        else
-            despawnSubItemCountEnd += count;
-    }
-
-    public void ClearSubItemDespawnList(ItemGroupConfig itemGroup)
-    {
-        Debug.Assert(itemGroup.displaySubItemCount >= despawnSubItemCountStart + despawnSubItemCountEnd);
-        if (despawnSubItemCountStart > 0)
-        {
-            for (int i = 1; i <= despawnSubItemCountStart; i++)
-            {
-                GameObject item = itemGroup.displaySubItemList[0];
-                itemGroup.displaySubItemList.RemoveAt(0);
-                DespawnItem(item);
-            }
-            despawnSubItemCountStart = 0;
-        }
-        if (despawnSubItemCountEnd > 0)
-        {
-            for (int i = 1; i <= despawnSubItemCountEnd; i++)
-            {
-                GameObject item = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1];
-                itemGroup.displaySubItemList.RemoveAt(itemGroup.displaySubItemCount - 1);
-                DespawnItem(item);
-            }
-            despawnSubItemCountEnd = 0;
-        }
     }
 
     #endregion
@@ -1245,7 +1179,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         LayoutRebuilder.MarkLayoutForRebuild(rect);
     }
 
-    void UpdateCachedData()
+    protected void UpdateCachedData()
     {
         Transform transform = this.transform;
         horizontalScrollbarRect = horizontalScrollbar == null ? null : horizontalScrollbar.transform as RectTransform;
@@ -1263,7 +1197,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         verticalSliderWidth = (verticalScrollbarRect == null ? 0 : verticalScrollbarRect.rect.width);
     }
 
-    public virtual void StopMovement()
+    protected virtual void StopMovement()
     {
         velocity = Vector2.zero;
     }
@@ -1964,7 +1898,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         }
     }
 
-    void UpdateScrollbarVisibility()
+    private void UpdateScrollbarVisibility()
     {
         if (verticalScrollbar && verticalScrollbarVisibility != ScrollbarVisibility.Permanent && verticalScrollbar.gameObject.activeSelf != verticalScrollingNeeded)
             verticalScrollbar.gameObject.SetActive(verticalScrollingNeeded);
@@ -1972,7 +1906,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             horizontalScrollbar.gameObject.SetActive(horizontalScrollingNeeded);
     }
 
-    void UpdateScrollbarLayout()
+    private void UpdateScrollbarLayout()
     {
         if (verticalSliderExpand && horizontalScrollbar)
         {
@@ -2079,7 +2013,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         CalculateContentBounds();
         UpdateScrollbars(Vector2.zero);
         StopMovement();
-        UpdatePrevData();             /* 该函数的用途暂时不明 */
+        UpdatePrevData();
     }
 
 
@@ -2472,7 +2406,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
 
 
     #region bounds相关
-    public void UpdateBounds(bool updateItems = false)
+    protected void UpdateBounds(bool updateItems = false)
     {
         /* Since viewPort UI is static, therefore its rectTransform coordinate can be directly reused */
         scrollViewBounds = new Bounds(scrollViewRect.rect.center, scrollViewRect.rect.size);
@@ -2512,7 +2446,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
         scrollContentBounds.center = contentPos;
     }
 
-    public void CalculateContentBounds()
+    protected void CalculateContentBounds()
     {
         if (ScrollContentRect == null)
             scrollContentBounds = new Bounds();
@@ -2940,7 +2874,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             itemGroup.displayItemList.RemoveAt(itemIdx - itemGroup.firstItemIdx);
             itemGroup.lastItemIdx--;
             OnRemoveItemDynamicEvent(itemGroup, item);
-            DespawnItem(item);
+            Despawn(item);
             RemoveItemStatic(itemGroupIdx, itemIdx);
 
             Canvas.ForceUpdateCanvases();
@@ -3005,7 +2939,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 GameObject oldSubItem = itemGroup.displaySubItemList[itemGroup.displaySubItemCount - 1];
                 itemGroup.displaySubItemList.RemoveAt(itemGroup.displaySubItemCount - 1);
                 OnAddSubItemDynamicEvent(itemGroup, newSubItem, oldSubItem);
-                DespawnItem(oldSubItem);
+                Despawn(oldSubItem);
             }
 
             AddSubItemStatic(itemGroupIdx);
@@ -3076,7 +3010,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
             /* Case 2.2: if there are subItems after the last displaying subItem (they are not displaying)  */
             else
             {
-                GameObject newSubItem = SpawnItem(itemGroup.subItem);
+                GameObject newSubItem = Spawn(itemGroup.subItem);
                 GameObject parent = itemGroup.displayItemList[itemGroup.nestedItemIdx - itemGroup.firstItemIdx];
                 newSubItem.transform.SetParent(parent.transform, false);
                 newSubItem.transform.SetAsLastSibling();
@@ -3084,7 +3018,7 @@ public class MyScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBegin
                 OnRemoveSubItemDynamicEvent(itemGroup, subItem, newSubItem);
             }
 
-            DespawnItem(subItem);
+            Despawn(subItem);
             RemoveSubItemStatic(itemGroupIdx);
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
