@@ -231,7 +231,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     private class DynamicScrollRectItem : MonoBehaviour { public GameObject prefab = null; }    /* Added to freshly instantiated objects, so we can link back to the correct pool on despawn. */
 
     protected Dictionary<GameObject, Stack<GameObject>> itemPoolDict = new Dictionary<GameObject, Stack<GameObject>>();
-    
+
     #endregion
 
 
@@ -250,7 +250,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     #region Function Field
 
-    #region Monobehaviour Functions
+    #region MonoBehaviour Functions
 
     protected override void Awake()
     {
@@ -584,7 +584,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             return false;
     }
 
-
     private bool AddItemGroupAtEnd(out float size, GameObject parent)
     {
         size = 0;
@@ -613,7 +612,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             return false;
     }
 
-
     private bool AddElementAtStart(out float size, ItemGroupConfig itemGroup)
     {
         bool addSuccess = false;
@@ -639,7 +637,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
         return addSuccess;
     }
-
 
     private bool AddElementAtEnd(out float size, ItemGroupConfig itemGroup)
     {
@@ -934,7 +931,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         return true;
     }
 
-
     private bool RemoveElementAtStart(out float deltaSize, ItemGroupConfig itemGroup)
     {
         bool removeSuccess = false;
@@ -992,7 +988,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
         return removeSuccess;
     }
-
 
     private bool RemoveElementAtEnd(out float deltaSize, ItemGroupConfig itemGroup)
     {
@@ -1866,7 +1861,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     #endregion
 
 
-    #region ScrollBar Functions
+    #region Scrollbar Functions
 
     private float GetHorizontalNormalizedPosition()
     {
@@ -2098,7 +2093,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     #endregion
 
-    #region Functions
+
+    #region Tool Functions
 
     protected void SetDirty()
     {
@@ -2161,9 +2157,10 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     #endregion
 
 
-    #region Callbacks & APIs Field
+    #region CallBack & API Field
 
     #region Inherit APIs
+
     public virtual float minWidth { get { return -1; } }
     public virtual float minHeight { get { return -1; } }
     public virtual float preferredWidth { get { return -1; } }
@@ -2172,9 +2169,15 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     public virtual float flexibleHeight { get { return -1; } }
     public virtual int layoutPriority { get { return -1; } }
 
-    public virtual void CalculateLayoutInputHorizontal() { }
+    public virtual void CalculateLayoutInputHorizontal() 
+    {
+        
+    }
 
-    public virtual void CalculateLayoutInputVertical() { }
+    public virtual void CalculateLayoutInputVertical() 
+    {
+
+    }
 
     public virtual void SetLayoutHorizontal()
     {
@@ -2235,9 +2238,15 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         CalculateContentBounds();
     }
 
-    public virtual void LayoutComplete() { }
+    public virtual void LayoutComplete() 
+    {
 
-    public virtual void GraphicUpdateComplete() { }
+    }
+
+    public virtual void GraphicUpdateComplete() 
+    {
+    
+    }
 
     public virtual void Rebuild(CanvasUpdate executing)
     {
@@ -2361,7 +2370,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     #endregion
 
 
-    #region ItemGroup, Item, SubItem Alter APIs
+    #region ItemGroup, Item, SubItem APIs
 
     public delegate void OnSpawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject item = null);
     public event OnSpawnItemAtStartDelegate OnSpawnItemAtStartEvent;
@@ -2793,7 +2802,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     #endregion
 
 
-    #region Scrollview Relocation APIs
+    #region ScrollView Reloaction APIs
 
     public void ScrollToItemGroup(int itemGroupIdx)
     {
@@ -3016,7 +3025,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     #endregion
 
     #endregion
-
 
 
 
