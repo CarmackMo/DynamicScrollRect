@@ -2376,7 +2376,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scrollSensitivity: 10
   rubberScale: 1
-  reverseDirection: 0
+  direction: 1
   horizontal: 1
   vertical: 0
   scrollView: {fileID: 1575341638}
@@ -2992,7 +2992,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scrollSensitivity: 10
   rubberScale: 1
-  reverseDirection: 0
+  direction: 0
   horizontal: 0
   vertical: 1
   scrollView: {fileID: 1921117356}

@@ -9,6 +9,13 @@ using UnityEngine.EventSystems;
 public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler, ICanvasElement, ILayoutElement, ILayoutGroup
 {
     #region 用户设定相关
+
+    public enum ScrollDirection
+    {
+        Vertical,
+        Horizontal,
+    }
+
     public enum ScrollMovementType
     {
         Unrestricted,   /* Unrestricted movement -- can scroll forever */
@@ -84,6 +91,10 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     [Header("ScrollView参数")]
     [SerializeField]
+    private ScrollDirection direction = ScrollDirection.Vertical;
+    public ScrollDirection Direction { get { return direction; } set { direction = value; } }
+
+    [SerializeField]
     private float scrollSensitivity = 1f;
     public float ScrollSensitivity { get { return scrollSensitivity; } set { scrollSensitivity = value; } }
 
@@ -91,17 +102,10 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     private float rubberScale = 1f;
     public float RubberScale { get { return rubberScale; } set { rubberScale = value; } }
 
-    [SerializeField]
+    /* reverse direction function is still under development */
+    [HideInInspector]
     private bool reverseDirection = false;
     public bool ReverseDirection { get { return reverseDirection; } set { reverseDirection = value; } }
-
-    [SerializeField]
-    private bool horizontal = true;
-    public bool Horizontal { get { return horizontal; } set { horizontal = value; } }
-
-    [SerializeField]
-    private bool vertical = true;
-    public bool Vertical { get { return vertical; } set { vertical = value; } }
 
     [SerializeField]
     private GameObject scrollView = null;
@@ -1232,7 +1236,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             ContentSizeFitter sizeFitter = scrollContentRect.GetComponent<ContentSizeFitter>();
             if (sizeFitter != null)
             {
-                if (vertical && !horizontal)
+                if (direction == ScrollDirection.Vertical)
                 {
                     sizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
                     sizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -1307,12 +1311,12 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     {
         float size = considerSpacing ? itemSpacing : 0;
 
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             size += itemRect.rect.height;
         else
             size += itemRect.rect.width;
 
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             size *= scrollContentRect.localScale.y;
         else
             size *= scrollContentRect.localScale.x;
@@ -1326,7 +1330,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         var layout = subContentRect.GetComponent<GridLayoutGroup>();
 
         /* calcualte item size */
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
         {
             if (layout != null)
                 size += layout.cellSize.y;
@@ -1343,7 +1347,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
         size *= GetAbsDimension(subContentRect.localScale);     // TO DO    // DO WHAT ??
 
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             size *= subContentRect.localScale.y;
         else
             size *= subContentRect.localScale.x;
@@ -1382,7 +1386,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     protected virtual Vector2 GetVector2(float value)
     {
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             return new Vector2(0, value);
         else
             return new Vector2(-value, 0);
@@ -1390,7 +1394,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     protected virtual Vector3 GetVector3(float value)
     {
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             return new Vector3(0, value, 0);
         else
             return new Vector3(-value, 0, 0);
@@ -1398,7 +1402,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     protected virtual Vector3 GetAbsVector3(float value)
     {
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             return new Vector3(0, value, 0);
         else
             return new Vector3(value, 0, 0);
@@ -1406,7 +1410,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     protected virtual float GetDimension(Vector2 vector)
     {
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             return vector.y;
         else
             return -vector.x;
@@ -1414,7 +1418,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     protected virtual float GetAbsDimension(Vector2 vector)
     {
-        if (vertical && !horizontal)
+        if (direction == ScrollDirection.Vertical)
             return vector.y;
         else
             return vector.x;
@@ -1427,9 +1431,9 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     protected virtual void SetContentAnchoredPosition(Vector2 position)
     {
-        if (!horizontal)
+        if (direction != ScrollDirection.Horizontal)
             position.x = scrollContentRect.anchoredPosition.x;
-        if (!vertical)
+        if (direction != ScrollDirection.Vertical)
             position.y = scrollContentRect.anchoredPosition.y;
 
         if ((position - scrollContentRect.anchoredPosition).sqrMagnitude > 0.001f)
@@ -1462,7 +1466,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         Vector2 min = scrollContentBounds.min;
         Vector2 max = scrollContentBounds.max;
 
-        if (horizontal)
+        if (direction == ScrollDirection.Horizontal)
         {
             min.x += delta.x;
             max.x += delta.x;
@@ -1472,7 +1476,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
                 offset.x = scrollViewBounds.max.x - max.x;
         }
 
-        if (vertical)
+        if (direction == ScrollDirection.Vertical)
         {
             min.y += delta.y;
             max.y += delta.y;
@@ -1524,9 +1528,9 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
            (itemGroupIdx == firstItemGroupIdx && itemIdx <= currItemGroup.firstItemIdx))
         {
             upward = false;
-            if (vertical && !horizontal)
+            if (direction == ScrollDirection.Vertical)
                 offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
-            else if (horizontal && !vertical)
+            else if (direction == ScrollDirection.Horizontal)
                 offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
 
             if (currItemGroup.firstItemIdx == currItemGroup.nestedItemIdx)
@@ -1561,9 +1565,9 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         else
         {
             upward = true;
-            if (vertical && !horizontal)
+            if (direction == ScrollDirection.Vertical)
                 offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
-            else if (horizontal && !vertical)
+            else if (direction == ScrollDirection.Horizontal)
                 offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
 
             for (int IGIdx = firstItemGroupIdx; IGIdx <= itemGroupIdx; IGIdx++)
@@ -1613,9 +1617,9 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
            (itemGroupIdx == firstItemGroupIdx && subItemIdx <= currItemGroup.firstSubItemIdx))
         {
             upward = false;
-            if (vertical && !horizontal)
+            if (direction == ScrollDirection.Vertical)
                 offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
-            else if (horizontal && !vertical)
+            else if (direction == ScrollDirection.Horizontal)
                 offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
 
             for (int IGIdx = firstItemGroupIdx; IGIdx >= itemGroupIdx; IGIdx--)
@@ -1655,9 +1659,9 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         else
         {
             upward = true;
-            if (vertical && !horizontal)
+            if (direction == ScrollDirection.Vertical)
                 offsetSize -= Mathf.Abs(scrollContentBounds.max.y - scrollViewBounds.max.y);
-            else if (horizontal && !vertical)
+            else if (direction == ScrollDirection.Horizontal)
                 offsetSize -= Mathf.Abs(scrollContentBounds.min.x - scrollViewBounds.min.x);
 
             for (int IGIdx = firstItemGroupIdx; IGIdx <= itemGroupIdx; IGIdx++)
@@ -1954,7 +1958,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         float sizeFilled = 0f;
         float sizeToFill = GetAbsDimension(scrollViewRect.rect.size) + Mathf.Abs(contentOffset);
 
-        if (!Application.isPlaying)
+        if (!Application.isPlaying || itemGroupCount == 0)
             return;
 
         /* Remove all existing on-display element of the scroll, from tail to head. */
@@ -2003,7 +2007,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         }
 
         Vector2 pos = scrollContentRect.anchoredPosition;
-        if (vertical)
+        if (direction == ScrollDirection.Vertical)
             pos.y = -contentOffset;
         else
             pos.x = contentOffset;
@@ -2029,13 +2033,15 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         contentBoundMin = scrollContentBounds.min;
 
 
+        if (itemGroupCount == 0)
+            return;
 
         ItemGroupConfig currItemGroup;
 
         //// TO DO: Fast version, unstable
         /* special case 1: handling move several page upward in one frame */
-        if ((vertical && !horizontal && scrollViewBounds.max.y < scrollContentBounds.min.y) ||
-            (!vertical && horizontal && scrollViewBounds.min.x > scrollContentBounds.max.x) && 
+        if ((direction == ScrollDirection.Vertical   && scrollViewBounds.max.y < scrollContentBounds.min.y) ||
+            (direction == ScrollDirection.Horizontal && scrollViewBounds.min.x > scrollContentBounds.max.x) &&
             lastItemGroupIdx > firstItemGroupIdx)
         {
             float contentSize = GetAbsDimension(scrollContentBounds.size);
@@ -2043,7 +2049,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             float deltaSize = 0f;
             float size = 0f;
 
-            if (vertical && !horizontal)
+            if (direction == ScrollDirection.Vertical)
                 offsetSize = GetDimension(scrollContentBounds.min) - GetDimension(scrollViewBounds.max);
             else
                 offsetSize = GetDimension(scrollContentBounds.max) - GetDimension(scrollViewBounds.min);
@@ -2160,8 +2166,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
         // TO DO: Fast version, unstable 
         /* special case 2: handling move several page downward in one frame */
-        if ((vertical && !horizontal && scrollViewBounds.min.y > scrollContentBounds.max.y) || 
-            (!vertical && horizontal && scrollViewBounds.max.x < scrollContentBounds.min.x) && 
+        if ((direction == ScrollDirection.Vertical   && scrollViewBounds.min.y > scrollContentBounds.max.y) ||
+            (direction == ScrollDirection.Horizontal && scrollViewBounds.max.x < scrollContentBounds.min.x) &&
             lastItemGroupIdx > firstItemGroupIdx)
         {
             float contentSize = GetAbsDimension(scrollContentBounds.size);
@@ -2169,7 +2175,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             float deltaSize = 0f;
             float size = 0f;
 
-            if (vertical && !horizontal)
+            if (direction == ScrollDirection.Vertical)
                 offsetSize = GetDimension(scrollViewBounds.min) - GetDimension(scrollContentBounds.max);
             else
                 offsetSize = GetDimension(scrollViewBounds.max) - GetDimension(scrollContentBounds.min);
@@ -2290,8 +2296,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
         /* Need to add new items at the bottom of the scrollContent */
         currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
-        if ((vertical && !horizontal && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding) ||
-            (!vertical && horizontal && scrollViewBounds.max.x > scrollContentBounds.max.x - contentRightPadding))
+        if ((direction == ScrollDirection.Vertical   && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding) ||
+            (direction == ScrollDirection.Horizontal && scrollViewBounds.max.x > scrollContentBounds.max.x - contentRightPadding))
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2300,8 +2306,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
             deltaSize += size;
 
-            while ((vertical && !horizontal && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize) ||
-                   (!vertical && horizontal && scrollViewBounds.max.x > scrollContentBounds.max.x - contentRightPadding + deltaSize) &&
+            while ((direction == ScrollDirection.Vertical   && scrollViewBounds.min.y < scrollContentBounds.min.y + contentDownPadding - deltaSize) ||
+                   (direction == ScrollDirection.Horizontal && scrollViewBounds.max.x > scrollContentBounds.max.x - contentRightPadding + deltaSize) &&
                    size > 0)
             {
                 bool addSuccess = AddElementAtEnd(out size, currItemGroup);
@@ -2316,8 +2322,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         /* Case 2: the top of the first item is much lower than the top of the viewPort */
         /* Need to add new items at the top of the scrollContent */
         currItemGroup = itemGroupList[firstItemGroupIdx < itemGroupCount ? firstItemGroupIdx : itemGroupCount - 1];
-        if ((vertical && !horizontal && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding) ||
-            (!vertical && horizontal && scrollViewBounds.min.x < scrollContentBounds.min.x + contentLeftPadding))
+        if ((direction == ScrollDirection.Vertical   && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding) ||
+            (direction == ScrollDirection.Horizontal && scrollViewBounds.min.x < scrollContentBounds.min.x + contentLeftPadding))
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2326,8 +2332,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             currItemGroup = itemGroupList[firstItemGroupIdx < itemGroupCount ? firstItemGroupIdx : itemGroupCount - 1];
             deltaSize += size;
 
-            while ((vertical && !horizontal && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize) ||
-                   (!vertical && horizontal && scrollViewBounds.min.x < scrollContentBounds.min.x + contentLeftPadding - deltaSize) &&
+            while ((direction == ScrollDirection.Vertical   && scrollViewBounds.max.y > scrollContentBounds.max.y - contentTopPadding + deltaSize) ||
+                   (direction == ScrollDirection.Horizontal && scrollViewBounds.min.x < scrollContentBounds.min.x + contentLeftPadding - deltaSize) &&
                    size > 0)
             {
                 bool addSuccess = AddElementAtStart(out size, currItemGroup);
@@ -2348,8 +2354,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         else
             itemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), true);
 
-        if ((vertical && !horizontal && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding) ||
-            (!vertical && horizontal && scrollViewBounds.max.x < scrollContentBounds.max.x - itemSize - contentRightPadding))
+        if ((direction == ScrollDirection.Vertical   && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding) ||
+            (direction == ScrollDirection.Horizontal && scrollViewBounds.max.x < scrollContentBounds.max.x - itemSize - contentRightPadding))
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2358,8 +2364,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             currItemGroup = ItemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
             deltaSize += size;
 
-            while ((vertical && !horizontal && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize) ||
-                   (!vertical && horizontal && scrollViewBounds.max.x < scrollContentBounds.max.x - itemSize - contentRightPadding - deltaSize) &&
+            while ((direction == ScrollDirection.Vertical   && scrollViewBounds.min.y > scrollContentBounds.min.y + itemSize + contentDownPadding + deltaSize) ||
+                   (direction == ScrollDirection.Horizontal && scrollViewBounds.max.x < scrollContentBounds.max.x - itemSize - contentRightPadding - deltaSize) &&
                    size > 0)
             {
                 bool removeSuccess = RemoveElementAtEnd(out size, currItemGroup);
@@ -2380,8 +2386,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         else
             itemSize = GetSubItemSize(currItemGroup.GetSubItemRect(), currItemGroup.GetItemRect(currItemGroup.nestedItemIdx), true);
 
-        if ((vertical && !horizontal && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding) ||
-            (!vertical && horizontal && scrollViewBounds.min.x > scrollContentBounds.min.x + itemSize + contentLeftPadding))
+        if ((direction == ScrollDirection.Vertical   && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding) ||
+            (direction == ScrollDirection.Horizontal && scrollViewBounds.min.x > scrollContentBounds.min.x + itemSize + contentLeftPadding))
         {
             float size = 0f;
             float deltaSize = 0f;
@@ -2390,8 +2396,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             currItemGroup = itemGroupList[firstItemGroupIdx < itemGroupCount ? firstItemGroupIdx : itemGroupCount - 1];
             deltaSize += size;
 
-            while ((vertical && !horizontal && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize) ||
-                   (!vertical && horizontal && scrollViewBounds.min.x > scrollContentBounds.min.x + itemSize + contentLeftPadding + deltaSize) &&
+            while ((direction == ScrollDirection.Vertical   && scrollViewBounds.max.y < scrollContentBounds.max.y - itemSize - contentTopPadding - deltaSize) ||
+                   (direction == ScrollDirection.Horizontal && scrollViewBounds.min.x > scrollContentBounds.min.x + itemSize + contentLeftPadding + deltaSize) &&
                    size > 0)
             {
                 bool removeSuccess = RemoveElementAtStart(out size, currItemGroup);
@@ -2555,13 +2561,14 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         /* Down is positive for scroll events, while in UI system up is positive. */
         Vector2 delta = data.scrollDelta;
         delta.y *= -1;
-        if (vertical && !horizontal)
+
+        if (direction == ScrollDirection.Vertical)
         {
             if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
                 delta.y = delta.x;
             delta.x = 0;
         }
-        if (horizontal && !vertical)
+        if (direction == ScrollDirection.Horizontal)
         {
             if (Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
                 delta.x = delta.y;
