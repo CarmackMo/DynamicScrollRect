@@ -911,7 +911,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     {
         if (displayItemGroupCount <= 0 || lastItemGroupIdx <= 0)
         {
-            Debug.LogFormat("RemoveItemGroupAtEnd fail, displayItemGroupCount: {0}, lastItemGroupIdx: {1}£¬ ", displayItemGroupCount, lastItemGroupIdx);
+            Debug.LogFormat("RemoveItemGroupAtEnd fail, displayItemGroupCount: {0}, lastItemGroupIdx: {1}ï¿½ï¿½ ", displayItemGroupCount, lastItemGroupIdx);
             return false;
         }
 
@@ -3029,7 +3029,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
 
 
-    #region ²âÊÔLog
+    #region æµ‹è¯•log
 
     private void PrintAllIGInformation(string callName = "", ItemGroupConfig operatIG = null)
     {
