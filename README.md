@@ -36,11 +36,41 @@ For more infromation and quick example implmentation, please refer to the Dynami
 
 
 
-#Instructions
+## Instructions
 
-1. ## Control with inspector
+Different from the Unity *ScrollView* in which the element layout is managed by *ScrollView* itself, *DynamicScrollRect* divides the whole content into groups and manages them by `ItemGroupConfig` classes. By specifying the layout and hierarchy of the elements in item groups, you can obtain your desire scroll view layout. Below are two ways to configurate item groups. 
 
++ ### Control with inspector
+  You can configurate item groups ahead in the Unity inspector panel. After attaching the *DynamicScrollRect* as component of your object, *"Item Group List"* can be found in the *DynamicScrollRect* configuration panel. Each element in the *"Item Group List"* is an item group, you can configure the parameters of item group in its panel.
 
+  - **Item Group Idx:** index of the item group in the item group list as well as the scroll view. This is an optional parameter, as program will automatically set its value during initialization.
+  - **Nested Item Idx:** index of the item that contains subItems in this item group.
+  - **SubItem Count:** number of subItem in this item group. If you don't need nested item structure in this item group, please set its value smaller than 1.
+  - **Item List:** list of item prefabs of this item group. The order in the list determines the order of items display in the scroll view.
+  - **SubItem:** prefab of subItem.
+
+  Noted that the order in *'Item Group List'* will also determine the order of item groups display in the scroll view.
+  
+  ![InspectorPanel](Images/InspectorPanel.png)
+
++ ### Control with scripts
+  *DynamicScrollRect* provides several APIs by which you can manage the scroll view using scripts.
+  To initialize or manage scroll view before it enter runtime, you can use:
+  - **`AddItemGroupStatic()`**
+  - **`AlterItemGroupStatic()`**
+  - **`RemoveItemGroupStatic()`**
+  - **`AddItemStatic()`**
+  - **`RemoveItemStatic()`**
+  - **`AddSubItemStatic()`**
+  - **`RemoveSubItemStatic()`**
+  
+  To mange scroll view during runtime, you can use:
+  - **`AddItemDynamic()`**
+  - **`RemoveItemDynamic()`**
+  - **`AddSubItemDynamic()`**
+  - **`RemoveSubItemDynamic()`**
+  
+  For more infromation about these APIs, please refer to **\ulcorner APIs \lrcorner** section below.
 
 
 ## APIs
