@@ -20,6 +20,7 @@ public class DynamicScrollRectController : MonoBehaviour
     public int itemGroupIdx;
     public int itemIdx;
     public int subItemIdx;
+    public float scrollTime;
     public GameObject newItem;
 
     private void Awake()
@@ -74,12 +75,12 @@ public class DynamicScrollRectController : MonoBehaviour
 
             if (GUI.Button(new Rect(0, 200, 100, 50), "scroll to item test"))
             {
-                scrollRectHorizontal.ScrollToItem(itemGroupIdx, itemIdx);
+                scrollRectHorizontal.ScrollToItem(itemGroupIdx, itemIdx, scrollTime);
             }
 
             if (GUI.Button(new Rect(0, 250, 100, 50), "scroll to subItem test"))
             {
-                scrollRectHorizontal.ScrollToSubItem(itemGroupIdx, subItemIdx);
+                scrollRectHorizontal.ScrollToSubItem(itemGroupIdx, subItemIdx, scrollTime);
             }
         }
     }

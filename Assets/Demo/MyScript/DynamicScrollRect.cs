@@ -2370,7 +2370,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     #endregion
 
 
-    #region ItemGroup, Item, SubItem APIs
+    #region Scrollview Alter APIs
 
     public delegate void OnSpawnItemAtStartDelegate(ItemGroupConfig itemGroup, GameObject item = null);
     public event OnSpawnItemAtStartDelegate OnSpawnItemAtStartEvent;
@@ -2420,6 +2420,12 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     public void AlterItemGroupStatic(int itemGroupIdx, int? nestItemIdx, int? subItemCount, List<GameObject> itemList = null, GameObject subItem = null)
     {
+        if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
+        {
+            Debug.LogError("DynamicScrollRect: AlterItemGroupStatic(): using invalid item group index!");
+            return;
+        }
+
         ItemGroupConfig itemGroup = itemGroupList[itemGroupIdx];
         if (nestItemIdx.HasValue)
             itemGroup.nestedItemIdx = nestItemIdx.Value;
@@ -2433,6 +2439,12 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     public void RemoveItemGroupStatic(int itemGroupIdx)
     {
+        if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
+        {
+            Debug.LogError("DynamicScrollRect: RemoveItemGroupStatic(): using invalid item group index!");
+            return;
+        }
+
         itemGroupList.RemoveAt(itemGroupIdx);
     }
 
@@ -2804,7 +2816,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     #region ScrollView Reloaction APIs
 
-    public void ScrollToItemGroup(int itemGroupIdx)
+    public void ScrollToItemGroup(int itemGroupIdx, float time)
     {
         if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
         {
@@ -2812,10 +2824,10 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             return;
         }
 
-        ScrollToItem(itemGroupIdx, 0);
+        ScrollToItem(itemGroupIdx, 0, time);
     }
 
-    public void ScrollToItem(int itemGroupIdx, int itemIdx)
+    public void ScrollToItem(int itemGroupIdx, int itemIdx, float time)
     {
         if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
         {
@@ -2900,10 +2912,10 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             }
         }
 
-        StartCoroutine(ScrollTo(offsetSize, 0.5f, upward));
+        StartCoroutine(ScrollTo(offsetSize, time, upward));
     }
 
-    public void ScrollToSubItem(int itemGroupIdx, int subItemIdx)
+    public void ScrollToSubItem(int itemGroupIdx, int subItemIdx, float time)
     {
         if (itemGroupIdx < 0 || itemGroupIdx >= itemGroupCount)
         {
@@ -2998,7 +3010,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             }
         }
 
-        StartCoroutine(ScrollTo(offsetSize, 0.5f, upward));
+        StartCoroutine(ScrollTo(offsetSize, time, upward));
     }
 
     public IEnumerator ScrollTo(float offsetSize, float time, bool upward)
