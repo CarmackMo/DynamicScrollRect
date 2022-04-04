@@ -235,7 +235,7 @@ Some functions are still under development, for example:
 - Add support to add and remove item groups during gameplay.
 - Improve performance
 
-If you have any new functions that want to add to *DynamicScrollRect* or discover any bugs, please feel free to write them down in [Issues](https://github.com/WaterFriend/DynamicScrollRect/issues) page of this repository.
+If you have any new features that want to add to *DynamicScrollRect* or discover any bugs, please feel free to write them down in [Issues](https://github.com/WaterFriend/DynamicScrollRect/issues) page of this repository.  :yum:
 
 
 ## References
