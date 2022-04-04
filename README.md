@@ -84,75 +84,75 @@ Basically, you can construct a *DynamicScrollRect* from scratch by adding *'Dyna
 + ### Inherit APIs
   *DynamicScrollRect* inherits several native Unity UGUI APIs including: `ICanvasElement`, `ILayoutElement`, `ILayoutGroup` and implements them within the code. You don't need to concern these APIs, but you need to be cautious before modifying these APIs as this might lead to unpredictable errors.
 
-  ```cpp
-  virtual void CalculateLayoutInputHorizontal()
+  ```csharp
+  virtual void CalculateLayoutInputHorizontal();
 
-  virtual void CalculateLayoutInputVertical()
+  virtual void CalculateLayoutInputVertical();
 
-  virtual void SetLayoutHorizontal()
+  virtual void SetLayoutHorizontal();
 
-  virtual void SetLayoutVertical()
+  virtual void SetLayoutVertical();
 
-  virtual void LayoutComplete()
+  virtual void LayoutComplete();
 
-  virtual void GraphicUpdateComplete()
+  virtual void GraphicUpdateComplete();
 
-  virtual void Rebuild(CanvasUpdate executing)
+  virtual void Rebuild(CanvasUpdate executing);
   ```
 
 + ### UI event APIs
   *DynamicScrollRect* also inherits native Unity event system APIs including: `IInitializePotentialDragHandler`, `IBeginDragHandler`, `IEndDragHandler`, `IDragHandler`, `IScrollHandler`. You can override these APIs according to your need.
 
-  ```cpp
-  virtual void OnInitializePotentialDrag(PointerEventData eventData)
+  ```csharp
+  virtual void OnInitializePotentialDrag(PointerEventData eventData);
 
-  virtual void OnBeginDrag(PointerEventData eventData)
+  virtual void OnBeginDrag(PointerEventData eventData);
 
-  virtual void OnDrag(PointerEventData eventData)
+  virtual void OnDrag(PointerEventData eventData);
 
-  virtual void OnEndDrag(PointerEventData eventData)
+  virtual void OnEndDrag(PointerEventData eventData);
 
-  virtual void OnScroll(PointerEventData data)
+  virtual void OnScroll(PointerEventData data);
   ```
 
 + ### Scrollview alter APIs
   You can use these APIs to manage the scroll view before or during runtime. Noted that those APIs' names end with *"Static"* should be called when the scroll view is not in runtime. While those APIs' names end with *Dynamic* should be called when the scroll view is during runtime.
 
-  ```cpp
-  void AddItemGroupStatic(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem)
+  ```csharp
+  void AddItemGroupStatic(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem);
   /* Add an item group. You need to specify those basic parameters of the item group. */
 
-  void AlterItemGroupStatic(int itemGroupIdx, int? nestItemIdx, int? subItemCount, List<GameObject> itemList = null, GameObject subItem = null)
+  void AlterItemGroupStatic(int itemGroupIdx, int? nestItemIdx, int? subItemCount, List<GameObject> itemList = null, GameObject subItem = null);
   /* Alter the configuration of an existing item group. You need to specify the index of item group you want to alter. */
 
-  void RemoveItemGroupStatic(int itemGroupIdx)
+  void RemoveItemGroupStatic(int itemGroupIdx);
   /* Remove an existing item group. */
 
-  void RefillScrollContent(int itemGroupBeginIdx = 0, float contentOffset = 0f)
+  void RefillScrollContent(int itemGroupBeginIdx = 0, float contentOffset = 0f);
   /* Refill the whole scroll view. You can specify the starting item group of the updated scroll view. */
 
-  void AddItemStatic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
+  void AddItemStatic(int itemGroupIdx, int itemIdx, GameObject itemPrefab);
   /* Add an item to an existing item group. You need to specify the index of the new item and provide its prefab. */
 
-  void AddItemDynamic(int itemGroupIdx, int itemIdx, GameObject itemPrefab)
+  void AddItemDynamic(int itemGroupIdx, int itemIdx, GameObject itemPrefab);
   /* Add an item to an existing item group during gameplay. */
 
-  void RemoveItemStatic(int itemGroupIdx, int itemIdx)
+  void RemoveItemStatic(int itemGroupIdx, int itemIdx);
   /* Remove an item from an existing item group. */
 
-  void RemoveItemDynamic(int itemGroupIdx, int itemIdx)
+  void RemoveItemDynamic(int itemGroupIdx, int itemIdx);
   /* Remove an item from an item group during gameplay. */
 
-  void AddSubItemStatic(int itemGroupIdx)
+  void AddSubItemStatic(int itemGroupIdx);
   /* Add a subItem to the nested item of an existing item group. Since subItems are using the same prefab, you don't need to specify the index and prefab of the new subItem. */
 
-  void AddSubItemDynamic(int itemGroupIdx, int subItemIdx)
+  void AddSubItemDynamic(int itemGroupIdx, int subItemIdx);
   /* Add a subItem to an item group during gameplay. Since subItems are instanciated and set as the children of the nested item during gameplay, you need to specify the location of the new subItem when adding it. */
 
-  void RemoveSubItemStatic(int itemGroupIdx)
+  void RemoveSubItemStatic(int itemGroupIdx);
   /* Remove a subItem from an existing item group. */
 
-  void RemoveSubItemDynamic(int itemGroupIdx, int subItemIdx)
+  void RemoveSubItemDynamic(int itemGroupIdx, int subItemIdx);
   /* Remove a subItem from an item group during gameplay. */
   ```
 
@@ -212,17 +212,17 @@ Basically, you can construct a *DynamicScrollRect* from scratch by adding *'Dyna
 + ### Scrollview relocation APIs
   You can use these APIs to conveniently jump to specific item group, item and subItem. *DynamicScrollRect* uses a coroutine to relocate the scroll view to the destinated location, you can specify the time that relocation takes.
 
-  ```cpp
-  void ScrollToItemGroup(int itemGroupIdx, float time)
+  ```csharp
+  void ScrollToItemGroup(int itemGroupIdx, float time);
   /* Jump to specific item group. */
 
-  void ScrollToItem(int itemGroupIdx, int itemIdx, float time)
+  void ScrollToItem(int itemGroupIdx, int itemIdx, float time);
   /* Jump to specific item. */
 
-  void ScrollToSubItem(int itemGroupIdx, int subItemIdx, float time)
+  void ScrollToSubItem(int itemGroupIdx, int subItemIdx, float time);
   /* Jump to specific subItem. */
 
-  IEnumerator ScrollTo(float offsetSize, float time, bool upward)
+  IEnumerator ScrollTo(float offsetSize, float time, bool upward);
   /* Relocate for 'offsetSize' amount of distance */
   ```
 
