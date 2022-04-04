@@ -53,32 +53,32 @@ public class DynamicScrollRectController : MonoBehaviour
     {
         if (scriptControlDemo)
         {
-            if (GUI.Button(new Rect(0, 0, 100, 50), "item remove test"))
+            if (GUI.Button(new Rect(0, 0, 170, 50), "item remove test"))
             {
                 scrollRectHorizontal.RemoveItemDynamic(itemGroupIdx, itemIdx);
             }
 
-            if (GUI.Button(new Rect(0, 50, 100, 50), "subItem remove test"))
+            if (GUI.Button(new Rect(0, 50, 170, 50), "subItem remove test"))
             {
                 scrollRectHorizontal.RemoveSubItemDynamic(itemGroupIdx, subItemIdx);
             }
 
-            if (GUI.Button(new Rect(0, 100, 100, 50), "item add test"))
+            if (GUI.Button(new Rect(0, 100, 170, 50), "item add test"))
             {
                 scrollRectHorizontal.AddItemDynamic(itemGroupIdx, itemIdx, newItem);
             }
 
-            if (GUI.Button(new Rect(0, 150, 100, 50), "subItem add test"))
+            if (GUI.Button(new Rect(0, 150, 170, 50), "subItem add test"))
             {
                 scrollRectHorizontal.AddSubItemDynamic(itemGroupIdx, subItemIdx);
             }
 
-            if (GUI.Button(new Rect(0, 200, 100, 50), "scroll to item test"))
+            if (GUI.Button(new Rect(0, 200, 170, 50), "scroll to item test"))
             {
                 scrollRectHorizontal.ScrollToItem(itemGroupIdx, itemIdx, scrollTime);
             }
 
-            if (GUI.Button(new Rect(0, 250, 100, 50), "scroll to subItem test"))
+            if (GUI.Button(new Rect(0, 250, 170, 50), "scroll to subItem test"))
             {
                 scrollRectHorizontal.ScrollToSubItem(itemGroupIdx, subItemIdx, scrollTime);
             }
