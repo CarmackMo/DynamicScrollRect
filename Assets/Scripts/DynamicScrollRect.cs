@@ -235,16 +235,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     #endregion
 
 
-    #region Debug Parameters, can be deleted
-
-    private int itemCount = 20;
-    private Vector2 scrollBoundMax;
-    private Vector2 scrollBoundMin;
-    private Vector2 contentBoundMax;
-    private Vector2 contentBoundMin;
-
-    #endregion
-
     #endregion
 
 
@@ -433,9 +423,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             contentStartPos += offset;
         }
 
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddItemAtStart", itemGroup);
-
         return true;
     }
 
@@ -471,9 +458,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             prevPos -= offset;
             contentStartPos -= offset;
         }
-
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddItemAtEnd", itemGroup);
 
         return true;
     }
@@ -513,10 +497,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(parent.GetComponent<RectTransform>());
         LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
-
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddSubItemAtStart", itemGroup);
-
         return true;
     }
 
@@ -550,9 +530,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             contentStartPos -= offset;
         }
 
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("AddSubItemAtEnd", itemGroup);
-
         return true;
     }
 
@@ -574,10 +551,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
             displayItemGroupList.Insert(0, newItemGroup);
             firstItemGroupIdx--;
-
-            /* Used for testing, can be deleted */
-            PrintAllIGInformation("AddItemGroupAtStart", newItemGroup);
-
             return true;
         }
         else
@@ -602,10 +575,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
             displayItemGroupList.Add(newItemGroup);
             lastItemGroupIdx++;
-
-            /* Used for testing, can be deleted */
-            PrintAllIGInformation("AddItemGroupAtEnd", newItemGroup);
-
             return true;
         }
         else
@@ -685,7 +654,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             (lastItemGroup.lastItemIdx != lastItemGroup.nestedItemIdx + 1 ||
              lastItemGroup.lastItemIdx == lastItemGroup.nestedItemIdx + 1 && lastItemGroup.lastSubItemIdx + lastItemGroup.nestedConstrainCount >= lastItemGroup.subItemCount))
         {
-            PrintAllIGInformation("RemoveItemAtStart fail", itemGroup);
             return false;
         }
 
@@ -714,10 +682,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             contentStartPos -= offset;
         }
 
-
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveItemAtStart", itemGroup);
-
         return true;
     }
 
@@ -737,7 +701,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             (firstItemGroup.firstItemIdx != firstItemGroup.nestedItemIdx ||
              firstItemGroup.firstItemIdx == firstItemGroup.nestedItemIdx && firstItemGroup.firstSubItemIdx < firstItemGroup.nestedConstrainCount))
         {
-            Debug.LogFormat("RemoveItemAtEnd fail, firstItemIdx: {0}, nestedItemIdx: {1}", firstItemGroup.firstItemIdx, firstItemGroup.nestedItemIdx);
             return false;
         }
 
@@ -766,9 +729,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             contentStartPos += offset;
         }
 
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveItemAtEnd", itemGroup);
-
         return true;
     }
 
@@ -789,7 +749,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             (lastItemGroup.lastItemIdx != lastItemGroup.nestedItemIdx + 1 ||
              lastItemGroup.lastItemIdx == lastItemGroup.nestedItemIdx + 1 && lastItemGroup.lastSubItemIdx + lastItemGroup.nestedConstrainCount >= lastItemGroup.subItemCount))
         {
-            PrintAllIGInformation("RemoveSubItemAtStart fail", itemGroup);
             return false;
         }
 
@@ -821,9 +780,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
         }
 
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveSubItemAtStart", itemGroup);
-
         return true;
     }
 
@@ -844,7 +800,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             (firstItemGroup.firstItemIdx != firstItemGroup.nestedItemIdx ||
              firstItemGroup.firstItemIdx == firstItemGroup.nestedItemIdx && firstItemGroup.firstSubItemIdx < firstItemGroup.nestedConstrainCount))
         {
-            Debug.LogFormat("RemoveSubItemAtEnd fail, firstItemIdx: {0}, nestedItemIdx: {1}", firstItemGroup.firstItemIdx, firstItemGroup.nestedItemIdx);
             return false;
         }
 
@@ -876,58 +831,34 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             LayoutRebuilder.ForceRebuildLayoutImmediate(scrollContentRect);
         }
 
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveSubItemAtEnd", itemGroup);
-
-
         return true;
     }
 
     private bool RemoveItemGroupAtStart()
     {
         if (displayItemGroupCount <= 0 || firstItemGroupIdx >= itemGroupCount)
-        {
-            Debug.LogFormat("RemoveItemGroupAtStart fail, displayItemGroupCount: {0}, firstItemGroupIdx: {1}", displayItemGroupCount, firstItemGroupIdx);
             return false;
-        }
 
         var currentItemGroup = displayItemGroupList[0];
         if (currentItemGroup.displayItemCount > 0 || currentItemGroup.displaySubItemCount > 0)
-        {
-            Debug.LogFormat("RemoveItemGroupAtStart fail, displayItemCount: {0}, displaySubItemCount: {1}", currentItemGroup.displayItemCount, currentItemGroup.displaySubItemCount);
             return false;
-        }
 
         displayItemGroupList.RemoveAt(0);
         firstItemGroupIdx++;
-
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveItemGroupAtStart", currentItemGroup);
-
         return true;
     }
 
     private bool RemoveItemGroupAtEnd()
     {
         if (displayItemGroupCount <= 0 || lastItemGroupIdx <= 0)
-        {
-            Debug.LogFormat("RemoveItemGroupAtEnd fail, displayItemGroupCount: {0}, lastItemGroupIdx: {1}�� ", displayItemGroupCount, lastItemGroupIdx);
             return false;
-        }
 
         var currentItemGroup = displayItemGroupList[displayItemGroupCount - 1];
         if (currentItemGroup.displayItemCount > 0 || currentItemGroup.displaySubItemCount > 0)
-        {
-            Debug.LogFormat("RemoveItemGroupAtEnd fail, displayItemCount: {0}, displaySubItemCount: {1}", currentItemGroup.displayItemCount, currentItemGroup.displaySubItemCount);
             return false;
-        }
 
         displayItemGroupList.RemoveAt(displayItemGroupCount - 1);
         lastItemGroupIdx--;
-
-        /* Used for testing, can be deleted */
-        PrintAllIGInformation("RemoveItemGroupAtEnd", currentItemGroup);
-
         return true;
     }
 
@@ -940,8 +871,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         if (itemGroup.firstItemIdx == itemGroup.itemCount - 1 &&                            /* Case 1: the first item is the last item and is not a nested item */
             itemGroup.firstItemIdx != itemGroup.nestedItemIdx)
         {
-            //PrintAllIGInformation("Remove element at start,  Before case 1", itemGroup);
-
             /* Need to consider upward item spacing between another item group */
             removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
             deltaSize += size;
@@ -951,8 +880,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
                  itemGroup.firstItemIdx == itemGroup.nestedItemIdx &&
                  itemGroup.firstSubItemIdx >= itemGroup.subItemCount - itemGroup.nestedConstrainCount)
         {
-            //PrintAllIGInformation("Remove element at start,  Before case 2", itemGroup);
-
             removeSuccess = RemoveSubItemAtStart(out size, false, itemGroup.displayItemList[0], itemGroup);
             deltaSize += size;
             removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
@@ -961,8 +888,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         }
         else if (itemGroup.firstItemIdx != itemGroup.nestedItemIdx)                         /* Case 3: the first item is not the last item and is not a nested item */
         {
-            //PrintAllIGInformation("Remove element at start,  Before case 3", itemGroup);
-
             removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
             deltaSize += size;
         }
@@ -970,8 +895,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         {
             if (itemGroup.firstSubItemIdx + itemGroup.nestedConstrainCount >= itemGroup.lastSubItemIdx)    /* Case 4.1: the first item is not the last item and is a nested item; the first subitem is the last subitem */
             {
-                //PrintAllIGInformation("Remove element at start,  Before case 4", itemGroup);
-
                 removeSuccess = RemoveSubItemAtStart(out size, false, itemGroup.displayItemList[0], itemGroup);
                 deltaSize += size;
                 removeSuccess = RemoveItemAtStart(out size, true, itemGroup);
@@ -979,8 +902,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             }
             else                                                                                                    /* Case 4.2: the first item is not the last item and is a nested item; the first subitem is not the last subitem */
             {
-                //PrintAllIGInformation("Remove element at start,  Before case 5", itemGroup);
-
                 removeSuccess = RemoveSubItemAtStart(out size, true, itemGroup.displayItemList[0], itemGroup);
                 deltaSize += size;
             }
@@ -998,8 +919,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         if (itemGroup.lastItemIdx == 1 &&                                /* Case 1: the last item is the last item of the item group and is not a nested item */
             itemGroup.lastItemIdx != itemGroup.nestedItemIdx + 1)
         {
-            //PrintAllIGInformation("Remove element at end,  Before case 1", itemGroup);
-
             /* Need to consider upward item spacing between another item group */
             removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
             deltaSize += size;
@@ -1009,8 +928,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
                  itemGroup.lastItemIdx == itemGroup.nestedItemIdx + 1 &&
                  itemGroup.lastSubItemIdx <= itemGroup.nestedConstrainCount)
         {
-            //PrintAllIGInformation("Remove element at end,  Before case 2", itemGroup);
-
             removeSuccess = RemoveSubItemAtEnd(out size, false, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
             deltaSize += size;
             removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
@@ -1019,8 +936,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         }
         else if (itemGroup.lastItemIdx - 1 != itemGroup.nestedItemIdx)                  /* Case 3: the last item is not the last item of the item group and is not a nested item */
         {
-            //PrintAllIGInformation("Remove element at end,  Before case 3", itemGroup);
-
             removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
             deltaSize += size;
         }
@@ -1028,8 +943,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         {
             if ((itemGroup.lastSubItemIdx - itemGroup.nestedConstrainCount) <= itemGroup.firstSubItemIdx)             /* Case 4.1: the last item is not the last item of the item group and is a nested item; the last subitem is the last subitem of the item group */
             {
-                //PrintAllIGInformation("Remove element at end,  Before case 4", itemGroup);
-
                 removeSuccess = RemoveSubItemAtEnd(out size, false, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
                 deltaSize += size;
                 removeSuccess = RemoveItemAtEnd(out size, true, itemGroup);
@@ -1037,8 +950,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             }
             else                                                                                /* Case 4.2: the last item is not the last item of the item group and is a nested item; the last subitem is not the last subitem of the item group */
             {
-                //PrintAllIGInformation("Remove element at end,  Before case 5", itemGroup);
-
                 removeSuccess = RemoveSubItemAtEnd(out size, true, itemGroup.displayItemList[itemGroup.displayItemCount - 1], itemGroup);
                 deltaSize += size;
             }
@@ -1187,7 +1098,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             return offset;
         if (movementType == ScrollMovementType.Clamped)
         {
-            if (itemCount < 0)
+            if (itemGroupCount < 0)
                 return offset;
 
             ItemGroupConfig headItemGroup = itemGroupList[0];
@@ -1359,7 +1270,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
         }
         else
         {
-            Debug.LogError("[GetSubItemSpacing] subContentRect does not exist! ");
+            Debug.LogError("DynamicScrollRect: GetSubItemSpacing(): subContentRect does not exist! ");
         }
         return spacing;
     } 
@@ -1473,20 +1384,12 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
 
     protected void UpdateScrollItemGroups()
     {
-        ///* Used for testing, can be deleted */
-        //PrintAllIGInformation();+
-        scrollBoundMax = scrollViewBounds.max;
-        scrollBoundMin = scrollViewBounds.min;
-        contentBoundMax = scrollContentBounds.max;
-        contentBoundMin = scrollContentBounds.min;
-
-
         if (itemGroupCount == 0)
             return;
 
+        float itemSize = 0f;
         ItemGroupConfig currItemGroup;
 
-        //// TO DO: Fast version, unstable
         /* special case 1: handling move several page upward in one frame */
         if ((direction == ScrollDirection.Vertical   && scrollViewBounds.max.y < scrollContentBounds.min.y) ||
             (direction == ScrollDirection.Horizontal && scrollViewBounds.min.x > scrollContentBounds.max.x) &&
@@ -1505,9 +1408,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             ItemGroupConfig tailItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
             currItemGroup = itemGroupList[firstItemGroupIdx];
 
-            print("????????????????????????????????");
-            PrintAllIGInformation("Special Case 1, Before the whole process");
-
             /* Remove all existing on-display element of the scroll, from head to head. */
             /* After remove, the head pointer and tail pointer of item groups, items, and subItems should equal to each other respectively */
             while (true)
@@ -1523,12 +1423,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
                 if (!removeSuccess)
                     break;
             }
-
-            /* Used for testing, can be deleted */
-            var temp1 = displayItemGroupList;
-            var temp2 = firstItemGroupIdx;
-            var temp3 = lastItemGroupIdx;
-            PrintAllIGInformation("Special case 1, After clearing old elements");
 
             RemoveItemGroupAtStart();
 
@@ -1559,10 +1453,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
                         count = currItemGroup.subItemCount - currItemGroup.lastSubItemIdx;
 
                     if (currItemGroup.lastSubItemIdx + count > currItemGroup.subItemCount)
-                    {
-                        Debug.LogErrorFormat("Special case 1, vritually add subItem at end fail, lastSubItemIdx: {0}, count: {1}", currItemGroup.lastSubItemIdx, count);
                         break;
-                    }
 
                     currItemGroup.lastSubItemIdx += count;
                     currItemGroup.firstSubItemIdx += count;
@@ -1585,10 +1476,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             }
             
             deltaSize = 0f;
-
-            /* Used for testing, can be deleted */
-            PrintAllIGInformation("Special case 1, After reseting pointer to tail");
-
             firstItemGroupIdx = lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0;
             displayItemGroupList.Add(currItemGroup);
 
@@ -1604,15 +1491,8 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             scrollContentRect.anchoredPosition -= GetVector2(offsetSize);
             scrollContentBounds.center -= GetVector3(offsetSize + (contentSize + deltaSize) / 2);
             scrollContentBounds.size = GetAbsVector3(deltaSize);
-
-            /* Used for testing, can be deleted */
-            Debug.LogFormat("Special case 1, after reloaction, offsetSize: {0}, contentSize: {1}, deltaSize: {2}", offsetSize, contentSize, deltaSize);
-            Debug.LogFormat("Special case 1, after reloaction, scrollContentRect.anchoredPosition : {0}, scrollContentBounds.center: {1}", scrollContentRect.anchoredPosition, scrollContentBounds.center);
-            PrintAllIGInformation("Special case 1, After the whole process finish");
         }
 
-
-        // TO DO: Fast version, unstable 
         /* special case 2: handling move several page downward in one frame */
         if ((direction == ScrollDirection.Vertical   && scrollViewBounds.min.y > scrollContentBounds.max.y) ||
             (direction == ScrollDirection.Horizontal && scrollViewBounds.max.x < scrollContentBounds.min.x) &&
@@ -1631,10 +1511,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             ItemGroupConfig headItemGroup = itemGroupList[firstItemGroupIdx];
             currItemGroup = itemGroupList[lastItemGroupIdx > 0 ? lastItemGroupIdx - 1 : 0];
 
-
-            print("////////////////////////////, Special case 2");
-            PrintAllIGInformation("Special case 2, Before the whole process");
-
             /* Remove all existing on-display element of the scroll, from tail to head. */
             /* After remove, the head pointer and tail pointer of item groups, items, and subItems should equal to each other respectively */
             while (true)
@@ -1650,9 +1526,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
                 if (!removeSuccess)
                     break;
             }
-
-            /* Used for testing, can be deleted */
-            PrintAllIGInformation("Special case 2, After clearing old elements");
 
             RemoveItemGroupAtEnd();
 
@@ -1685,10 +1558,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
                         count = currItemGroup.firstSubItemIdx;
 
                     if (currItemGroup.firstSubItemIdx - count < 0)
-                    {
-                        Debug.LogErrorFormat("Special case 2, vritually add subItem at start fail, firstSubItemIdx: {0}, count: {1}", currItemGroup.firstSubItemIdx, count);
                         break;
-                    }
 
                     currItemGroup.firstSubItemIdx -= count;
                     currItemGroup.lastSubItemIdx -= count;
@@ -1711,10 +1581,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             }
 
             deltaSize = 0f;
-
-            /* Used for testing, can be deleted */
-            PrintAllIGInformation("Special case 2, After reseting pointer to head");
-
             lastItemGroupIdx = firstItemGroupIdx + 1;
             displayItemGroupList.Add(currItemGroup);
 
@@ -1730,16 +1596,7 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
             scrollContentRect.anchoredPosition += GetVector2(offsetSize + GetAbsDimension(scrollViewBounds.size) + (reverseDirection ? contentSize : 0));
             scrollContentBounds.center += GetVector3(offsetSize + GetAbsDimension(scrollViewBounds.size) + (contentSize - deltaSize) / 2);
             scrollContentBounds.size = GetAbsVector3(deltaSize);
-
-
-            /* Used for testing, can be deleted */
-            Debug.LogFormat("Special case 2, after reloaction, offsetSize: {0}, contentSize: {1}, deltaSize: {2}", offsetSize, contentSize, deltaSize);
-            Debug.LogFormat("Special case 2, after reloaction, scrollContentRect.anchoredPosition : {0}, scrollContentBounds.center: {1}", scrollContentRect.anchoredPosition, scrollContentBounds.center);
-            PrintAllIGInformation("Special case 2, After the whole process finish");
         }
-
-
-        float itemSize = 0f;
 
         /* Case 1: the bottom of the last item is much higher than the bottom the viewPort */
         /* Need to add new items at the bottom of the scrollContent */
@@ -3035,51 +2892,6 @@ public class DynamicScrollRect : UIBehaviour, IInitializePotentialDragHandler, I
     }
 
     #endregion
-
-    #endregion
-
-
-
-
-    #region 测试log
-
-    private void PrintAllIGInformation(string callName = "", ItemGroupConfig operatIG = null)
-    {
-        //if (itemGroupList[1].displayItemCount == 0 && (itemGroupList[1].firstItemIdx != 0 && itemGroupList[1].lastItemIdx != 0))
-        //    return;
-
-        print(" ===================== ");
-        foreach (ItemGroupConfig itemGroup in itemGroupList)
-        {
-            int IGIdx;
-            int operatIGIdx = -1;
-
-            switch (itemGroup.nestedItemIdx)
-            {
-                case 3: IGIdx = 0; break;
-                case 1: IGIdx = 1; break;
-                case 0: IGIdx = 2; break;
-                case 2: IGIdx = 3; break;
-                default: IGIdx = 0; break;
-            }
-
-            if (operatIG != null && operatIG.nestedItemIdx == 3)
-                operatIGIdx = 0;
-            else if (operatIG != null && operatIG.nestedItemIdx == 1)
-                operatIGIdx = 1;
-            else if (operatIG != null && operatIG.nestedItemIdx == 0)
-                operatIGIdx = 2;
-            else if (operatIG != null && operatIG.nestedItemIdx == 2)
-                operatIGIdx = 3;
-
-            Debug.LogFormat("Item Group Index: {0}, Call By: {1}, Operating Item Group Index: {2}", IGIdx.ToString(), callName, operatIGIdx.ToString());
-            Debug.LogFormat("Display Item Group Count: {0}, First Item Group Index: {1}, Last Item Group Index: {2}", displayItemGroupCount, firstItemGroupIdx, lastItemGroupIdx);
-            Debug.LogFormat("Display Item Count: {0}, First Item Index: {1}, Last Item Index: {2}", itemGroup.displayItemCount, itemGroup.firstItemIdx, itemGroup.lastItemIdx);
-            Debug.LogFormat("Display SubItem Count: {0}, First SubItem Index: {1}, Last SubItem Index: {2}", itemGroup.displaySubItemCount, itemGroup.firstSubItemIdx, itemGroup.lastSubItemIdx);
-            print("\n");
-        }
-    }
-
 
     #endregion
 
