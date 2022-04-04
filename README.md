@@ -2,12 +2,12 @@
 
 ## Introduction
 
-In many scenarios you might need a scrollable view to display a bunch of elements that cannot be displayed in one screen at the same time. In some cases you may also want to arrange the layout of scroll view vertically or horizontally while some elements in the scroll view contain their own layouts as well, such as developing a scroll view to display player inventory in which items should be categorized by their types.
+In many scenarios, you might need a scrollable view to display a bunch of elements that cannot be displayed on one screen at the same time. In some cases you may also want to arrange the layout of scroll view vertically or horizontally while some elements in the scroll view contain their own layouts as well, such as developing a scroll view to display player inventory in which items should be categorized by their types.
 
 ![RealCase](Images/RealCase.gif)
 
-The `ScrollView` component provided by Unity is a simple solution for your needs. However, `ScrollView` instanciates all elements and manage them at once, consuming a lot of resources on those elements that are not displayed. 
-*DynamicScrollRect* provides a optimized solution for this scenarios. The scroll view will only instanciate those elements that are going to be displayed within the scroll view, saving a lot of draw calls and menory in use. *DynamicScrollRect* also support the nested layout structure mentioned above. If you are trying to display a large number of elements or construct a complex scroll view layout, *DynamicScrollRect* is absolutely what you need! 
+The `ScrollView` component provided by Unity is a simple solution for your needs. However, `ScrollView` instantiates all elements and manages them at once, consuming a lot of resources on those elements that are not displayed. 
+*DynamicScrollRect* provides an optimized solution for this scenario. The scroll view will only instantiate those elements that are going to be displayed within the scroll view, saving a lot of draw calls and memory in use. *DynamicScrollRect* also supports the nested layout structure mentioned above. If you are trying to display a large number of elements or construct a complex scroll view layout, *DynamicScrollRect* is absolutely what you need! 
 
 ![Demo1](Images/Demo1.gif)
 
@@ -18,10 +18,10 @@ You can see in the GIF below that elements that are outside of scroll view are r
 
 
 ## Features
-- Support nested layout group structure. That is, you can assign `LayoutGroup` component to the scroll content of *DynamicScrollRect* as a parent layout. And for items inside the scroll content, you can continue assign `LayoutGroup` to them as children layouts. (Noted that `GridLayoutGroup` is not allowed in scroll content)
-- Take advantages of object pool. Reuse collectable oject to improve performance and menory usage.
-- Support adding element to or removing element from scroll view during runtime.
-- Support relocating scroll view to specific item group, item or subItem.
+- Support nested layout group structure. That is, you can assign `LayoutGroup` component to the scroll content of *DynamicScrollRect* as a parent layout. And for items inside the scroll content, you can continue to assign `LayoutGroup` to them as children layouts. (Noted that `GridLayoutGroup` is not allowed in scroll content)
+- Take advantage of object pool. Reuse collectible object to improve performance and memory usage.
+- Support adding elements to or removing elements from scroll view during runtime.
+- Support relocating scroll view to specific item group, item, or subItem.
 - Support scroll bar.
 
 
@@ -65,7 +65,7 @@ Noted that `GridLayoutGroup` is not allowed in the scroll content of *DynamicScr
 
 There are two demo scenes in the Unity project for you to better understand how *DynamicScrollRect* works. They can be found in **./Asset/Demo** folder, marked as *'InspectorControlDemo'* and *'ScriptControlDemo'*. You will find an object called *'ScrollRect Controller'* in each scene, which provides you some tricks to manage *DynamicScrollRect* by script.
 
-Basically, you can construct a *DynamicScrollRect* from scratch by adding *'DynamicScrollRect'* script as a component to the object you want it to be and then assign parameters that required by *DynamicScrollRect*. However, I strongly recommand you to use the *DynamicScrollRect* prefabs instead, with basic parameters are already configured. You can find them in **./Asset/Demo/Prefabs** folder.
+Basically, you can construct a *DynamicScrollRect* from scratch by adding *'DynamicScrollRect'* script as a component to the object you want it to be and then assign parameters that are required by *DynamicScrollRect*. However, I strongly recommend you to use the *DynamicScrollRect* prefabs instead, with basic parameters are already configured. You can find them in **./Asset/Demo/Prefabs** folder.
 
 ![Demo3](Images/Demo3.gif)
 
