@@ -68,9 +68,11 @@ There are two demo scenes in the Unity project for you to better understand how 
 Basically, you can construct a *DynamicScrollRect* from scratch by adding *'DynamicScrollRect'* script as a component to the object you want it to be and then assign parameters that required by *DynamicScrollRect*. However, I strongly recommand you to use the *DynamicScrollRect* prefabs instead, with basic parameters are already configured. You can find them in **./Asset/Demo/Prefabs** folder.
 
 ![Demo3](Images/Demo3.gif)
+
 *Demo of add/remove items/SubItems during gameplay*
 
 ![Demo4](Images/Demo4.gif)
+
 *Demo of scroll to specific item*
 
 
@@ -82,7 +84,7 @@ Basically, you can construct a *DynamicScrollRect* from scratch by adding *'Dyna
 + ### Inherit APIs
   *DynamicScrollRect* inherits several native Unity UGUI APIs including: `ICanvasElement`, `ILayoutElement`, `ILayoutGroup` and implements them within the code. You don't need to concern these APIs, but you need to be cautious before modifying these APIs as this might lead to unpredictable errors.
 
-  ```csharp
+  ```cpp
   virtual void CalculateLayoutInputHorizontal()
 
   virtual void CalculateLayoutInputVertical()
@@ -101,7 +103,7 @@ Basically, you can construct a *DynamicScrollRect* from scratch by adding *'Dyna
 + ### UI event APIs
   *DynamicScrollRect* also inherits native Unity event system APIs including: `IInitializePotentialDragHandler`, `IBeginDragHandler`, `IEndDragHandler`, `IDragHandler`, `IScrollHandler`. You can override these APIs according to your need.
 
-  ```csharp
+  ```cpp
   virtual void OnInitializePotentialDrag(PointerEventData eventData)
 
   virtual void OnBeginDrag(PointerEventData eventData)
@@ -116,7 +118,7 @@ Basically, you can construct a *DynamicScrollRect* from scratch by adding *'Dyna
 + ### Scrollview alter APIs
   You can use these APIs to manage the scroll view before or during runtime. Noted that those APIs' names end with *"Static"* should be called when the scroll view is not in runtime. While those APIs' names end with *Dynamic* should be called when the scroll view is during runtime.
 
-  ```csharp
+  ```cpp
   void AddItemGroupStatic(int nestItemIdx, int subItemCount, List<GameObject> itemList, GameObject subItem)
   /* Add an item group. You need to specify those basic parameters of the item group. */
 
@@ -210,7 +212,7 @@ Basically, you can construct a *DynamicScrollRect* from scratch by adding *'Dyna
 + ### Scrollview relocation APIs
   You can use these APIs to conveniently jump to specific item group, item and subItem. *DynamicScrollRect* uses a coroutine to relocate the scroll view to the destinated location, you can specify the time that relocation takes.
 
-  ```csharp
+  ```cpp
   void ScrollToItemGroup(int itemGroupIdx, float time)
   /* Jump to specific item group. */
 
@@ -239,4 +241,5 @@ If you have any new functions that want to add to *DynamicScrollRect* or discove
 ## References
 
 ivomarel's [InfinityScroll](https://github.com/ivomarel/InfinityScroll) 
+
 qiankanglai's [LoopScrollRect](https://github.com/qiankanglai/LoopScrollRect)
